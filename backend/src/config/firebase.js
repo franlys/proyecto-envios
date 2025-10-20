@@ -1,35 +1,40 @@
+// backend/src/config/firebase.js
 import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+let firebaseInitialized = false;
 
 try {
-  // Leer el archivo de credenciales
-  const serviceAccount = JSON.parse(
-    readFileSync(join(__dirname, '../../serviceAccountKey.json'), 'utf8')
-  );
+  // Verificar que existan las variables de entorno necesarias
+  if (!process.env.FIREBASE_PROJECT_ID || 
+      !process.env.FIREBASE_PRIVATE_KEY || 
+      !process.env.FIREBASE_CLIENT_EMAIL) {
+    throw new Error('Faltan variables de entorno de Firebase');
+  }
 
-  console.log('✅ Firebase Config - Project ID:', serviceAccount.project_id);
+  // Configurar Firebase Admin con variables de entorno
+  const serviceAccount = {
+    type: 'service_account',
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Importante: reemplazar \n
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  };
 
-  // Inicializar Firebase Admin
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
   });
 
+  firebaseInitialized = true;
   console.log('✅ Firebase Admin inicializado correctamente');
 
 } catch (error) {
-  console.error('❌ Error inicializando Firebase:', error);
-  process.exit(1);
+  console.error('❌ Error inicializando Firebase:', error.message);
+  process.exit(1); // Detener la aplicación si Firebase falla
 }
 
-// Referencias a los servicios
-const db = admin.firestore();
-const auth = admin.auth();
+// Exportar instancias
+export const auth = admin.auth();
+export const db = admin.firestore();
+export { admin };
 
-console.log('✅ Firestore y Auth listos');
-
-export { admin, db, auth };
+export default admin;
