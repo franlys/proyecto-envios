@@ -1,17 +1,13 @@
 // backend/src/config/firebase.js
 import admin from 'firebase-admin';
 
-let firebaseInitialized = false;
-
 try {
-  // Verificar que existan las variables de entorno necesarias
   if (!process.env.FIREBASE_PROJECT_ID || 
       !process.env.FIREBASE_PRIVATE_KEY || 
       !process.env.FIREBASE_CLIENT_EMAIL) {
     throw new Error('Faltan variables de entorno de Firebase');
   }
 
-  // Configurar Firebase Admin con variables de entorno
   const serviceAccount = {
     type: 'service_account',
     project_id: process.env.FIREBASE_PROJECT_ID,
@@ -24,8 +20,7 @@ try {
     databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
   });
 
-  firebaseInitialized = true;
-  console.log('✅ Firebase Admin inicializado correctamente');
+  console.log('✅ Firebase inicializado correctamente');
 
 } catch (error) {
   console.error('❌ Error inicializando Firebase:', error.message);
