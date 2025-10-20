@@ -1,6 +1,8 @@
 // backend/src/config/firebase.js
 import admin from 'firebase-admin';
 
+console.log('🔥 Firebase Config v2.0 - Usando variables de entorno');
+
 try {
   if (!process.env.FIREBASE_PROJECT_ID || 
       !process.env.FIREBASE_PRIVATE_KEY || 
