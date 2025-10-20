@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "743244010565",
+    "project_id": "embarques-7ad6e",
+    "storage_bucket": "embarques-7ad6e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:743244010565:android:a889be517d5fc28020ff2c",
+        "android_client_info": {
+          "package_name": "com.envios.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbm3BkHU0T5Kx7Ju4wUv__KS2HszPpdCA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
