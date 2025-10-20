@@ -15,7 +15,7 @@ try {
   const serviceAccount = {
     type: 'service_account',
     project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Importante: reemplazar \n
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
     client_email: process.env.FIREBASE_CLIENT_EMAIL,
   };
 
@@ -29,12 +29,10 @@ try {
 
 } catch (error) {
   console.error('❌ Error inicializando Firebase:', error.message);
-  process.exit(1); // Detener la aplicación si Firebase falla
+  process.exit(1);
 }
 
-// Exportar instancias
 export const auth = admin.auth();
 export const db = admin.firestore();
 export { admin };
-
 export default admin;
