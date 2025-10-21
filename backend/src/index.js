@@ -11,18 +11,65 @@ import reportesRoutes from './routes/reportes.js';
 import embarquesRoutes from './routes/embarques.js';
 import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
-import facturasRoutes from './routes/facturas.js'; // ✅ AGREGADO
+import facturasRoutes from './routes/facturas.js';
 
 dotenv.config();
 
 const app = express();
 
-// Middlewares
+// =====================================================
+// 🔧 CONFIGURACIÓN MEJORADA DE CORS
+// =====================================================
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  process.env.FRONTEND_URL,
+  // Permite todos los subdominios de Vercel
+  /https:\/\/.*\.vercel\.app$/,
+  /https:\/\/proyecto-envios.*\.vercel\.app$/
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (Postman, mobile apps, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Verificar si el origin está permitido
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`❌ CORS bloqueó origen: ${origin}`);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 horas
 }));
+
+// =====================================================
+// MIDDLEWARES
+// =====================================================
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Logging middleware (útil para debugging)
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`);
+  next();
+});
 
 // =====================================================
 // HEALTH CHECK ENDPOINT
@@ -36,6 +83,10 @@ app.get('/api/health', (req, res) => {
     services: {
       api: 'online',
       firebase: 'connected'
+    },
+    cors: {
+      frontendUrl: process.env.FRONTEND_URL,
+      allowedOrigins: allowedOrigins.map(o => o instanceof RegExp ? o.toString() : o)
     }
   });
 });
@@ -50,7 +101,7 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/embarques', embarquesRoutes);
 app.use('/api/rutas', rutasRoutes);
 app.use('/api/tickets', ticketsRoutes);
-app.use('/api/facturas', facturasRoutes); // ✅ AGREGADO
+app.use('/api/facturas', facturasRoutes);
 
 // =====================================================
 // RUTA RAÍZ
@@ -70,7 +121,7 @@ app.get('/', (req, res) => {
       embarques: '/api/embarques',
       rutas: '/api/rutas',
       tickets: '/api/tickets',
-      facturas: '/api/facturas' // ✅ AGREGADO
+      facturas: '/api/facturas'
     }
   });
 });
@@ -97,14 +148,36 @@ app.use('*', (req, res) => {
       'GET    /api/reportes/facturas',
       'GET    /api/embarques',
       'GET    /api/rutas',
-      'GET    /api/facturas',              // ✅ AGREGADO
-      'GET    /api/facturas/no-entregadas', // ✅ AGREGADO
+      'GET    /api/facturas',
+      'GET    /api/facturas/no-entregadas',
       'POST   /api/tickets',
       'GET    /api/tickets/my-tickets',
       'GET    /api/tickets/all',
       'PATCH  /api/tickets/:id/respond',
       'PATCH  /api/tickets/:id/close'
     ]
+  });
+});
+
+// =====================================================
+// MANEJO DE ERRORES GLOBAL
+// =====================================================
+app.use((err, req, res, next) => {
+  console.error('❌ Error global:', err);
+  
+  if (err.message.includes('CORS')) {
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'Origin not allowed',
+      origin: req.headers.origin
+    });
+  }
+  
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Something went wrong' 
+      : err.message
   });
 });
 
@@ -120,6 +193,7 @@ app.listen(PORT, () => {
   console.log(`📡 Puerto: ${PORT}`);
   console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔒 CORS configurado para Vercel`);
   console.log('\n📋 Rutas disponibles:');
   console.log('   ✅ GET    /api/health');
   console.log('   ✅ POST   /api/auth/login');
@@ -133,8 +207,8 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/reportes/facturas');
   console.log('   ✅ GET    /api/embarques');
   console.log('   ✅ GET    /api/rutas');
-  console.log('   ✅ GET    /api/facturas              ← NUEVO');
-  console.log('   ✅ GET    /api/facturas/no-entregadas ← NUEVO');
+  console.log('   ✅ GET    /api/facturas');
+  console.log('   ✅ GET    /api/facturas/no-entregadas');
   console.log('   ✅ POST   /api/tickets');
   console.log('   ✅ GET    /api/tickets/my-tickets');
   console.log('   ✅ GET    /api/tickets/all');

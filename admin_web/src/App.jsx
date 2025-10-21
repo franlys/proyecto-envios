@@ -13,7 +13,7 @@ import Empleados from './pages/Empleados';
 import Reportes from './pages/Reportes';
 import TicketsAdmin from './pages/TicketsAdmin';
 import Configuracion from './pages/Configuracion';
-
+import Ayuda from './pages/Ayuda.jsx';
 
 // Componente que decide qué Dashboard mostrar según el rol
 const DashboardRouter = () => {
