@@ -19,7 +19,8 @@ try {
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
+    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET // ← AGREGAR ESTA LÍNEA
   });
 
   console.log('✅ Firebase inicializado correctamente');
@@ -31,5 +32,6 @@ try {
 
 export const auth = admin.auth();
 export const db = admin.firestore();
+export const storage = admin.storage(); // ← AGREGAR ESTA LÍNEA
 export { admin };
 export default admin;
