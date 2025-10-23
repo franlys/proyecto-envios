@@ -12,6 +12,7 @@ import embarquesRoutes from './routes/embarques.js';
 import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
 import facturasRoutes from './routes/facturas.js';
+import recoleccionesRoutes from './routes/recolecciones.js'; // ← NUEVO
 
 dotenv.config();
 
@@ -102,6 +103,7 @@ app.use('/api/embarques', embarquesRoutes);
 app.use('/api/rutas', rutasRoutes);
 app.use('/api/tickets', ticketsRoutes);
 app.use('/api/facturas', facturasRoutes);
+app.use('/api/recolecciones', recoleccionesRoutes); // ← NUEVO
 
 // =====================================================
 // RUTA RAÍZ
@@ -121,7 +123,8 @@ app.get('/', (req, res) => {
       embarques: '/api/embarques',
       rutas: '/api/rutas',
       tickets: '/api/tickets',
-      facturas: '/api/facturas'
+      facturas: '/api/facturas',
+      recolecciones: '/api/recolecciones' // ← NUEVO
     }
   });
 });
@@ -154,7 +157,11 @@ app.use('*', (req, res) => {
       'GET    /api/tickets/my-tickets',
       'GET    /api/tickets/all',
       'PATCH  /api/tickets/:id/respond',
-      'PATCH  /api/tickets/:id/close'
+      'PATCH  /api/tickets/:id/close',
+      'POST   /api/recolecciones', // ← NUEVO
+      'GET    /api/recolecciones/:tracking',
+      'GET    /api/recolecciones/recolector/:id',
+      'POST   /api/recolecciones/:tracking/fotos'
     ]
   });
 });
@@ -214,6 +221,10 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/tickets/all');
   console.log('   ✅ PATCH  /api/tickets/:id/respond');
   console.log('   ✅ PATCH  /api/tickets/:id/close');
+  console.log('   ✅ POST   /api/recolecciones'); // ← NUEVO
+  console.log('   ✅ GET    /api/recolecciones/:tracking');
+  console.log('   ✅ GET    /api/recolecciones/recolector/:id');
+  console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');
   console.log('\n💡 Tip: Visita http://localhost:' + PORT + '/api/health\n');
 });
 
