@@ -1,6 +1,6 @@
 ﻿// admin_web/src/components/Layout.jsx
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, FileText, Users, BarChart3, Settings, LogOut, HelpCircle, Building2, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Package, Truck, FileText, Users, BarChart3, Settings, LogOut, HelpCircle, Building2, Briefcase, PackageSearch } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../services/firebase';
@@ -23,13 +23,19 @@ const Layout = ({ children }) => {
   const getRolDisplay = (rol) => {
     const roles = {
       'super_admin': 'Super Administrador',
-      'admin': 'Administrador General',
+      'admin_general': 'Administrador General',
+      'admin': 'Administrador General', // Compatibilidad
+      'recolector': 'Recolector (EE.UU.)',
+      'almacen_eeuu': 'Almacén EE.UU.', // Futuro
       'secretaria': 'Secretaria',
-      'almacen': 'Encargado de Almacén',
+      'almacen': 'Encargado de Almacén (RD)',
       'repartidor': 'Repartidor'
     };
     return roles[rol] || rol;
   };
+
+  // Normalizar rol (admin → admin_general)
+  const rolActual = userData?.rol === 'admin' ? 'admin_general' : userData?.rol;
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
@@ -58,7 +64,7 @@ const Layout = ({ children }) => {
             </Link>
 
             {/* ==================== SUPER ADMIN ONLY ==================== */}
-            {userData?.rol === 'super_admin' && (
+            {rolActual === 'super_admin' && (
               <>
                 <Link
                   to="/companies"
@@ -103,99 +109,246 @@ const Layout = ({ children }) => {
               </>
             )}
 
-            {/* ==================== COMPANY USERS (admin, secretaria, almacen, repartidor) ==================== */}
-            {userData?.rol !== 'super_admin' && (
+            {/* ==================== ADMIN GENERAL (acceso total) ==================== */}
+            {rolActual === 'admin_general' && (
               <>
-                {/* Embarques - admin, secretaria, almacen */}
-                {['admin', 'secretaria', 'almacen'].includes(userData?.rol) && (
-                  <Link
-                    to="/embarques"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/embarques'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <Package size={20} />
-                    <span>Embarques</span>
-                  </Link>
-                )}
+                <Link
+                  to="/recolecciones"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/recolecciones'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <PackageSearch size={20} />
+                  <span>Recolecciones</span>
+                </Link>
 
-                {/* Rutas - admin, secretaria, almacen */}
-                {['admin', 'secretaria', 'almacen'].includes(userData?.rol) && (
-                  <Link
-                    to="/rutas"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/rutas'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <Truck size={20} />
-                    <span>Rutas</span>
-                  </Link>
-                )}
+                <Link
+                  to="/embarques"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/embarques'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Package size={20} />
+                  <span>Embarques</span>
+                </Link>
 
-                {/* Panel Secretarias - admin, secretaria */}
-                {['admin', 'secretaria'].includes(userData?.rol) && (
-                  <Link
-                    to="/secretarias"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/secretarias'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <Briefcase size={20} />
-                    <span>Panel Secretarias</span>
-                  </Link>
-                )}
+                <Link
+                  to="/rutas"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/rutas'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Truck size={20} />
+                  <span>Rutas</span>
+                </Link>
 
-                {/* Facturas No Entregadas - admin, secretaria, almacen */}
-                {['admin', 'secretaria', 'almacen'].includes(userData?.rol) && (
-                  <Link
-                    to="/facturas-no-entregadas"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/facturas-no-entregadas'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <FileText size={20} />
-                    <span>Facturas No Entregadas</span>
-                  </Link>
-                )}
+                <Link
+                  to="/secretarias"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/secretarias'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Briefcase size={20} />
+                  <span>Panel Secretarias</span>
+                </Link>
 
-                {/* Empleados - solo admin de compañía */}
-                {userData?.rol === 'admin' && (
-                  <Link
-                    to="/empleados"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/empleados'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <Users size={20} />
-                    <span>Empleados</span>
-                  </Link>
-                )}
+                <Link
+                  to="/facturas-no-entregadas"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/facturas-no-entregadas'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <FileText size={20} />
+                  <span>Facturas No Entregadas</span>
+                </Link>
 
-                {/* Reportes - admin, secretaria, almacen */}
-                {['admin', 'secretaria', 'almacen'].includes(userData?.rol) && (
-                  <Link
-                    to="/reportes"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/reportes'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    <BarChart3 size={20} />
-                    <span>Reportes</span>
-                  </Link>
-                )}
+                <Link
+                  to="/empleados"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/empleados'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Users size={20} />
+                  <span>Empleados</span>
+                </Link>
+
+                <Link
+                  to="/reportes"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/reportes'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <BarChart3 size={20} />
+                  <span>Reportes</span>
+                </Link>
               </>
+            )}
+
+            {/* ==================== RECOLECTOR (solo recolecciones) ==================== */}
+            {rolActual === 'recolector' && (
+              <Link
+                to="/recolecciones"
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  location.pathname === '/recolecciones'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <PackageSearch size={20} />
+                <span>Mis Recolecciones</span>
+              </Link>
+            )}
+
+            {/* ==================== ALMACÉN EE.UU. (futuro) ==================== */}
+            {rolActual === 'almacen_eeuu' && (
+              <>
+                <Link
+                  to="/recolecciones"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/recolecciones'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <PackageSearch size={20} />
+                  <span>Recolecciones</span>
+                </Link>
+
+                <Link
+                  to="/embarques"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/embarques'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Package size={20} />
+                  <span>Embarques</span>
+                </Link>
+              </>
+            )}
+
+            {/* ==================== SECRETARIA ==================== */}
+            {rolActual === 'secretaria' && (
+              <>
+                <Link
+                  to="/embarques"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/embarques'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Package size={20} />
+                  <span>Embarques</span>
+                </Link>
+
+                <Link
+                  to="/rutas"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/rutas'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Truck size={20} />
+                  <span>Rutas</span>
+                </Link>
+
+                <Link
+                  to="/secretarias"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/secretarias'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Briefcase size={20} />
+                  <span>Panel Secretarias</span>
+                </Link>
+
+                <Link
+                  to="/facturas-no-entregadas"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/facturas-no-entregadas'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <FileText size={20} />
+                  <span>Facturas No Entregadas</span>
+                </Link>
+              </>
+            )}
+
+            {/* ==================== ALMACÉN RD ==================== */}
+            {rolActual === 'almacen' && (
+              <>
+                <Link
+                  to="/embarques"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/embarques'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Package size={20} />
+                  <span>Embarques</span>
+                </Link>
+
+                <Link
+                  to="/rutas"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/rutas'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Truck size={20} />
+                  <span>Rutas</span>
+                </Link>
+
+                <Link
+                  to="/facturas-no-entregadas"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    location.pathname === '/facturas-no-entregadas'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <FileText size={20} />
+                  <span>Facturas No Entregadas</span>
+                </Link>
+              </>
+            )}
+
+            {/* ==================== REPARTIDOR ==================== */}
+            {rolActual === 'repartidor' && (
+              <Link
+                to="/rutas"
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  location.pathname === '/rutas'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <Truck size={20} />
+                <span>Mis Rutas</span>
+              </Link>
             )}
           </div>
         </nav>
@@ -220,6 +373,7 @@ const Layout = ({ children }) => {
             <p className="text-sm text-gray-400">Sesión activa como:</p>
             <p className="font-medium truncate">{userData?.nombre || 'Usuario'}</p>
             <p className="text-xs text-gray-500 truncate">{userData?.email}</p>
+            <p className="text-xs text-blue-400 mt-1">{getRolDisplay(rolActual)}</p>
           </div>
         </div>
       </aside>
@@ -248,7 +402,7 @@ const Layout = ({ children }) => {
                 </div>
                 <div className="hidden md:block">
                   <p className="text-sm font-medium text-gray-800 dark:text-white">{userData?.nombre}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{getRolDisplay(userData?.rol)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{getRolDisplay(rolActual)}</p>
                 </div>
               </div>
 
