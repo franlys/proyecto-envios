@@ -190,6 +190,221 @@ class Recoleccion {
       throw error;
     }
   }
+
+  /**
+   * Obtener recolecciones con filtros avanzados
+   */
+  static async obtenerConFiltros(filtros = {}, limit = 100, offset = 0) {
+    try {
+      let query = db.collection('recolecciones');
+      
+      // Aplicar filtros
+      if (filtros.status) {
+        query = query.where('status', '==', filtros.status);
+      }
+      
+      if (filtros.recolector_id) {
+        query = query.where('recolector_id', '==', filtros.recolector_id);
+      }
+      
+      if (filtros.tracking_numero) {
+        query = query.where('tracking_numero', '==', filtros.tracking_numero);
+      }
+      
+      if (filtros.contenedor_id) {
+        query = query.where('contenedor_id', '==', filtros.contenedor_id);
+      }
+      
+      // Filtro por rango de fechas
+      if (filtros.fecha_recoleccion) {
+        if (filtros.fecha_recoleccion.$gte) {
+          query = query.where('fecha_recoleccion', '>=', filtros.fecha_recoleccion.$gte.toISOString());
+        }
+        if (filtros.fecha_recoleccion.$lte) {
+          query = query.where('fecha_recoleccion', '<=', filtros.fecha_recoleccion.$lte.toISOString());
+        }
+      }
+      
+      // Ordenar y paginar
+      query = query.orderBy('fecha_recoleccion', 'desc')
+                   .limit(limit)
+                   .offset(offset);
+      
+      const snapshot = await query.get();
+      
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+    } catch (error) {
+      console.error('Error obteniendo recolecciones con filtros:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Búsqueda rápida por término (tracking o nombre)
+   */
+  static async buscarPorTermino(termino) {
+    try {
+      const resultados = [];
+      
+      // Buscar por tracking exacto
+      const trackingDoc = await db.collection('recolecciones').doc(termino).get();
+      if (trackingDoc.exists) {
+        resultados.push({
+          id: trackingDoc.id,
+          ...trackingDoc.data()
+        });
+        return resultados;
+      }
+      
+      // Buscar por nombre de destinatario (parcial)
+      const snapshot = await db.collection('recolecciones')
+        .orderBy('destinatario.nombre')
+        .startAt(termino)
+        .endAt(termino + '\uf8ff')
+        .limit(10)
+        .get();
+      
+      snapshot.docs.forEach(doc => {
+        resultados.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      return resultados;
+      
+    } catch (error) {
+      console.error('Error en búsqueda:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Obtener estadísticas de un recolector
+   */
+  static async obtenerEstadisticasRecolector(recolectorId) {
+    try {
+      const snapshot = await db.collection('recolecciones')
+        .where('recolector_id', '==', recolectorId)
+        .get();
+      
+      const recolecciones = snapshot.docs.map(doc => doc.data());
+      
+      // Contar por estado
+      const porEstado = {};
+      recolecciones.forEach(rec => {
+        porEstado[rec.status] = (porEstado[rec.status] || 0) + 1;
+      });
+      
+      // Calcular totales
+      const total = recolecciones.length;
+      const enProceso = recolecciones.filter(r => 
+        !['Entregado', 'Cancelado'].includes(r.status)
+      ).length;
+      
+      const valorTotal = recolecciones.reduce((sum, r) => 
+        sum + (r.paquete.valor_declarado || 0), 0
+      );
+      
+      const pesoTotal = recolecciones.reduce((sum, r) => 
+        sum + (r.paquete.peso || 0), 0
+      );
+      
+      return {
+        recolector_id: recolectorId,
+        total_recolecciones: total,
+        en_proceso: enProceso,
+        entregadas: porEstado['Entregado'] || 0,
+        por_estado: porEstado,
+        valor_total: valorTotal,
+        peso_total: pesoTotal,
+        ultima_recoleccion: recolecciones[0]?.fecha_recoleccion || null
+      };
+      
+    } catch (error) {
+      console.error('Error obteniendo estadísticas:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Cambiar estado de recolección con historial
+   */
+  static async cambiarEstado(trackingNumero, nuevoEstado, usuario, notas = null) {
+    try {
+      const docRef = db.collection('recolecciones').doc(trackingNumero);
+      const doc = await docRef.get();
+      
+      if (!doc.exists) {
+        return null;
+      }
+      
+      const updateData = {
+        status: nuevoEstado,
+        updatedAt: new Date().toISOString(),
+        historial: admin.firestore.FieldValue.arrayUnion({
+          fecha: new Date().toISOString(),
+          accion: `Cambio de estado a: ${nuevoEstado}`,
+          usuario: usuario || 'Sistema',
+          notas: notas || null
+        })
+      };
+      
+      // Agregar campos específicos según el estado
+      if (nuevoEstado === 'En almacén EE.UU.') {
+        updateData.fecha_llegada_almacen_eeuu = new Date().toISOString();
+      }
+      
+      if (nuevoEstado === 'En almacén RD') {
+        updateData.fecha_llegada_almacen_rd = new Date().toISOString();
+      }
+      
+      if (nuevoEstado === 'Entregado') {
+        updateData.fecha_entrega = new Date().toISOString();
+      }
+      
+      await docRef.update(updateData);
+      
+      return {
+        id: trackingNumero,
+        ...doc.data(),
+        ...updateData
+      };
+      
+    } catch (error) {
+      console.error('Error cambiando estado:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Agregar fotos a una recolección
+   */
+  static async agregarFotos(trackingNumero, urls) {
+    try {
+      const docRef = db.collection('recolecciones').doc(trackingNumero);
+      const doc = await docRef.get();
+      
+      if (!doc.exists) {
+        return null;
+      }
+      
+      await docRef.update({
+        'paquete.fotos': admin.firestore.FieldValue.arrayUnion(...urls),
+        updatedAt: new Date().toISOString()
+      });
+      
+      return true;
+      
+    } catch (error) {
+      console.error('Error agregando fotos:', error);
+      throw error;
+    }
+  }
 }
 
 export default Recoleccion;

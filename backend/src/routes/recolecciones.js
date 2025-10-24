@@ -9,6 +9,176 @@ const router = express.Router();
 const storage = admin.storage().bucket();
 
 /**
+ * GET /api/recolecciones
+ * Listar todas las recolecciones con filtros
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { 
+      status,
+      recolector_id,
+      tracking,
+      fecha_inicio,
+      fecha_fin,
+      contenedor_id,
+      limit = 50 
+    } = req.query;
+
+    // Construir filtros
+    const filtros = {};
+    
+    if (status) filtros.status = status;
+    if (recolector_id) filtros.recolector_id = recolector_id;
+    if (tracking) filtros.tracking_numero = tracking;
+    if (contenedor_id) filtros.contenedor_id = contenedor_id;
+    
+    // Filtro por rango de fechas
+    if (fecha_inicio && fecha_fin) {
+      filtros.fecha_recoleccion = {
+        $gte: new Date(fecha_inicio),
+        $lte: new Date(fecha_fin)
+      };
+    }
+
+    const recolecciones = await Recoleccion.obtenerConFiltros(
+      filtros, 
+      parseInt(limit), 
+      0
+    );
+
+    res.json({
+      success: true,
+      count: recolecciones.length,
+      data: recolecciones,
+      filtros: filtros
+    });
+
+  } catch (error) {
+    console.error('Error listando recolecciones:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al listar recolecciones',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/recolecciones/buscar/:termino
+ * Búsqueda rápida por tracking o nombre
+ */
+router.get('/buscar/:termino', async (req, res) => {
+  try {
+    const { termino } = req.params;
+
+    const recolecciones = await Recoleccion.buscarPorTermino(termino);
+
+    res.json({
+      success: true,
+      data: recolecciones,
+      count: recolecciones.length
+    });
+
+  } catch (error) {
+    console.error('Error en búsqueda:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error en búsqueda',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/recolecciones/estadisticas/:recolector_id
+ * Obtener estadísticas de un recolector
+ */
+router.get('/estadisticas/:recolector_id', async (req, res) => {
+  try {
+    const { recolector_id } = req.params;
+
+    const estadisticas = await Recoleccion.obtenerEstadisticasRecolector(recolector_id);
+
+    res.json({
+      success: true,
+      data: estadisticas
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener estadísticas',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/recolecciones/recolector/:recolectorId
+ * Listar recolecciones de un recolector específico
+ */
+router.get('/recolector/:recolectorId', async (req, res) => {
+  try {
+    const { recolectorId } = req.params;
+    const { status, fecha_desde, limit } = req.query;
+
+    const filters = {};
+    if (status) filters.status = status;
+    if (fecha_desde) filters.fecha_desde = fecha_desde;
+    if (limit) filters.limit = parseInt(limit);
+
+    const recolecciones = await Recoleccion.listByRecolector(recolectorId, filters);
+
+    res.json({
+      success: true,
+      count: recolecciones.length,
+      data: recolecciones
+    });
+
+  } catch (error) {
+    console.error('Error listando recolecciones del recolector:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al listar recolecciones',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/recolecciones/:trackingNumero
+ * Obtener detalle de una recolección por tracking
+ */
+router.get('/:trackingNumero', async (req, res) => {
+  try {
+    const { trackingNumero } = req.params;
+
+    const recoleccion = await Recoleccion.getByTracking(trackingNumero);
+
+    if (!recoleccion) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Recolección no encontrada' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: recoleccion
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo recolección:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener recolección',
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/recolecciones
  * Crear nueva recolección
  */
@@ -30,6 +200,7 @@ router.post('/', async (req, res) => {
     // Validaciones básicas
     if (!recolector_id || !remitente || !destinatario || !pago) {
       return res.status(400).json({
+        success: false,
         error: 'Faltan campos requeridos'
       });
     }
@@ -43,7 +214,7 @@ router.post('/', async (req, res) => {
       peso,
       peso_unidad: peso_unidad || 'lb',
       valor_declarado: valor_declarado || 0,
-      fotos: [], // Las fotos se suben después
+      fotos: [],
       remitente,
       destinatario,
       pago
@@ -58,7 +229,126 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error creando recolección:', error);
     res.status(500).json({
+      success: false,
       error: 'Error al crear recolección',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * PATCH /api/recolecciones/:trackingNumero/estado
+ * Cambiar estado de una recolección
+ */
+router.patch('/:trackingNumero/estado', async (req, res) => {
+  try {
+    const { trackingNumero } = req.params;
+    const { nuevo_estado, usuario, notas } = req.body;
+
+    // Estados válidos
+    const estadosValidos = [
+      'Recolectado',
+      'En almacén EE.UU.',
+      'En contenedor',
+      'En tránsito',
+      'En almacén RD',
+      'Confirmado',
+      'En ruta',
+      'Entregado'
+    ];
+
+    if (!estadosValidos.includes(nuevo_estado)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Estado inválido',
+        estadosValidos: estadosValidos
+      });
+    }
+
+    const actualizado = await Recoleccion.cambiarEstado(
+      trackingNumero, 
+      nuevo_estado, 
+      usuario, 
+      notas
+    );
+
+    if (!actualizado) {
+      return res.status(404).json({
+        success: false,
+        error: 'Recolección no encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Estado actualizado correctamente',
+      data: {
+        tracking_numero: trackingNumero,
+        nuevo_estado: nuevo_estado
+      }
+    });
+
+  } catch (error) {
+    console.error('Error cambiando estado:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al cambiar estado',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * PATCH /api/recolecciones/:trackingNumero/status
+ * Actualizar status de una recolección (método alternativo)
+ */
+router.patch('/:trackingNumero/status', async (req, res) => {
+  try {
+    const { trackingNumero } = req.params;
+    const { status, usuario, notas, contenedor_id } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Status es requerido' 
+      });
+    }
+
+    // Validar status válidos
+    const statusValidos = [
+      'Recolectado',
+      'En almacén EE.UU.',
+      'En contenedor',
+      'En tránsito',
+      'En almacén RD',
+      'Confirmado',
+      'En ruta',
+      'Entregado'
+    ];
+
+    if (!statusValidos.includes(status)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Status inválido' 
+      });
+    }
+
+    await Recoleccion.updateStatus(trackingNumero, status, {
+      usuario,
+      notas,
+      contenedor_id
+    });
+
+    res.json({
+      success: true,
+      message: 'Status actualizado exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error actualizando status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al actualizar status',
       details: error.message
     });
   }
@@ -67,7 +357,6 @@ router.post('/', async (req, res) => {
 /**
  * POST /api/recolecciones/:trackingNumero/fotos
  * Subir fotos de una recolección
- * Acepta múltiples archivos
  */
 router.post('/:trackingNumero/fotos', upload.array('fotos', 5), async (req, res) => {
   try {
@@ -76,12 +365,18 @@ router.post('/:trackingNumero/fotos', upload.array('fotos', 5), async (req, res)
     // Verificar que la recolección existe
     const recoleccion = await Recoleccion.getByTracking(trackingNumero);
     if (!recoleccion) {
-      return res.status(404).json({ error: 'Recolección no encontrada' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Recolección no encontrada' 
+      });
     }
 
     // Verificar que se subieron archivos
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'No se recibieron archivos' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'No se recibieron archivos' 
+      });
     }
 
     const fotosUrls = [];
@@ -117,12 +412,8 @@ router.post('/:trackingNumero/fotos', upload.array('fotos', 5), async (req, res)
       fotosUrls.push(publicUrl);
     }
 
-    // Actualizar recolección con las URLs de las fotos
-    const db = admin.firestore();
-    await db.collection('recolecciones').doc(trackingNumero).update({
-      'paquete.fotos': admin.firestore.FieldValue.arrayUnion(...fotosUrls),
-      updatedAt: new Date().toISOString()
-    });
+    // Agregar URLs a la recolección
+    await Recoleccion.agregarFotos(trackingNumero, fotosUrls);
 
     res.json({
       success: true,
@@ -133,159 +424,8 @@ router.post('/:trackingNumero/fotos', upload.array('fotos', 5), async (req, res)
   } catch (error) {
     console.error('Error subiendo fotos:', error);
     res.status(500).json({
+      success: false,
       error: 'Error al subir fotos',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/recolecciones/:trackingNumero
- * Obtener detalle de una recolección
- */
-router.get('/:trackingNumero', async (req, res) => {
-  try {
-    const { trackingNumero } = req.params;
-
-    const recoleccion = await Recoleccion.getByTracking(trackingNumero);
-
-    if (!recoleccion) {
-      return res.status(404).json({ error: 'Recolección no encontrada' });
-    }
-
-    res.json({
-      success: true,
-      data: recoleccion
-    });
-
-  } catch (error) {
-    console.error('Error obteniendo recolección:', error);
-    res.status(500).json({
-      error: 'Error al obtener recolección',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/recolecciones/recolector/:recolectorId
- * Listar recolecciones de un recolector
- */
-router.get('/recolector/:recolectorId', async (req, res) => {
-  try {
-    const { recolectorId } = req.params;
-    const { status, fecha_desde, limit } = req.query;
-
-    const filters = {};
-    if (status) filters.status = status;
-    if (fecha_desde) filters.fecha_desde = fecha_desde;
-    if (limit) filters.limit = parseInt(limit);
-
-    const recolecciones = await Recoleccion.listByRecolector(recolectorId, filters);
-
-    res.json({
-      success: true,
-      count: recolecciones.length,
-      data: recolecciones
-    });
-
-  } catch (error) {
-    console.error('Error listando recolecciones:', error);
-    res.status(500).json({
-      error: 'Error al listar recolecciones',
-      details: error.message
-    });
-  }
-});
-
-/**
- * PATCH /api/recolecciones/:trackingNumero/status
- * Actualizar status de una recolección
- */
-router.patch('/:trackingNumero/status', async (req, res) => {
-  try {
-    const { trackingNumero } = req.params;
-    const { status, usuario, notas, contenedor_id } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ error: 'Status es requerido' });
-    }
-
-    // Validar status válidos
-    const statusValidos = [
-      'Recolectado',
-      'En almacén EE.UU.',
-      'En contenedor',
-      'En tránsito',
-      'En almacén RD',
-      'Confirmado',
-      'En ruta',
-      'Entregado'
-    ];
-
-    if (!statusValidos.includes(status)) {
-      return res.status(400).json({ error: 'Status inválido' });
-    }
-
-    await Recoleccion.updateStatus(trackingNumero, status, {
-      usuario,
-      notas,
-      contenedor_id
-    });
-
-    res.json({
-      success: true,
-      message: 'Status actualizado exitosamente'
-    });
-
-  } catch (error) {
-    console.error('Error actualizando status:', error);
-    res.status(500).json({
-      error: 'Error al actualizar status',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/recolecciones
- * Listar todas las recolecciones (con filtros)
- */
-router.get('/', async (req, res) => {
-  try {
-    const { status, contenedor_id, limit = 50 } = req.query;
-    const db = admin.firestore();
-
-    let query = db.collection('recolecciones');
-
-    // Aplicar filtros
-    if (status) {
-      query = query.where('status', '==', status);
-    }
-
-    if (contenedor_id) {
-      query = query.where('contenedor_id', '==', contenedor_id);
-    }
-
-    // Ordenar y limitar
-    query = query.orderBy('fecha_recoleccion', 'desc').limit(parseInt(limit));
-
-    const snapshot = await query.get();
-    const recolecciones = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    res.json({
-      success: true,
-      count: recolecciones.length,
-      data: recolecciones
-    });
-
-  } catch (error) {
-    console.error('Error listando recolecciones:', error);
-    res.status(500).json({
-      error: 'Error al listar recolecciones',
       details: error.message
     });
   }
