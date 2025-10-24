@@ -1,57 +1,76 @@
 // backend/src/routes/companies.js
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
+import { verifyUser, requireRole } from '../middleware/authSimple.js';
 import { db } from '../config/firebase.js';
 
 const router = express.Router();
-router.use(verifyToken);
 
-// GET /api/companies - Obtener todas las compañías (solo super_admin)
+// Aplicar autenticación a todas las rutas
+router.use(verifyUser);
+
+/**
+ * GET /api/companies
+ * Obtener todas las compañías
+ * - super_admin: ve todas
+ * - admin_general: ve solo su compañía
+ */
 router.get('/', async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    const userData = userDoc.data();
+    let companies = [];
 
-    if (userData.rol !== 'super_admin') {
-      return res.status(403).json({ 
-        error: 'Solo super administradores pueden ver todas las compañías' 
+    // Super admin ve todas las compañías
+    if (req.user.rol === 'super_admin') {
+      const snapshot = await db.collection('companies').get();
+      
+      snapshot.forEach(doc => {
+        companies.push({
+          id: doc.id,
+          ...doc.data()
+        });
       });
+
+      console.log(`✅ Super Admin - ${companies.length} compañías encontradas`);
+    } 
+    // Admin general solo ve su compañía
+    else if (req.user.companyId) {
+      const companyDoc = await db.collection('companies').doc(req.user.companyId).get();
+      
+      if (companyDoc.exists) {
+        companies.push({
+          id: companyDoc.id,
+          ...companyDoc.data()
+        });
+      }
+
+      console.log(`✅ Admin General - Compañía encontrada: ${req.user.companyId}`);
     }
 
-    const snapshot = await db.collection('companies').get();
-    const companies = [];
-    
-    snapshot.forEach(doc => {
-      companies.push({
-        id: doc.id,
-        ...doc.data()
-      });
+    res.json({
+      success: true,
+      count: companies.length,
+      data: companies
     });
-
-    console.log(`✅ Compañías encontradas: ${companies.length}`);
-    res.json(companies);
     
   } catch (error) {
     console.error('Error obteniendo compañías:', error);
-    res.status(500).json({ error: 'Error al obtener compañías' });
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener compañías',
+      details: error.message
+    });
   }
 });
 
-// GET /api/companies/my-limits - Límites del plan de la compañía del usuario
+/**
+ * GET /api/companies/my-limits
+ * Obtener límites del plan de la compañía del usuario
+ */
 router.get('/my-limits', async (req, res) => {
   try {
-    console.log('👤 Usuario autenticado:', req.user?.uid);
-    
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    const userData = userDoc.data();
-    console.log('📊 UserData:', userData);
-
-    if (!userData) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
+    console.log('👤 Usuario:', req.user.uid, '-', req.user.rol);
 
     // Si es super_admin, devolver límites ilimitados
-    if (userData.rol === 'super_admin') {
+    if (req.user.rol === 'super_admin') {
       const limits = {
         plan: 'enterprise',
         usuarios: { 
@@ -76,39 +95,48 @@ router.get('/my-limits', async (req, res) => {
           remaining: -1 
         }
       };
-      return res.json(limits);
+      return res.json({
+        success: true,
+        data: limits
+      });
     }
 
-    if (!userData.companyId) {
-      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+    if (!req.user.companyId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Usuario sin compañía asignada'
+      });
     }
 
     // Obtener datos de la compañía
-    const companyDoc = await db.collection('companies').doc(userData.companyId).get();
+    const companyDoc = await db.collection('companies').doc(req.user.companyId).get();
     if (!companyDoc.exists) {
-      return res.status(404).json({ error: 'Compañía no encontrada' });
+      return res.status(404).json({
+        success: false,
+        error: 'Compañía no encontrada'
+      });
     }
 
     const companyData = companyDoc.data();
     
     // Contar usuarios de la compañía
     const usuariosSnapshot = await db.collection('usuarios')
-      .where('companyId', '==', userData.companyId)
+      .where('companyId', '==', req.user.companyId)
       .where('activo', '==', true)
       .get();
     
     // Contar rutas activas
     const rutasSnapshot = await db.collection('rutas')
-      .where('companyId', '==', userData.companyId)
+      .where('companyId', '==', req.user.companyId)
       .where('estado', '==', 'activa')
       .get();
     
-    // Contar facturas del mes sin filtro de fecha en query
+    // Contar facturas del mes
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     const facturasSnapshot = await db.collection('facturas')
-      .where('companyId', '==', userData.companyId)
+      .where('companyId', '==', req.user.companyId)
       .get();
 
     let facturasMesCount = 0;
@@ -162,67 +190,81 @@ router.get('/my-limits', async (req, res) => {
     };
 
     console.log('✅ Enviando límites:', result);
-    res.json(result);
+    res.json({
+      success: true,
+      data: result
+    });
     
   } catch (error) {
     console.error('❌ Error en my-limits:', error);
-    res.status(500).json({ error: 'Error al obtener límites: ' + error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener límites',
+      details: error.message
+    });
   }
 });
 
-// ✅ NUEVA RUTA: GET /api/companies/:id - Obtener compañía específica
+/**
+ * GET /api/companies/:id
+ * Obtener compañía específica
+ */
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    const userData = userDoc.data();
 
     // Verificar permisos: super_admin puede ver todas, usuarios solo su compañía
-    if (userData.rol !== 'super_admin' && userData.companyId !== id) {
-      return res.status(403).json({ 
-        error: 'No tienes acceso a esta compañía' 
+    if (req.user.rol !== 'super_admin' && req.user.companyId !== id) {
+      return res.status(403).json({
+        success: false,
+        error: 'No tienes acceso a esta compañía'
       });
     }
 
     const companyDoc = await db.collection('companies').doc(id).get();
     
     if (!companyDoc.exists) {
-      return res.status(404).json({ error: 'Compañía no encontrada' });
+      return res.status(404).json({
+        success: false,
+        error: 'Compañía no encontrada'
+      });
     }
 
     const companyData = companyDoc.data();
     
     res.json({
-      id: companyDoc.id,
-      nombre: companyData.nombre,
-      plan: companyData.plan,
-      activo: companyData.activo,
-      fechaCreacion: companyData.fechaCreacion
+      success: true,
+      data: {
+        id: companyDoc.id,
+        nombre: companyData.nombre,
+        plan: companyData.plan,
+        activo: companyData.activo,
+        fechaCreacion: companyData.fechaCreacion
+      }
     });
     
   } catch (error) {
     console.error('Error obteniendo compañía:', error);
-    res.status(500).json({ error: 'Error al obtener compañía' });
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener compañía',
+      details: error.message
+    });
   }
 });
 
-// POST /api/companies - Crear nueva compañía (solo super_admin)
-router.post('/', async (req, res) => {
+/**
+ * POST /api/companies
+ * Crear nueva compañía (solo super_admin)
+ */
+router.post('/', requireRole('super_admin'), async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    const userData = userDoc.data();
-
-    if (userData.rol !== 'super_admin') {
-      return res.status(403).json({ 
-        error: 'Solo super administradores pueden crear compañías' 
-      });
-    }
-
     const { nombre, plan, adminEmail, adminNombre } = req.body;
     
     if (!nombre || !plan || !adminEmail || !adminNombre) {
-      return res.status(400).json({ 
-        error: 'Nombre, plan, email y nombre del admin son requeridos' 
+      return res.status(400).json({
+        success: false,
+        error: 'Nombre, plan, email y nombre del admin son requeridos'
       });
     }
 
@@ -230,7 +272,8 @@ router.post('/', async (req, res) => {
       nombre,
       plan,
       activo: true,
-      fechaCreacion: new Date()
+      fechaCreacion: new Date(),
+      createdBy: req.user.uid
     };
     
     const companyRef = await db.collection('companies').add(companyData);
@@ -238,7 +281,7 @@ router.post('/', async (req, res) => {
     const adminData = {
       email: adminEmail,
       nombre: adminNombre,
-      rol: 'admin',
+      rol: 'admin_general',
       companyId: companyRef.id,
       activo: true,
       fechaCreacion: new Date(),
@@ -248,14 +291,93 @@ router.post('/', async (req, res) => {
     await db.collection('usuarios').add(adminData);
     
     res.status(201).json({
-      id: companyRef.id,
-      ...companyData,
-      message: 'Compañía y admin creados exitosamente'
+      success: true,
+      message: 'Compañía y admin creados exitosamente',
+      data: {
+        id: companyRef.id,
+        ...companyData
+      }
     });
     
   } catch (error) {
     console.error('Error creando compañía:', error);
-    res.status(500).json({ error: 'Error al crear compañía' });
+    res.status(500).json({
+      success: false,
+      error: 'Error al crear compañía',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * PATCH /api/companies/:id
+ * Actualizar compañía (solo super_admin)
+ */
+router.patch('/:id', requireRole('super_admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, plan, activo } = req.body;
+
+    const updateData = {
+      updatedAt: new Date()
+    };
+
+    if (nombre) updateData.nombre = nombre;
+    if (plan) updateData.plan = plan;
+    if (typeof activo === 'boolean') updateData.activo = activo;
+
+    await db.collection('companies').doc(id).update(updateData);
+
+    res.json({
+      success: true,
+      message: 'Compañía actualizada exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error actualizando compañía:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al actualizar compañía',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/companies/:id
+ * Eliminar compañía (solo super_admin)
+ */
+router.delete('/:id', requireRole('super_admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar si hay usuarios asociados
+    const usuariosSnapshot = await db.collection('usuarios')
+      .where('companyId', '==', id)
+      .get();
+
+    if (!usuariosSnapshot.empty) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se puede eliminar una compañía con usuarios asociados',
+        usuariosCount: usuariosSnapshot.size
+      });
+    }
+
+    await db.collection('companies').doc(id).delete();
+
+    res.json({
+      success: true,
+      message: 'Compañía eliminada exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error eliminando compañía:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al eliminar compañía',
+      details: error.message
+    });
   }
 });
 
