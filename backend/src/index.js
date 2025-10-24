@@ -12,7 +12,7 @@ import embarquesRoutes from './routes/embarques.js';
 import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
 import facturasRoutes from './routes/facturas.js';
-import recoleccionesRoutes from './routes/recolecciones.js'; // ← NUEVO
+import recoleccionesRoutes from './routes/recolecciones.js';
 
 dotenv.config();
 
@@ -55,7 +55,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Id'], // ← CAMBIO AQUÍ
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 86400 // 24 horas
 }));
@@ -103,7 +103,7 @@ app.use('/api/embarques', embarquesRoutes);
 app.use('/api/rutas', rutasRoutes);
 app.use('/api/tickets', ticketsRoutes);
 app.use('/api/facturas', facturasRoutes);
-app.use('/api/recolecciones', recoleccionesRoutes); // ← NUEVO
+app.use('/api/recolecciones', recoleccionesRoutes);
 
 // =====================================================
 // RUTA RAÍZ
@@ -124,7 +124,7 @@ app.get('/', (req, res) => {
       rutas: '/api/rutas',
       tickets: '/api/tickets',
       facturas: '/api/facturas',
-      recolecciones: '/api/recolecciones' // ← NUEVO
+      recolecciones: '/api/recolecciones'
     }
   });
 });
@@ -158,7 +158,7 @@ app.use('*', (req, res) => {
       'GET    /api/tickets/all',
       'PATCH  /api/tickets/:id/respond',
       'PATCH  /api/tickets/:id/close',
-      'POST   /api/recolecciones', // ← NUEVO
+      'POST   /api/recolecciones',
       'GET    /api/recolecciones/:tracking',
       'GET    /api/recolecciones/recolector/:id',
       'POST   /api/recolecciones/:tracking/fotos'
@@ -221,7 +221,7 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/tickets/all');
   console.log('   ✅ PATCH  /api/tickets/:id/respond');
   console.log('   ✅ PATCH  /api/tickets/:id/close');
-  console.log('   ✅ POST   /api/recolecciones'); // ← NUEVO
+  console.log('   ✅ POST   /api/recolecciones');
   console.log('   ✅ GET    /api/recolecciones/:tracking');
   console.log('   ✅ GET    /api/recolecciones/recolector/:id');
   console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');

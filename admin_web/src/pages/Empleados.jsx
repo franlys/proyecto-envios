@@ -1,680 +1,568 @@
+// admin_web/src/pages/Empleados.jsx
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, UserCheck, UserX, Building2 } from 'lucide-react';
-import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Users, Plus, Search, Edit, Trash2, X, Shield, AlertCircle, Check, Eye, EyeOff } from 'lucide-react';
+import api from '../services/api';
 
-const Empleados = () => {
-  const { userData } = useAuth();
+export default function Empleados() {
+  const { userData, user } = useAuth();
   const [empleados, setEmpleados] = useState([]);
-  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRol, setFilterRol] = useState('all');
-  const [filterActivo, setFilterActivo] = useState('all');
-  const [filterCompany, setFilterCompany] = useState('all');
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('create');
-  const [selectedEmpleado, setSelectedEmpleado] = useState(null);
-  const [formData, setFormData] = useState({
+  const [editingEmpleado, setEditingEmpleado] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRol, setFilterRol] = useState('');
+  const [filterEstado, setFilterEstado] = useState('');
+
+  // Formulario de nuevo empleado
+  const [nuevoEmpleado, setNuevoEmpleado] = useState({
     nombre: '',
     email: '',
     password: '',
     telefono: '',
-    rol: 'repartidor',
-    companyId: ''
+    rol: '',
+    activo: true
   });
 
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [selectedEmpleadoForPassword, setSelectedEmpleadoForPassword] = useState(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  const isSuperAdmin = userData?.rol === 'super_admin';
+  // Roles disponibles con nombres amigables
+  const rolesDisponibles = [
+    { valor: 'recolector', label: 'Recolector', descripcion: 'Recoge paquetes en origen' },
+    { valor: 'almacen_eeuu', label: 'Encargado de Almacén (EE.UU.)', descripcion: 'Gestiona almacén en Estados Unidos' },
+    { valor: 'almacen_rd', label: 'Encargado de Almacén (RD)', descripcion: 'Gestiona almacén en República Dominicana' },
+    { valor: 'repartidor', label: 'Repartidor', descripcion: 'Entrega paquetes a destinatarios' },
+    { valor: 'secretaria', label: 'Secretaria', descripcion: 'Gestión administrativa y atención' },
+    { valor: 'admin_general', label: 'Administrador General', descripcion: 'Acceso completo al sistema' }
+  ];
 
-  useEffect(() => {
-    fetchEmpleados();
-    if (isSuperAdmin) {
-      fetchCompanies();
-    }
-  }, [filterRol, filterActivo, filterCompany]);
-
-  const fetchCompanies = async () => {
-    try {
-      const response = await api.get('/companies');
-      
-      if (Array.isArray(response.data)) {
-        setCompanies(response.data);
-      } else {
-        console.warn('Respuesta de companies no es array, usando array vacío');
-        setCompanies([]);
-      }
-    } catch (error) {
-      console.error('Error cargando compañías:', error);
-      setCompanies([]);
-    }
+  // Función para obtener el nombre amigable del rol
+  const obtenerNombreRol = (rol) => {
+    const rolEncontrado = rolesDisponibles.find(r => r.valor === rol);
+    return rolEncontrado ? rolEncontrado.label : rol;
   };
 
-  const fetchEmpleados = async () => {
+  useEffect(() => {
+    cargarEmpleados();
+  }, [userData]);
+
+  const cargarEmpleados = async () => {
     try {
       setLoading(true);
-      
-      let url = '/empleados';
-      const params = new URLSearchParams();
-      
-      if (filterRol !== 'all') params.append('rol', filterRol);
-      if (filterActivo !== 'all') params.append('activo', filterActivo);
-      
-      if (params.toString()) url += `?${params.toString()}`;
+      setError(null);
 
-      const response = await api.get(url);
+      if (!userData || !user) {
+        console.log('⏳ Esperando autenticación...');
+        return;
+      }
+
+      console.log('📡 Cargando empleados...');
+      console.log('👤 Usuario actual:', {
+        uid: userData.uid,
+        rol: userData.rol,
+        companyId: userData.companyId
+      });
+
+      // Construir URL según el rol
+      let url = '/empleados';
       
-      let empleadosList = [];
-      
-      if (response.data && response.data.success && response.data.empleados) {
-        empleadosList = response.data.empleados;
-      } else if (Array.isArray(response.data)) {
-        empleadosList = response.data;
+      // Si es super_admin, puede ver todos los empleados
+      if (userData.rol === 'super_admin') {
+        console.log('🔑 Super Admin - Viendo todos los empleados');
+        // No agregamos filtros, vemos todos
+      } 
+      // Si tiene companyId, solo ver empleados de su compañía
+      else if (userData.companyId) {
+        url += `?companyId=${userData.companyId}`;
+        console.log('🏢 Filtrando por companyId:', userData.companyId);
+      }
+      // Si es admin_general sin companyId (caso legacy), ver todos
+      else if (userData.rol === 'admin_general') {
+        console.log('🔑 Admin General - Viendo todos los empleados');
+      }
+
+      const response = await api.get(url, {
+        headers: {
+          'X-User-Id': user.uid
+        }
+      });
+
+      console.log('✅ Respuesta de empleados:', response.data);
+
+      if (response.data.success) {
+        setEmpleados(response.data.data || []);
+        console.log(`📊 ${response.data.data?.length || 0} empleados cargados`);
       } else {
-        empleadosList = [];
+        throw new Error(response.data.error || 'Error desconocido');
       }
-      
-      if (isSuperAdmin && filterCompany !== 'all') {
-        empleadosList = empleadosList.filter(emp => emp.companyId === filterCompany);
-      }
-      
-      setEmpleados(empleadosList);
-      
-    } catch (error) {
-      console.error('❌ Error cargando empleados:', error);
-      setEmpleados([]);
-      alert(`❌ Error: ${error.response?.data?.error || 'Error al cargar empleados'}`);
+    } catch (err) {
+      console.error('❌ Error cargando empleados:', err);
+      setError(err.response?.data?.error || err.message || 'Error al cargar empleados');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateEmpleado = async (e) => {
-    e.preventDefault();
-    
-    if (isSuperAdmin && formData.rol !== 'super_admin' && !formData.companyId) {
-      alert('❌ Debes seleccionar una compañía para este usuario');
-      return;
-    }
-    
-    try {
-      const dataToSend = { ...formData };
-      
-      if (formData.rol === 'super_admin') {
-        delete dataToSend.companyId;
-      }
-      
-      const response = await api.post('/empleados', dataToSend);
-
-      if (response.data.success) {
-        alert('✅ Empleado creado exitosamente');
-        setShowModal(false);
-        resetForm();
-        await fetchEmpleados();
-      } else {
-        alert(`❌ ${response.data.error || 'Error al crear empleado'}`);
-      }
-    } catch (error) {
-      console.error('❌ Error creando empleado:', error);
-      alert(`❌ ${error.response?.data?.error || 'Error al crear empleado'}`);
-    }
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNuevoEmpleado(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const handleUpdateEmpleado = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      const response = await api.put(`/empleados/${selectedEmpleado.id}`, {
-        nombre: formData.nombre,
-        telefono: formData.telefono,
-        rol: formData.rol
+      setLoading(true);
+      setError(null);
+
+      // Validaciones
+      if (!nuevoEmpleado.nombre || !nuevoEmpleado.email || !nuevoEmpleado.password || !nuevoEmpleado.rol) {
+        throw new Error('Por favor completa todos los campos obligatorios');
+      }
+
+      if (nuevoEmpleado.password.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
+      }
+
+      // Datos a enviar
+      const empleadoData = {
+        nombre: nuevoEmpleado.nombre,
+        email: nuevoEmpleado.email,
+        password: nuevoEmpleado.password,
+        telefono: nuevoEmpleado.telefono || null,
+        rol: nuevoEmpleado.rol,
+        companyId: userData.companyId || null
+      };
+
+      console.log('📤 Enviando datos:', empleadoData);
+
+      const response = await api.post('/auth/register', empleadoData, {
+        headers: {
+          'X-User-Id': user.uid
+        }
       });
 
       if (response.data.success) {
-        alert('✅ Empleado actualizado exitosamente');
+        setSuccessMessage('Empleado creado exitosamente');
         setShowModal(false);
-        resetForm();
-        fetchEmpleados();
+        setNuevoEmpleado({
+          nombre: '',
+          email: '',
+          password: '',
+          telefono: '',
+          rol: '',
+          activo: true
+        });
+        cargarEmpleados();
+
+        // Limpiar mensaje después de 3 segundos
+        setTimeout(() => setSuccessMessage(null), 3000);
       }
-    } catch (error) {
-      alert(`❌ ${error.response?.data?.error || 'Error al actualizar empleado'}`);
+    } catch (err) {
+      console.error('❌ Error creando empleado:', err);
+      setError(err.response?.data?.error || err.message || 'Error al crear empleado');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleToggleEmpleado = async (id, currentStatus) => {
-    if (!confirm(`¿Estás seguro de ${currentStatus ? 'desactivar' : 'activar'} este empleado?`)) {
+  const handleEliminar = async (empleadoId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este empleado?')) {
       return;
     }
 
     try {
-      const response = await api.patch(`/empleados/toggle/${id}`);
-
-      if (response.data.success) {
-        alert(`✅ ${response.data.message}`);
-        fetchEmpleados();
-      }
-    } catch (error) {
-      alert(`❌ ${error.response?.data?.error || 'Error al cambiar estado del empleado'}`);
-    }
-  };
-
-  const handleDeleteEmpleado = async (id, nombre) => {
-    if (!confirm(`¿ESTÁS SEGURO de eliminar permanentemente a ${nombre}?\n\nEsta acción NO se puede deshacer.`)) {
-      return;
-    }
-
-    try {
-      const response = await api.delete(`/empleados/delete/${id}`);
-
-      if (response.data.success) {
-        alert('✅ Empleado eliminado permanentemente');
-        fetchEmpleados();
-      }
-    } catch (error) {
-      alert(`❌ ${error.response?.data?.error || 'Error al eliminar empleado'}`);
-    }
-  };
-
-  const openPasswordModal = (empleado) => {
-    setSelectedEmpleadoForPassword(empleado);
-    setNewPassword('');
-    setConfirmPassword('');
-    setShowPasswordModal(true);
-  };
-
-  const closePasswordModal = () => {
-    setShowPasswordModal(false);
-    setSelectedEmpleadoForPassword(null);
-    setNewPassword('');
-    setConfirmPassword('');
-  };
-
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-
-    if (newPassword !== confirmPassword) {
-      alert('❌ Las contraseñas no coinciden');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      alert('❌ La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-
-    try {
-      const response = await api.patch(`/empleados/change-password/${selectedEmpleadoForPassword.id}`, {
-        newPassword
+      setLoading(true);
+      await api.delete(`/empleados/${empleadoId}`, {
+        headers: {
+          'X-User-Id': user.uid
+        }
       });
-
-      if (response.data.success) {
-        alert(`✅ Contraseña actualizada exitosamente para ${selectedEmpleadoForPassword.nombre}`);
-        closePasswordModal();
-      }
-    } catch (error) {
-      alert(`❌ ${error.response?.data?.error || 'Error al cambiar contraseña'}`);
+      
+      setSuccessMessage('Empleado eliminado exitosamente');
+      cargarEmpleados();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Error eliminando empleado:', err);
+      setError(err.response?.data?.error || 'Error al eliminar empleado');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const openCreateModal = () => {
-    setModalMode('create');
-    resetForm();
-    setShowModal(true);
+  const handleCambiarEstado = async (empleadoId, nuevoEstado) => {
+    try {
+      setLoading(true);
+      await api.patch(`/empleados/${empleadoId}/estado`, 
+        { activo: nuevoEstado },
+        {
+          headers: {
+            'X-User-Id': user.uid
+          }
+        }
+      );
+      
+      setSuccessMessage(`Empleado ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
+      cargarEmpleados();
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Error cambiando estado:', err);
+      setError(err.response?.data?.error || 'Error al cambiar estado');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const openEditModal = (empleado) => {
-    setModalMode('edit');
-    setSelectedEmpleado(empleado);
-    setFormData({
-      nombre: empleado.nombre,
-      email: empleado.email,
-      password: '',
-      telefono: empleado.telefono || '',
-      rol: empleado.rol,
-      companyId: empleado.companyId || ''
-    });
-    setShowModal(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      nombre: '',
-      email: '',
-      password: '',
-      telefono: '',
-      rol: 'repartidor',
-      companyId: ''
-    });
-    setSelectedEmpleado(null);
-  };
-
-  const getRolLabel = (rol) => {
-    const roles = {
-      'super_admin': 'Super Administrador',
-      'admin': 'Administrador General',
-      'secretaria': 'Secretaria',
-      'almacen': 'Encargado de Almacén',
-      'repartidor': 'Repartidor',
-      'empleado': 'Repartidor'
-    };
-    return roles[rol] || rol;
-  };
-
-  const getRolColor = (rol) => {
-    const colors = {
-      'super_admin': 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200',
-      'admin': 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200',
-      'secretaria': 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200',
-      'almacen': 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
-      'repartidor': 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
-      'empleado': 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-    };
-    return colors[rol] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-  };
-
-  const getCompanyName = (companyId) => {
-    if (!companyId) return 'Sin compañía';
-    if (!Array.isArray(companies)) return companyId;
-    const company = companies.find(c => c.id === companyId);
-    return company?.nombre || companyId;
-  };
-
-  const filteredEmpleados = empleados.filter(emp => {
+  // Filtrar empleados
+  const empleadosFiltrados = empleados.filter(emp => {
     const matchSearch = emp.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        emp.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchSearch;
+    const matchRol = !filterRol || emp.rol === filterRol;
+    const matchEstado = filterEstado === '' || 
+                       (filterEstado === 'activo' && emp.activo) ||
+                       (filterEstado === 'inactivo' && !emp.activo);
+    
+    return matchSearch && matchRol && matchEstado;
   });
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {isSuperAdmin ? 'Gestión de Usuarios del Sistema' : 'Gestión de Empleados'}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {isSuperAdmin ? 'Administra usuarios de todas las compañías' : 'Administra usuarios y permisos del sistema'}
-          </p>
-        </div>
-        <button
-          onClick={openCreateModal}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
-        >
-          <Plus size={20} />
-          Nuevo Usuario
-        </button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <Users className="w-8 h-8 text-blue-600" />
+          Gestión de Empleados
+        </h1>
+        <p className="text-gray-600 mt-2">
+          Administra usuarios y permisos del sistema
+        </p>
       </div>
 
-      {/* Debug Info */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
-        <h3 className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">Estado de carga:</h3>
-        <div className="text-sm text-yellow-700 dark:text-yellow-300">
+      {/* Estado de carga y debugging */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <h3 className="font-semibold text-yellow-800 mb-2">Estado de carga:</h3>
+        <div className="text-sm text-yellow-700 space-y-1">
           <p>Total empleados: {empleados.length}</p>
-          <p>Filtrados: {filteredEmpleados.length}</p>
+          <p>Filtrados: {empleadosFiltrados.length}</p>
           <p>Loading: {loading ? 'Sí' : 'No'}</p>
-          <p>User: {userData?.email} ({userData?.rol})</p>
-          <p>Companies: {companies.length}</p>
+          <p>User: {user?.email || 'No autenticado'} ({userData?.rol})</p>
+          <p>Companies: {userData?.companyId || 'Sin compañía'}</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-        <div className={`grid grid-cols-1 ${isSuperAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Mensajes */}
+      {successMessage && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="text-green-800">{successMessage}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <p className="text-red-800">{error}</p>
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-red-600 hover:text-red-700"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Filtros y búsqueda */}
+      <div className="bg-white rounded-lg shadow mb-6 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre o email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
-
-          {isSuperAdmin && (
-            <select
-              value={filterCompany}
-              onChange={(e) => setFilterCompany(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Todas las compañías</option>
-              {Array.isArray(companies) && companies.map(company => (
-                <option key={company.id} value={company.id}>{company.nombre}</option>
-              ))}
-            </select>
-          )}
-
+          
           <select
             value={filterRol}
             onChange={(e) => setFilterRol(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">Todos los roles</option>
-            {isSuperAdmin && <option value="super_admin">Super Administradores</option>}
-            <option value="admin">Administradores</option>
-            <option value="secretaria">Secretarias</option>
-            <option value="almacen">Encargados de Almacén</option>
-            <option value="repartidor">Repartidores</option>
+            <option value="">Todos los roles</option>
+            {rolesDisponibles.map(rol => (
+              <option key={rol.valor} value={rol.valor}>{rol.label}</option>
+            ))}
           </select>
 
           <select
-            value={filterActivo}
-            onChange={(e) => setFilterActivo(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filterEstado}
+            onChange={(e) => setFilterEstado(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">Todos los estados</option>
-            <option value="true">Activos</option>
-            <option value="false">Inactivos</option>
+            <option value="">Todos los estados</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">Inactivos</option>
           </select>
         </div>
-      </div>
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando empleados...</p>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
-                {isSuperAdmin && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Compañía</th>
-                )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Teléfono</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredEmpleados.length === 0 ? (
-                <tr>
-                  <td colSpan={isSuperAdmin ? "7" : "6"} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                    {loading ? 'Cargando...' : 'No se encontraron empleados'}
-                    <div className="mt-2 text-sm text-gray-400 dark:text-gray-500">
-                      Empleados totales: {empleados.length} | Después de filtros: {filteredEmpleados.length}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredEmpleados.map((empleado) => (
-                  <tr key={empleado.id || empleado.uid} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{empleado.nombre}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-300">{empleado.email}</div>
-                    </td>
-                    {isSuperAdmin && (
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
-                          <Building2 size={16} className="mr-2 text-gray-400" />
-                          {getCompanyName(empleado.companyId)}
-                        </div>
-                      </td>
-                    )}
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-300">{empleado.telefono || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRolColor(empleado.rol)}`}>
-                        {getRolLabel(empleado.rol)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        empleado.activo 
-                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                          : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                      }`}>
-                        {empleado.activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEditModal(empleado)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
-                          title="Editar"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        
-                        <button
-                          onClick={() => openPasswordModal(empleado)}
-                          className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 text-lg"
-                          title="Cambiar contraseña"
-                        >
-                          🔑
-                        </button>
-                        
-                        <button
-                          onClick={() => handleToggleEmpleado(empleado.id || empleado.uid, empleado.activo)}
-                          className={empleado.activo ? 'text-orange-600 dark:text-orange-400 hover:text-orange-900 dark:hover:text-orange-300' : 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300'}
-                          title={empleado.activo ? 'Desactivar' : 'Activar'}
-                        >
-                          {empleado.activo ? <UserX size={16} /> : <UserCheck size={16} />}
-                        </button>
 
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Empleados totales: <span className="font-semibold">{empleados.length}</span> | 
+            Después de filtros: <span className="font-semibold">{empleadosFiltrados.length}</span>
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Usuario
+          </button>
+        </div>
+      </div>
+
+      {/* Tabla de empleados */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-600 mt-4">Cargando empleados...</p>
+          </div>
+        ) : empleadosFiltrados.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron empleados</h3>
+            <p className="text-gray-600">
+              {searchTerm || filterRol || filterEstado 
+                ? 'Intenta ajustar los filtros de búsqueda'
+                : 'Comienza creando tu primer empleado'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Teléfono
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rol
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {empleadosFiltrados.map((empleado) => (
+                  <tr key={empleado.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold">
+                            {empleado.nombre?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{empleado.nombre}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{empleado.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{empleado.telefono || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {obtenerNombreRol(empleado.rol)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleCambiarEstado(empleado.id, !empleado.activo)}
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          empleado.activo 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        } transition-colors cursor-pointer`}
+                      >
+                        {empleado.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleDeleteEmpleado(empleado.id || empleado.uid, empleado.nombre)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                          title="Eliminar permanentemente"
+                          onClick={() => handleEliminar(empleado.id)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                          title="Eliminar"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {/* Modal Create/Edit */}
+      {/* Modal de nuevo empleado */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              {modalMode === 'create' ? 'Crear Nuevo Usuario' : 'Editar Usuario'}
-            </h2>
-            
-            <form onSubmit={modalMode === 'create' ? handleCreateEmpleado : handleUpdateEmpleado}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Nombre completo *
-                  </label>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Crear Nuevo Usuario</h2>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setError(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre completo <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={nuevoEmpleado.nombre}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={nuevoEmpleado.email}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Contraseña */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contraseña <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
                   <input
-                    type="text"
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={nuevoEmpleado.password}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
                     required
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Juan Pérez"
+                    minLength={6}
                   />
-                </div>
-
-                {modalMode === 'create' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="juan@example.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Contraseña *
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Mínimo 6 caracteres"
-                        minLength={6}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Teléfono
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.telefono}
-                    onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="(809) 123-4567"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Rol / Puesto *
-                  </label>
-                  <select
-                    required
-                    value={formData.rol}
-                    onChange={(e) => setFormData({...formData, rol: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <option value="repartidor">Repartidor</option>
-                    <option value="secretaria">Secretaria</option>
-                    <option value="almacen">Encargado de Almacén</option>
-                    <option value="admin">Administrador General</option>
-                    {isSuperAdmin && <option value="super_admin">Super Administrador</option>}
-                  </select>
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+              </div>
 
-                {isSuperAdmin && modalMode === 'create' && formData.rol !== 'super_admin' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Compañía *
-                    </label>
-                    <select
-                      required
-                      value={formData.companyId}
-                      onChange={(e) => setFormData({...formData, companyId: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Selecciona una compañía</option>
-                      {Array.isArray(companies) && companies.map(company => (
-                        <option key={company.id} value={company.id}>{company.nombre}</option>
-                      ))}
-                    </select>
-                  </div>
+              {/* Teléfono */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  name="telefono"
+                  value={nuevoEmpleado.telefono}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Rol */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rol / Puesto <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="rol"
+                  value={nuevoEmpleado.rol}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Seleccionar rol</option>
+                  {rolesDisponibles.map(rol => (
+                    <option key={rol.valor} value={rol.valor}>
+                      {rol.label}
+                    </option>
+                  ))}
+                </select>
+                {nuevoEmpleado.rol && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {rolesDisponibles.find(r => r.valor === nuevoEmpleado.rol)?.descripcion}
+                  </p>
                 )}
               </div>
 
-              <div className="flex gap-3 mt-6">
+              {/* Botones */}
+              <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setShowModal(false);
-                    resetForm();
+                    setError(null);
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                 >
-                  {modalMode === 'create' ? 'Crear' : 'Guardar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de cambiar contraseña */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Cambiar Contraseña
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Cambiar contraseña para: <strong>{selectedEmpleadoForPassword?.nombre}</strong>
-            </p>
-            
-            <form onSubmit={handleChangePassword}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Nueva Contraseña *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="Mínimo 6 caracteres"
-                    minLength={6}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Confirmar Contraseña *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="Confirma la contraseña"
-                    minLength={6}
-                  />
-                </div>
-
-                {newPassword && confirmPassword && newPassword !== confirmPassword && (
-                  <p className="text-red-600 dark:text-red-400 text-sm">⚠️ Las contraseñas no coinciden</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={closePasswordModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={newPassword !== confirmPassword || newPassword.length < 6}
-                >
-                  🔑 Cambiar Contraseña
+                  {loading ? 'Creando...' : 'Crear Usuario'}
                 </button>
               </div>
             </form>
@@ -683,6 +571,4 @@ const Empleados = () => {
       )}
     </div>
   );
-};
-
-export default Empleados;
+}
