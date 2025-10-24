@@ -5,24 +5,33 @@ import { auth } from './firebase';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  baseURL: API_URL + '/api'
 });
 
-// Interceptor para agregar el UID del usuario autenticado
+// Interceptor para agregar autenticación a todas las peticiones
 api.interceptors.request.use(
   async (config) => {
+    // OPCIÓN 1: Token de localStorage (si existe - compatibilidad con código viejo)
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // OPCIÓN 2: Usuario de Firebase (nuevo sistema)
     const user = auth.currentUser;
     if (user) {
-      // Agregar el UID en el header
+      // Enviar el UID en el header que espera el backend
       config.headers['X-User-Id'] = user.uid;
       
-      // También podemos agregar el token si lo necesitamos
-      const token = await user.getIdToken();
-      config.headers['Authorization'] = `Bearer ${token}`;
+      // También podemos obtener el token de Firebase
+      try {
+        const firebaseToken = await user.getIdToken();
+        config.headers['X-Firebase-Token'] = firebaseToken;
+      } catch (error) {
+        console.error('Error obteniendo token de Firebase:', error);
+      }
     }
+    
     return config;
   },
   (error) => {
@@ -30,13 +39,19 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para manejar errores
+// Interceptor para manejar errores de respuesta
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Si el token expiró o no está autorizado
     if (error.response?.status === 401) {
-      console.error('No autorizado - Token inválido o expirado');
-      // Aquí podrías redirigir al login
+      console.error('Error 401: No autorizado');
+      // Solo limpiar localStorage si existía token viejo
+      if (localStorage.getItem('token')) {
+        localStorage.removeItem('token');
+      }
+      // NO redirigir automáticamente porque Firebase maneja su propia sesión
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }
