@@ -1,21 +1,28 @@
-﻿import axios from 'axios';
+﻿// admin_web/src/services/api.js
+import axios from 'axios';
+import { auth } from './firebase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
-  baseURL: API_URL + '/api'
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-// Interceptor para agregar el token a todas las peticiones
+// Interceptor para agregar el UID del usuario autenticado
 api.interceptors.request.use(
   async (config) => {
-    // Obtener token de localStorage
-    const token = localStorage.getItem('token');
-    
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const user = auth.currentUser;
+    if (user) {
+      // Agregar el UID en el header
+      config.headers['X-User-Id'] = user.uid;
+      
+      // También podemos agregar el token si lo necesitamos
+      const token = await user.getIdToken();
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
@@ -23,14 +30,13 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para manejar errores de respuesta
+// Interceptor para manejar errores
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si el token expiró, redirigir al login
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      console.error('No autorizado - Token inválido o expirado');
+      // Aquí podrías redirigir al login
     }
     return Promise.reject(error);
   }
