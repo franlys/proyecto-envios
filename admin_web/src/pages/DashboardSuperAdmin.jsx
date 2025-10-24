@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Building2, Users, Activity, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 
+// ✅ FIX: Obtener la URL del backend desde variables de entorno
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const DashboardSuperAdmin = () => {
   const navigate = useNavigate();
   const [systemHealth, setSystemHealth] = useState(null);
@@ -28,7 +31,8 @@ const DashboardSuperAdmin = () => {
 
   const fetchSystemHealth = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/health');
+      // ✅ FIX: Usar la variable de entorno en lugar de localhost hardcodeado
+      const response = await fetch(`${API_URL}/api/health`);
       const data = await response.json();
       setSystemHealth(data);
     } catch (error) {
@@ -113,6 +117,10 @@ const DashboardSuperAdmin = () => {
                 ⏱️ Uptime: {Math.floor(systemHealth.uptime / 60)} min
               </p>
             )}
+            {/* ✅ NUEVO: Mostrar la URL que está usando para debugging */}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              🔗 {API_URL}
+            </p>
           </div>
 
           {/* Firebase Status */}
@@ -185,11 +193,11 @@ const DashboardSuperAdmin = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Compañías Inactivas</p>
-              <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mt-1">{stats.inactiveCompanies}</p>
+              <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.inactiveCompanies}</p>
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Desactivadas</p>
             </div>
-            <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-full">
-              <AlertCircle className="text-orange-600 dark:text-orange-300" size={24} />
+            <div className="p-3 bg-red-100 dark:bg-red-900 rounded-full">
+              <AlertCircle className="text-red-600 dark:text-red-300" size={24} />
             </div>
           </div>
         </div>
@@ -202,8 +210,8 @@ const DashboardSuperAdmin = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Usuarios Totales</p>
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">{stats.totalUsers}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">En el sistema</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalUsers}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">En todas las compañías</p>
             </div>
             <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
               <Users className="text-purple-600 dark:text-purple-300" size={24} />
@@ -212,16 +220,16 @@ const DashboardSuperAdmin = () => {
         </div>
       </div>
 
-      {/* Companies Table */}
+      {/* Companies List */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             <Building2 className="inline mr-2" size={20} />
-            Estado de Compañías
+            Compañías Registradas
           </h2>
-          <button
+          <button 
             onClick={() => navigate('/companies')}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
           >
             Ver todas →
           </button>
