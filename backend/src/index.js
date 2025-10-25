@@ -13,6 +13,7 @@ import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
 import facturasRoutes from './routes/facturas.js';
 import recoleccionesRoutes from './routes/recolecciones.js';
+import contenedoresRoutes from './routes/contenedores.js'; // ← NUEVO
 
 dotenv.config();
 
@@ -104,6 +105,7 @@ app.use('/api/rutas', rutasRoutes);
 app.use('/api/tickets', ticketsRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/recolecciones', recoleccionesRoutes);
+app.use('/api/contenedores', contenedoresRoutes); // ← NUEVO
 
 // =====================================================
 // RUTA RAÍZ
@@ -124,7 +126,8 @@ app.get('/', (req, res) => {
       rutas: '/api/rutas',
       tickets: '/api/tickets',
       facturas: '/api/facturas',
-      recolecciones: '/api/recolecciones'
+      recolecciones: '/api/recolecciones',
+      contenedores: '/api/contenedores' // ← NUEVO
     }
   });
 });
@@ -161,7 +164,10 @@ app.use('*', (req, res) => {
       'POST   /api/recolecciones',
       'GET    /api/recolecciones/:tracking',
       'GET    /api/recolecciones/recolector/:id',
-      'POST   /api/recolecciones/:tracking/fotos'
+      'POST   /api/recolecciones/:tracking/fotos',
+      'POST   /api/contenedores/upload-from-drive', // ← NUEVO
+      'GET    /api/contenedores', // ← NUEVO
+      'GET    /api/contenedores/:id' // ← NUEVO
     ]
   });
 });
@@ -225,6 +231,9 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/recolecciones/:tracking');
   console.log('   ✅ GET    /api/recolecciones/recolector/:id');
   console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');
+  console.log('   ✅ POST   /api/contenedores/upload-from-drive'); // ← NUEVO
+  console.log('   ✅ GET    /api/contenedores'); // ← NUEVO
+  console.log('   ✅ GET    /api/contenedores/:id'); // ← NUEVO
   console.log('\n💡 Tip: Visita http://localhost:' + PORT + '/api/health\n');
 });
 
