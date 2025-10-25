@@ -192,9 +192,10 @@ class Recoleccion {
   }
 
   /**
-   * Obtener recolecciones con filtros avanzados
+   * ✅ CORREGIDO: Obtener recolecciones con filtros avanzados
+   * Eliminado .offset() que no existe en Firestore
    */
-  static async obtenerConFiltros(filtros = {}, limit = 100, offset = 0) {
+  static async obtenerConFiltros(filtros = {}, limit = 100, lastDoc = null) {
     try {
       let query = db.collection('recolecciones');
       
@@ -225,17 +226,31 @@ class Recoleccion {
         }
       }
       
-      // Ordenar y paginar
-      query = query.orderBy('fecha_recoleccion', 'desc')
-                   .limit(limit)
-                   .offset(offset);
+      // Ordenar
+      query = query.orderBy('fecha_recoleccion', 'desc');
+      
+      // ✅ Paginación con cursor (en lugar de .offset())
+      if (lastDoc) {
+        query = query.startAfter(lastDoc);
+      }
+      
+      query = query.limit(limit);
       
       const snapshot = await query.get();
       
-      return snapshot.docs.map(doc => ({
+      const recolecciones = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Retornar también el último documento para paginación
+      const ultimoDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+      
+      return {
+        data: recolecciones,
+        lastDoc: ultimoDoc,
+        hasMore: snapshot.docs.length === limit
+      };
       
     } catch (error) {
       console.error('Error obteniendo recolecciones con filtros:', error);
