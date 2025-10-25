@@ -9,6 +9,89 @@ const router = express.Router();
 const storage = admin.storage().bucket();
 
 /**
+ * ✅ NUEVO ENDPOINT - GET /api/recolecciones/stats
+ * Obtener estadísticas generales de recolecciones para el dashboard
+ */
+router.get('/stats', async (req, res) => {
+  try {
+    const { recolector_id, empresa_id } = req.query;
+
+    // Construir filtros
+    const filtros = {};
+    if (recolector_id) filtros.recolector_id = recolector_id;
+    if (empresa_id) filtros.empresa_id = empresa_id;
+
+    // Obtener todas las recolecciones con filtros
+    const recolecciones = await Recoleccion.obtenerConFiltros(filtros, 1000, 0);
+
+    // Calcular estadísticas
+    const stats = {
+      // Totales
+      total: recolecciones.length,
+      
+      // Por status
+      recolectadas: recolecciones.filter(r => r.status === 'Recolectado').length,
+      enAlmacenEEUU: recolecciones.filter(r => r.status === 'En almacén EE.UU.').length,
+      enContenedor: recolecciones.filter(r => r.status === 'En contenedor').length,
+      enTransito: recolecciones.filter(r => r.status === 'En tránsito').length,
+      enAlmacenRD: recolecciones.filter(r => r.status === 'En almacén RD').length,
+      confirmadas: recolecciones.filter(r => r.status === 'Confirmado').length,
+      enRuta: recolecciones.filter(r => r.status === 'En ruta').length,
+      entregadas: recolecciones.filter(r => r.status === 'Entregado').length,
+
+      // Agrupadas por estado del flujo
+      pendientes: recolecciones.filter(r => 
+        ['Recolectado', 'En almacén EE.UU.'].includes(r.status)
+      ).length,
+      
+      enProceso: recolecciones.filter(r => 
+        ['En contenedor', 'En tránsito', 'En almacén RD'].includes(r.status)
+      ).length,
+      
+      listas: recolecciones.filter(r => 
+        r.status === 'Confirmado'
+      ).length,
+
+      // Estadísticas adicionales
+      hoy: recolecciones.filter(r => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fechaRecoleccion = r.fecha_recoleccion?.toDate ? r.fecha_recoleccion.toDate() : new Date(r.fecha_recoleccion);
+        return fechaRecoleccion >= today;
+      }).length,
+
+      ultimaSemana: recolecciones.filter(r => {
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        const fechaRecoleccion = r.fecha_recoleccion?.toDate ? r.fecha_recoleccion.toDate() : new Date(r.fecha_recoleccion);
+        return fechaRecoleccion >= lastWeek;
+      }).length,
+
+      ultimoMes: recolecciones.filter(r => {
+        const lastMonth = new Date();
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        const fechaRecoleccion = r.fecha_recoleccion?.toDate ? r.fecha_recoleccion.toDate() : new Date(r.fecha_recoleccion);
+        return fechaRecoleccion >= lastMonth;
+      }).length
+    };
+
+    res.json({
+      success: true,
+      data: stats,
+      filtros: filtros
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener estadísticas',
+      details: error.message
+    });
+  }
+});
+
+/**
  * GET /api/recolecciones
  * Listar todas las recolecciones con filtros
  */
