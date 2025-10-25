@@ -80,12 +80,13 @@ function AppContent() {
         )}
 
         {/* ============================================ */}
-        {/* RUTAS PARA ALMACÉN EE.UU. (futuro) */}
+        {/* RUTAS PARA ALMACÉN EE.UU. */}
         {/* ============================================ */}
         {rol === 'almacen_eeuu' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
             <Route path="/embarques" element={<Embarques />} />
+            <Route path="/reportes" element={<Reportes />} />
           </>
         )}
 
@@ -104,11 +105,12 @@ function AppContent() {
         {/* ============================================ */}
         {/* RUTAS PARA ALMACÉN RD */}
         {/* ============================================ */}
-        {rol === 'almacen' && (
+        {rol === 'almacen_rd' && (
           <>
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
+            <Route path="/reportes" element={<Reportes />} />
           </>
         )}
 

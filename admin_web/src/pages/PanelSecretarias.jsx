@@ -1,13 +1,15 @@
 // admin_web/src/pages/PanelSecretarias.jsx
 import { useState, useEffect } from 'react';
 import { db } from '../services/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, Timestamp, onSnapshot, orderBy } from 'firebase/firestore';
 import api from '../services/api';
 
 const PanelSecretarias = () => {
   const [activeTab, setActiveTab] = useState('sin_confirmar');
   const [embarques, setEmbarques] = useState([]);
+  const [contenedores, setContenedores] = useState([]);
   const [selectedEmbarque, setSelectedEmbarque] = useState('');
+  const [selectedContenedor, setSelectedContenedor] = useState('');
   const [selectedZona, setSelectedZona] = useState('todas');
   const [todasLasFacturas, setTodasLasFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,7 @@ const PanelSecretarias = () => {
 
   useEffect(() => {
     fetchEmbarques();
+    fetchContenedores();
   }, []);
 
   useEffect(() => {
@@ -31,7 +34,7 @@ const PanelSecretarias = () => {
     } else {
       setTodasLasFacturas([]);
     }
-  }, [selectedEmbarque]);
+  }, [selectedEmbarque, selectedContenedor]);
 
   const fetchEmbarques = async () => {
     try {
@@ -46,11 +49,37 @@ const PanelSecretarias = () => {
     }
   };
 
+  const fetchContenedores = async () => {
+    try {
+      const response = await api.get('/contenedores');
+      const contenedoresData = response.data.data || response.data || [];
+      setContenedores(contenedoresData);
+    } catch (error) {
+      console.error('Error al cargar contenedores:', error);
+    }
+  };
+
   const fetchFacturas = async () => {
     try {
       setLoading(true);
       const facturasRef = collection(db, 'facturas');
-      const q = query(facturasRef, where('embarqueId', '==', selectedEmbarque));
+      
+      // Construir query base
+      let q = query(
+        facturasRef, 
+        where('embarqueId', '==', selectedEmbarque),
+        orderBy('numeroFactura', 'asc')
+      );
+      
+      // Si hay contenedor seleccionado, filtrar por él también
+      if (selectedContenedor) {
+        q = query(
+          facturasRef,
+          where('embarqueId', '==', selectedEmbarque),
+          where('numeroContenedor', '==', selectedContenedor),
+          orderBy('numeroFactura', 'asc')
+        );
+      }
       
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const facturasData = snapshot.docs
@@ -110,12 +139,12 @@ const PanelSecretarias = () => {
         updatedAt: Timestamp.now()
       });
 
-      alert('Factura confirmada exitosamente');
+      alert('✅ Factura confirmada exitosamente');
       setShowConfirmModal(false);
       resetForm();
     } catch (error) {
       console.error('Error al confirmar factura:', error);
-      alert('Error al confirmar factura');
+      alert('❌ Error al confirmar factura');
     }
   };
 
@@ -131,12 +160,12 @@ const PanelSecretarias = () => {
         updatedAt: Timestamp.now()
       });
 
-      alert('Factura marcada como pendiente de contacto');
+      alert('⏳ Factura marcada como pendiente de contacto');
       setShowConfirmModal(false);
       resetForm();
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al marcar como pendiente');
+      alert('❌ Error al marcar como pendiente');
     }
   };
 
@@ -194,21 +223,24 @@ const PanelSecretarias = () => {
         <p className="text-gray-600 dark:text-gray-400">Confirma y gestiona facturas antes de crear rutas</p>
       </div>
 
-      {/* Selectores de Embarque y Zona */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      {/* Selectores de Embarque, Contenedor y Zona */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Seleccionar Contenedor/Embarque *
+            Embarque
           </label>
           <select
             value={selectedEmbarque}
-            onChange={(e) => setSelectedEmbarque(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              setSelectedEmbarque(e.target.value);
+              setSelectedContenedor(''); // Reset contenedor
+            }}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">-- Selecciona un contenedor --</option>
-            {embarques.map(embarque => (
-              <option key={embarque.id} value={embarque.id}>
-                {embarque.nombre} ({embarque.totalFacturas} facturas)
+            <option value="">Seleccionar embarque...</option>
+            {embarques.map(e => (
+              <option key={e._id} value={e._id}>
+                {e.nombre} - {new Date(e.fechaCreacion).toLocaleDateString()}
               </option>
             ))}
           </select>
@@ -216,17 +248,37 @@ const PanelSecretarias = () => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Filtrar por Zona de Entrega
+            Contenedor (Opcional)
+          </label>
+          <select
+            value={selectedContenedor}
+            onChange={(e) => setSelectedContenedor(e.target.value)}
+            disabled={!selectedEmbarque}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <option value="">Todos los contenedores</option>
+            {contenedores
+              .filter(c => c.embarqueId === selectedEmbarque)
+              .map(c => (
+                <option key={c._id} value={c.numeroContenedor}>
+                  {c.numeroContenedor} ({c.totalFacturas} facturas)
+                </option>
+              ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Zona de Entrega
           </label>
           <select
             value={selectedZona}
             onChange={(e) => setSelectedZona(e.target.value)}
-            disabled={!selectedEmbarque}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-800"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="todas">📍 Todas las zonas</option>
-            <option value="capital">🏙️ Capital (Santo Domingo)</option>
-            <option value="cibao">⛰️ Cibao (Santiago)</option>
+            <option value="todas">Todas las zonas</option>
+            <option value="capital">🏙️ Capital</option>
+            <option value="cibao">⛰️ Cibao</option>
             <option value="sur">🌊 Sur</option>
             <option value="local_bani">🏘️ Local (Baní)</option>
           </select>
@@ -235,135 +287,160 @@ const PanelSecretarias = () => {
 
       {!selectedEmbarque ? (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-8 text-center">
-          <p className="text-blue-800 dark:text-blue-200 text-lg">
-            👆 Selecciona un contenedor para comenzar a trabajar
+          <p className="text-blue-800 dark:text-blue-200 text-lg font-medium">
+            📦 Selecciona un embarque para empezar
           </p>
         </div>
       ) : (
         <>
-          {/* Tabs */}
-          <div className="flex gap-4 mb-6 border-b dark:border-gray-700 overflow-x-auto">
+          {/* Tabs con Contadores */}
+          <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('sin_confirmar')}
-              className={`px-4 py-2 font-medium transition-all whitespace-nowrap ${
+              className={`pb-3 px-4 font-medium transition-colors ${
                 activeTab === 'sin_confirmar'
                   ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              📋 Sin Confirmar ({contadores.sin_confirmar})
+              Sin Confirmar
+              {contadores.sin_confirmar > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {contadores.sin_confirmar}
+                </span>
+              )}
             </button>
+            
             <button
               onClick={() => setActiveTab('pendientes')}
-              className={`px-4 py-2 font-medium transition-all whitespace-nowrap ${
+              className={`pb-3 px-4 font-medium transition-colors ${
                 activeTab === 'pendientes'
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-b-2 border-yellow-600 text-yellow-600 dark:text-yellow-400'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              ⏳ Pendientes ({contadores.pendientes})
+              Pendientes
+              {contadores.pendientes > 0 && (
+                <span className="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {contadores.pendientes}
+                </span>
+              )}
             </button>
+
             <button
               onClick={() => setActiveTab('confirmadas')}
-              className={`px-4 py-2 font-medium transition-all whitespace-nowrap ${
+              className={`pb-3 px-4 font-medium transition-colors ${
                 activeTab === 'confirmadas'
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-b-2 border-green-600 text-green-600 dark:text-green-400'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              ✅ Confirmadas ({contadores.confirmadas})
+              Confirmadas
+              {contadores.confirmadas > 0 && (
+                <span className="ml-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {contadores.confirmadas}
+                </span>
+              )}
             </button>
+
             <button
               onClick={() => setActiveTab('no_entregadas')}
-              className={`px-4 py-2 font-medium transition-all whitespace-nowrap ${
+              className={`pb-3 px-4 font-medium transition-colors ${
                 activeTab === 'no_entregadas'
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-b-2 border-orange-600 text-orange-600 dark:text-orange-400'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              ⚠️ No Entregadas ({contadores.no_entregadas})
+              No Entregadas
+              {contadores.no_entregadas > 0 && (
+                <span className="ml-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {contadores.no_entregadas}
+                </span>
+              )}
             </button>
           </div>
 
           {/* Lista de Facturas */}
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando facturas...</p>
             </div>
           ) : facturasFiltradas.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-              <p className="text-gray-500 dark:text-gray-400 text-lg">No hay facturas en esta sección</p>
-              {selectedZona !== 'todas' && (
-                <p className="text-gray-400 dark:text-gray-500 mt-2">Prueba seleccionar otra zona</p>
-              )}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
+                {activeTab === 'sin_confirmar' && '🎉 No hay facturas sin confirmar'}
+                {activeTab === 'pendientes' && '👍 No hay facturas pendientes'}
+                {activeTab === 'confirmadas' && '📝 No hay facturas confirmadas aún'}
+                {activeTab === 'no_entregadas' && '✅ No hay facturas no entregadas'}
+              </p>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="space-y-4">
               {facturasFiltradas.map((factura) => (
-                <div key={factura.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition">
-                  <div className="flex items-start justify-between">
+                <div
+                  key={factura.id}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition"
+                >
+                  <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{factura.numeroFactura}</h3>
-                        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded-full">
-                          ${factura.monto?.toLocaleString()}
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">
+                          #{factura.numeroFactura}
                         </span>
+                        {factura.numeroContenedor && (
+                          <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-medium rounded">
+                            📦 {factura.numeroContenedor}
+                          </span>
+                        )}
                         {factura.zona && (
-                          <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-medium rounded-full">
-                            {factura.zona === 'capital' ? '🏙️ Capital' :
-                             factura.zona === 'cibao' ? '⛰️ Cibao' :
-                             factura.zona === 'sur' ? '🌊 Sur' :
-                             factura.zona === 'local_bani' ? '🏘️ Local' : factura.zona}
+                          <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded">
+                            {factura.zona === 'capital' && '🏙️ Capital'}
+                            {factura.zona === 'cibao' && '⛰️ Cibao'}
+                            {factura.zona === 'sur' && '🌊 Sur'}
+                            {factura.zona === 'local_bani' && '🏘️ Local'}
                           </span>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Cliente</p>
-                          <p className="font-medium text-gray-900 dark:text-white">{factura.cliente}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Teléfono</p>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900 dark:text-white">{factura.telefono || 'No disponible'}</p>
-                            {factura.telefono && (
-                              <button
-                                onClick={() => handleCall(factura.telefono)}
-                                className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
-                              >
-                                📞
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Dirección</p>
-                          <p className="font-medium text-gray-900 dark:text-white">{factura.direccion}</p>
-                        </div>
-                        {factura.sector && (
-                          <div className="col-span-2">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Sector</p>
-                            <p className="font-medium text-gray-900 dark:text-white">{factura.sector}</p>
-                          </div>
-                        )}
-                      </div>
+                      <p className="text-gray-900 dark:text-white font-medium mb-1">
+                        👤 {factura.cliente}
+                      </p>
 
-                      {factura.observaciones && (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-3 mb-4">
-                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                            <strong>Observaciones:</strong> {factura.observaciones}
-                          </p>
-                        </div>
+                      {factura.telefono && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                          📞 {factura.telefono}
+                          <button
+                            onClick={() => handleCall(factura.telefono)}
+                            className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            Llamar
+                          </button>
+                        </p>
                       )}
 
-                      {factura.motivoNoEntrega && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-600 p-3 mb-4">
-                          <p className="text-sm text-red-800 dark:text-red-200">
-                            <strong>Motivo no entrega:</strong> {factura.motivoNoEntrega}
-                          </p>
-                        </div>
+                      {factura.direccion && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                          📍 {factura.direccion}
+                        </p>
+                      )}
+
+                      {factura.contenido && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                          📦 {factura.contenido}
+                        </p>
+                      )}
+
+                      {factura.estadoPago && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">
+                          {factura.estadoPago === 'pagado' ? '✅ Pagado' : '💵 Cobrar al entregar'}
+                        </p>
+                      )}
+
+                      {factura.observaciones && (
+                        <p className="text-gray-500 dark:text-gray-500 text-sm italic mt-2">
+                          📝 {factura.observaciones}
+                        </p>
                       )}
                     </div>
 
@@ -373,7 +450,7 @@ const PanelSecretarias = () => {
                           onClick={() => openConfirmModal(factura)}
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                         >
-                          {activeTab === 'pendientes' ? 'Re-intentar' : 'Confirmar'}
+                          {activeTab === 'pendientes' ? '🔄 Re-intentar' : '✅ Confirmar'}
                         </button>
                       )}
                       
@@ -388,7 +465,7 @@ const PanelSecretarias = () => {
                           onClick={() => openConfirmModal(factura)}
                           className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm font-medium"
                         >
-                          Reasignar
+                          🔄 Reasignar
                         </button>
                       )}
                     </div>
@@ -406,14 +483,20 @@ const PanelSecretarias = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
-                {activeTab === 'no_entregadas' ? 'Reasignar Factura' : 'Confirmar Factura'}
+                {activeTab === 'no_entregadas' ? '🔄 Reasignar Factura' : '✅ Confirmar Factura'}
               </h2>
 
               <div className="mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Factura</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">{selectedFactura.numeroFactura}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">#{selectedFactura.numeroFactura}</p>
+                {selectedFactura.numeroContenedor && (
+                  <>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Contenedor</p>
+                    <p className="font-medium text-gray-900 dark:text-white">📦 {selectedFactura.numeroContenedor}</p>
+                  </>
+                )}
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Cliente</p>
-                <p className="font-medium text-gray-900 dark:text-white">{selectedFactura.cliente}</p>
+                <p className="font-medium text-gray-900 dark:text-white">👤 {selectedFactura.cliente}</p>
               </div>
 
               <div className="space-y-4 mb-6">
@@ -544,7 +627,7 @@ const PanelSecretarias = () => {
                     onClick={handleMarcarPendiente}
                     className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
                   >
-                    Marcar Pendiente
+                    ⏳ Marcar Pendiente
                   </button>
                 )}
                 
@@ -552,7 +635,7 @@ const PanelSecretarias = () => {
                   onClick={handleConfirmarFactura}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                 >
-                  ✓ Confirmar
+                  ✅ Confirmar
                 </button>
               </div>
             </div>
