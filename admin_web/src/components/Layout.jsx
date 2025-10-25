@@ -1,435 +1,309 @@
 ﻿// admin_web/src/components/Layout.jsx
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, FileText, Users, BarChart3, Settings, LogOut, HelpCircle, Building2, Briefcase, PackageSearch } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { signOut } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { signOut } from 'firebase/auth';
+
+// Importar componentes de notificaciones (si existen)
+let NotificationListener, NotificationPanel, NotificationToast, ModalDetalleFactura, useNotifications;
+try {
+  NotificationListener = require('./notifications/NotificationListener').default;
+  NotificationPanel = require('./notifications/NotificationPanel').default;
+  NotificationToast = require('./notifications/NotificationToast').default;
+  ModalDetalleFactura = require('./modals/ModalDetalleFactura').default;
+  useNotifications = require('../hooks/useNotifications').useNotifications;
+} catch (error) {
+  // Si no existen los componentes de notificaciones, usar versiones dummy
+  console.log('Componentes de notificaciones no encontrados, usando versiones básicas');
+}
 
 const Layout = ({ children }) => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const { userData, setUserData } = useAuth();
+  const location = useLocation();
+  const { userData, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [selectedFactura, setSelectedFactura] = useState(null);
+  const [showDetalleModal, setShowDetalleModal] = useState(false);
+
+  // Hook de notificaciones (si existe)
+  const notificationHook = useNotifications ? useNotifications() : {
+    notifications: [],
+    showPanel: false,
+    currentToast: null,
+    unreadCount: 0,
+    addNotification: () => {},
+    loadExistingNotifications: () => {},
+    markAsRead: () => {},
+    closeToast: () => {},
+    togglePanel: () => {},
+    setShowPanel: () => {}
+  };
+
+  const {
+    notifications,
+    showPanel,
+    currentToast,
+    unreadCount,
+    addNotification,
+    loadExistingNotifications,
+    markAsRead,
+    closeToast,
+    togglePanel,
+    setShowPanel
+  } = notificationHook;
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      setUserData(null);
+      if (logout) {
+        await logout();
+      } else {
+        await signOut(auth);
+      }
       navigate('/login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
   };
 
-  const getRolDisplay = (rol) => {
-    const roles = {
-      'super_admin': 'Super Administrador',
-      'admin_general': 'Administrador General',
-      'admin': 'Administrador General', // Compatibilidad
-      'recolector': 'Recolector (EE.UU.)',
-      'almacen_eeuu': 'Almacén EE.UU.', // Futuro
-      'secretaria': 'Secretaria',
-      'almacen': 'Encargado de Almacén (RD)',
-      'repartidor': 'Repartidor'
-    };
-    return roles[rol] || rol;
+  const handleViewDetails = (factura) => {
+    setSelectedFactura(factura);
+    setShowDetalleModal(true);
+    if (setShowPanel) setShowPanel(false);
   };
 
   // Normalizar rol (admin → admin_general)
-  const rolActual = userData?.rol === 'admin' ? 'admin_general' : userData?.rol;
+  const rol = userData?.rol === 'admin' ? 'admin_general' : userData?.rol || 'admin_general';
+
+  // Definir menú completo según rol
+  const getMenuByRole = () => {
+    const menus = {
+      super_admin: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/companies', label: 'Compañías', icon: '🏢' },
+        { path: '/tickets-admin', label: 'Tickets', icon: '🎫' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      admin_general: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/recolecciones', label: 'Recolecciones', icon: '📦' },
+        { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/secretarias', label: 'Panel Secretarías', icon: '📋' },
+        { path: '/rutas', label: 'Rutas', icon: '🗺️' },
+        { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
+        { path: '/empleados', label: 'Empleados', icon: '👥' },
+        { path: '/reportes', label: 'Reportes', icon: '📈' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      recolector: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/recolecciones', label: 'Mis Recolecciones', icon: '📦' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      secretaria: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/secretarias', label: 'Confirmar Facturas', icon: '📋' },
+        { path: '/embarques', label: 'Ver Embarques', icon: '🚢' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      almacen: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/rutas', label: 'Crear Rutas', icon: '🗺️' },
+        { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      almacen_rd: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/rutas', label: 'Crear Rutas', icon: '🗺️' },
+        { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      almacen_eeuu: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/recolecciones', label: 'Recolecciones', icon: '📦' },
+        { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      repartidor: [
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/rutas', label: 'Mis Rutas', icon: '🗺️' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ]
+    };
+
+    return menus[rol] || menus.admin_general;
+  };
+
+  const menuItems = getMenuByRole();
+
+  const getRolName = () => {
+    const roles = {
+      super_admin: 'Super Admin',
+      admin_general: 'Administrador',
+      recolector: 'Recolector',
+      secretaria: 'Secretaría',
+      almacen: 'Almacén RD',
+      almacen_rd: 'Almacén RD',
+      almacen_eeuu: 'Almacén EE.UU.',
+      repartidor: 'Repartidor'
+    };
+    return roles[rol] || 'Usuario';
+  };
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-800 text-white flex flex-col">
-        {/* Logo */}
-        <div className="p-4 border-b border-gray-700">
-          <h1 className="text-xl font-bold">Sistema de Envíos</h1>
-          <p className="text-sm text-gray-400">v2.0</p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Listener de notificaciones (si existe) */}
+      {NotificationListener && (
+        <NotificationListener 
+          onNewNotification={addNotification}
+          onLoadExisting={loadExistingNotifications}
+        />
+      )}
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {/* Dashboard - Todos */}
-            <Link
-              to="/dashboard"
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                location.pathname === '/dashboard'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              <LayoutDashboard size={20} />
-              <span>Dashboard</span>
-            </Link>
+      {/* Toast de notificación (si existe y hay toast) */}
+      {NotificationToast && currentToast && (
+        <NotificationToast
+          notification={currentToast}
+          onClose={closeToast}
+          onViewDetails={handleViewDetails}
+        />
+      )}
 
-            {/* ==================== SUPER ADMIN ONLY ==================== */}
-            {rolActual === 'super_admin' && (
-              <>
-                <Link
-                  to="/companies"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/companies'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
+      {/* Panel de notificaciones (si existe y está visible) */}
+      {NotificationPanel && showPanel && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setShowPanel(false)}
+          />
+          <NotificationPanel
+            notifications={notifications}
+            onClose={() => setShowPanel(false)}
+            onMarkAsRead={markAsRead}
+            onViewDetails={handleViewDetails}
+          />
+        </>
+      )}
+
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo y título */}
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-blue-600">Sistema de Envíos</h1>
+            </div>
+
+            {/* Usuario y notificaciones */}
+            <div className="flex items-center gap-4">
+              {/* Notificaciones (si existe el componente) */}
+              {useNotifications && (
+                <button 
+                  onClick={togglePanel}
+                  className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                 >
-                  <Building2 size={20} />
-                  <span>Compañías</span>
-                </Link>
-
-                <Link
-                  to="/empleados"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/empleados'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Users size={20} />
-                  <span>Empleados</span>
-                </Link>
-
-                <Link
-                  to="/tickets-admin"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/tickets-admin'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <HelpCircle size={20} />
-                  <span>Tickets de Soporte</span>
-                  {userData?.newTickets > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      Nuevo
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
-                </Link>
-              </>
-            )}
+                </button>
+              )}
 
-            {/* ==================== ADMIN GENERAL (acceso total) ==================== */}
-            {rolActual === 'admin_general' && (
-              <>
-                <Link
-                  to="/recolecciones"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/recolecciones'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
+              {/* Usuario */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition"
                 >
-                  <PackageSearch size={20} />
-                  <span>Recolecciones</span>
-                </Link>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-800">{userData?.nombre || 'Usuario'}</p>
+                    <p className="text-xs text-gray-500">{getRolName()}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                    {userData?.nombre?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                </button>
 
-                <Link
-                  to="/embarques"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/embarques'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Package size={20} />
-                  <span>Embarques</span>
-                </Link>
-
-                <Link
-                  to="/rutas"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/rutas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Truck size={20} />
-                  <span>Rutas</span>
-                </Link>
-
-                <Link
-                  to="/secretarias"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/secretarias'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Briefcase size={20} />
-                  <span>Panel Secretarias</span>
-                </Link>
-
-                <Link
-                  to="/facturas-no-entregadas"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/facturas-no-entregadas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <FileText size={20} />
-                  <span>Facturas No Entregadas</span>
-                </Link>
-
-                <Link
-                  to="/empleados"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/empleados'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Users size={20} />
-                  <span>Empleados</span>
-                </Link>
-
-                <Link
-                  to="/reportes"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/reportes'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <BarChart3 size={20} />
-                  <span>Reportes</span>
-                </Link>
-              </>
-            )}
-
-            {/* ==================== RECOLECTOR (solo recolecciones) ==================== */}
-            {rolActual === 'recolector' && (
-              <Link
-                to="/recolecciones"
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === '/recolecciones'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <PackageSearch size={20} />
-                <span>Mis Recolecciones</span>
-              </Link>
-            )}
-
-            {/* ==================== ALMACÉN EE.UU. (futuro) ==================== */}
-            {rolActual === 'almacen_eeuu' && (
-              <>
-                <Link
-                  to="/recolecciones"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/recolecciones'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <PackageSearch size={20} />
-                  <span>Recolecciones</span>
-                </Link>
-
-                <Link
-                  to="/embarques"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/embarques'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Package size={20} />
-                  <span>Embarques</span>
-                </Link>
-              </>
-            )}
-
-            {/* ==================== SECRETARIA ==================== */}
-            {rolActual === 'secretaria' && (
-              <>
-                <Link
-                  to="/embarques"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/embarques'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Package size={20} />
-                  <span>Embarques</span>
-                </Link>
-
-                <Link
-                  to="/rutas"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/rutas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Truck size={20} />
-                  <span>Rutas</span>
-                </Link>
-
-                <Link
-                  to="/secretarias"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/secretarias'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Briefcase size={20} />
-                  <span>Panel Secretarias</span>
-                </Link>
-
-                <Link
-                  to="/facturas-no-entregadas"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/facturas-no-entregadas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <FileText size={20} />
-                  <span>Facturas No Entregadas</span>
-                </Link>
-              </>
-            )}
-
-            {/* ==================== ALMACÉN RD ==================== */}
-            {rolActual === 'almacen' && (
-              <>
-                <Link
-                  to="/embarques"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/embarques'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Package size={20} />
-                  <span>Embarques</span>
-                </Link>
-
-                <Link
-                  to="/rutas"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/rutas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <Truck size={20} />
-                  <span>Rutas</span>
-                </Link>
-
-                <Link
-                  to="/facturas-no-entregadas"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === '/facturas-no-entregadas'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  <FileText size={20} />
-                  <span>Facturas No Entregadas</span>
-                </Link>
-              </>
-            )}
-
-            {/* ==================== REPARTIDOR ==================== */}
-            {rolActual === 'repartidor' && (
-              <Link
-                to="/rutas"
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === '/rutas'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <Truck size={20} />
-                <span>Mis Rutas</span>
-              </Link>
-            )}
-          </div>
-        </nav>
-
-        {/* Footer con Ayuda y User */}
-        <div className="border-t border-gray-700">
-          {/* Ayuda */}
-          <Link
-            to="/ayuda"
-            className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-              location.pathname === '/ayuda'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <HelpCircle size={20} />
-            <span>Ayuda</span>
-          </Link>
-
-          {/* User Info */}
-          <div className="p-4 bg-gray-900">
-            <p className="text-sm text-gray-400">Sesión activa como:</p>
-            <p className="font-medium truncate">{userData?.nombre || 'Usuario'}</p>
-            <p className="text-xs text-gray-500 truncate">{userData?.email}</p>
-            <p className="text-xs text-blue-400 mt-1">{getRolDisplay(rolActual)}</p>
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-800">{userData?.nombre}</p>
+                      <p className="text-xs text-gray-500 mt-1">{userData?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/configuracion');
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      ⚙️ Configuración
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Cerrar Sesión
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Sistema de Envíos</h2>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              {/* Notificaciones */}
-              <button className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-              </button>
-
-              {/* User Dropdown */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {userData?.nombre?.charAt(0).toUpperCase() || 'U'}
-                </div>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">{userData?.nombre}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{getRolDisplay(rolActual)}</p>
-                </div>
-              </div>
-
-              {/* Configuración */}
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white shadow-md min-h-[calc(100vh-64px)] sticky top-16">
+          <nav className="p-4">
+            {menuItems.map((item) => (
               <Link
-                to="/configuracion"
-                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
+                  location.pathname === item.path
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                <Settings size={20} />
+                <span className="text-xl">{item.icon}</span>
+                <span className="font-medium">{item.label}</span>
               </Link>
+            ))}
+          </nav>
+        </aside>
 
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        {/* Main Content */}
+        <main className="flex-1 min-h-[calc(100vh-64px)]">
           {children}
         </main>
       </div>
+
+      {/* Modal de detalle de factura (si existe y hay factura seleccionada) */}
+      {ModalDetalleFactura && showDetalleModal && selectedFactura && (
+        <ModalDetalleFactura
+          factura={selectedFactura}
+          onClose={() => {
+            setShowDetalleModal(false);
+            setSelectedFactura(null);
+          }}
+        />
+      )}
     </div>
   );
 };
