@@ -1,5 +1,6 @@
-﻿import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Eye, FileText, Package, Calendar, MapPin } from 'lucide-react';
+﻿// admin_web/src/pages/Embarques.jsx
+import { useState, useEffect } from 'react';
+import { Search, Edit2, Trash2, Eye, FileText, Package, Calendar, MapPin } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,19 +9,6 @@ const Embarques = () => {
   const [embarques, setEmbarques] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingEmbarque, setEditingEmbarque] = useState(null);
-  const [formData, setFormData] = useState({
-    codigoTracking: '',
-    origen: '',
-    destino: '',
-    fechaRecogida: '',
-    fechaEntrega: '',
-    estado: 'pendiente',
-    descripcion: '',
-    peso: '',
-    dimensiones: ''
-  });
 
   useEffect(() => {
     loadEmbarques();
@@ -42,28 +30,6 @@ const Embarques = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const dataToSend = {
-        ...formData,
-        companyId: userData.companyId
-      };
-
-      if (editingEmbarque) {
-        await api.put(`/embarques/${editingEmbarque._id}`, dataToSend);
-      } else {
-        await api.post('/embarques', dataToSend);
-      }
-
-      loadEmbarques();
-      handleCloseModal();
-    } catch (error) {
-      console.error('Error guardando embarque:', error);
-      alert('Error al guardar embarque: ' + (error.response?.data?.error || error.message));
-    }
-  };
-
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este embarque?')) {
       try {
@@ -76,59 +42,34 @@ const Embarques = () => {
     }
   };
 
-  const handleEdit = (embarque) => {
-    setEditingEmbarque(embarque);
-    setFormData({
-      codigoTracking: embarque.codigoTracking || '',
-      origen: embarque.origen || '',
-      destino: embarque.destino || '',
-      fechaRecogida: embarque.fechaRecogida?.split('T')[0] || '',
-      fechaEntrega: embarque.fechaEntrega?.split('T')[0] || '',
-      estado: embarque.estado || 'pendiente',
-      descripcion: embarque.descripcion || '',
-      peso: embarque.peso || '',
-      dimensiones: embarque.dimensiones || ''
-    });
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingEmbarque(null);
-    setFormData({
-      codigoTracking: '',
-      origen: '',
-      destino: '',
-      fechaRecogida: '',
-      fechaEntrega: '',
-      estado: 'pendiente',
-      descripcion: '',
-      peso: '',
-      dimensiones: ''
-    });
-  };
-
   const filteredEmbarques = embarques.filter(embarque =>
     embarque.codigoTracking?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     embarque.origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    embarque.destino?.toLowerCase().includes(searchTerm.toLowerCase())
+    embarque.destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    embarque.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getEstadoBadge = (estado) => {
     const badges = {
+      activo: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
       pendiente: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200',
       en_proceso: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
       entregado: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
+      completado: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
+      inactivo: 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200',
       cancelado: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
     };
-    return badges[estado] || badges.pendiente;
+    return badges[estado] || badges.activo;
   };
 
   const getEstadoTexto = (estado) => {
     const textos = {
+      activo: 'Activo',
       pendiente: 'Pendiente',
       en_proceso: 'En Proceso',
       entregado: 'Entregado',
+      completado: 'Completado',
+      inactivo: 'Inactivo',
       cancelado: 'Cancelado'
     };
     return textos[estado] || estado;
@@ -148,15 +89,26 @@ const Embarques = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Embarques</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Gestión de envíos y tracking</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Los embarques se crean automáticamente desde Google Drive
+          </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Nuevo Embarque
-        </button>
+        {/* ✅ BOTÓN "NUEVO EMBARQUE" ELIMINADO - Los embarques se crean automáticamente desde Drive */}
+      </div>
+
+      {/* Información de actualización automática */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <div>
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              Sistema de actualización automática
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+              Los embarques se sincronizan automáticamente cada 5 minutos desde Google Drive
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Búsqueda */}
@@ -165,7 +117,7 @@ const Embarques = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Buscar por código, origen o destino..."
+            placeholder="Buscar por nombre, código, origen o destino..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -182,28 +134,28 @@ const Embarques = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <Package size={16} />
-                    Código Tracking
+                    Nombre / Código
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={16} />
-                    Origen / Destino
-                  </div>
+                  Descripción
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <Calendar size={16} />
-                    Fechas
+                    Fecha Creación
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Estado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Detalles
+                  Facturas
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Progreso
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -211,70 +163,95 @@ const Embarques = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredEmbarques.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                    No hay embarques registrados
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {searchTerm ? 'No se encontraron embarques' : 'No hay embarques registrados'}
+                    </p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                      Los embarques se crearán automáticamente al subir archivos a Google Drive
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filteredEmbarques.map((embarque) => (
-                  <tr key={embarque._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={embarque.id || embarque._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {embarque.nombre || embarque.codigoTracking || 'Sin nombre'}
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {embarque.codigoTracking}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">
-                        <div className="font-medium">Origen: {embarque.origen}</div>
-                        <div className="text-gray-500 dark:text-gray-400">Destino: {embarque.destino}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">
-                        <div>Recogida: {new Date(embarque.fechaRecogida).toLocaleDateString()}</div>
-                        {embarque.fechaEntrega && (
-                          <div className="text-gray-500 dark:text-gray-400">
-                            Entrega: {new Date(embarque.fechaEntrega).toLocaleDateString()}
+                        {embarque.id && (
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">
+                            ID: {embarque.id}
                           </div>
                         )}
                       </div>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">
+                        {embarque.descripcion || '-'}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoBadge(embarque.estado)}`}>
-                        {getEstadoTexto(embarque.estado)}
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {embarque.fechaCreacion 
+                          ? new Date(embarque.fechaCreacion).toLocaleDateString('es-DO', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })
+                          : '-'
+                        }
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoBadge(embarque.estado || 'activo')}`}>
+                        {getEstadoTexto(embarque.estado || 'activo')}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-gray-100">
-                        {embarque.peso && <div>Peso: {embarque.peso} kg</div>}
-                        {embarque.dimensiones && (
-                          <div className="text-gray-500 dark:text-gray-400">{embarque.dimensiones}</div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-gray-400" />
+                          <span className="font-medium">{embarque.totalFacturas || 0}</span>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Entregadas: {embarque.facturasEntregadas || 0}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full transition-all" 
+                            style={{ width: `${embarque.porcentajeCompletado || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {embarque.porcentajeCompletado || 0}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => handleEdit(embarque)}
+                          onClick={() => window.location.href = `/embarques/${embarque.id}`}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
-                          title="Editar"
+                          title="Ver detalles"
                         >
-                          <Edit2 size={18} />
+                          <Eye size={18} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(embarque._id)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {(userData?.rol === 'admin_general' || userData?.rol === 'super_admin') && (
+                          <button
+                            onClick={() => handleDelete(embarque.id)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -285,157 +262,7 @@ const Embarques = () => {
         </div>
       </div>
 
-      {/* Modal de crear/editar */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
-                {editingEmbarque ? 'Editar Embarque' : 'Nuevo Embarque'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Código de Tracking *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.codigoTracking}
-                      onChange={(e) => setFormData({...formData, codigoTracking: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Estado *
-                    </label>
-                    <select
-                      required
-                      value={formData.estado}
-                      onChange={(e) => setFormData({...formData, estado: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="pendiente">Pendiente</option>
-                      <option value="en_proceso">En Proceso</option>
-                      <option value="entregado">Entregado</option>
-                      <option value="cancelado">Cancelado</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Origen *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.origen}
-                      onChange={(e) => setFormData({...formData, origen: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Destino *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.destino}
-                      onChange={(e) => setFormData({...formData, destino: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Fecha de Recogida *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.fechaRecogida}
-                      onChange={(e) => setFormData({...formData, fechaRecogida: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Fecha de Entrega Estimada
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.fechaEntrega}
-                      onChange={(e) => setFormData({...formData, fechaEntrega: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Peso (kg)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.peso}
-                      onChange={(e) => setFormData({...formData, peso: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Dimensiones
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej: 50x40x30 cm"
-                      value={formData.dimensiones}
-                      onChange={(e) => setFormData({...formData, dimensiones: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Descripción
-                  </label>
-                  <textarea
-                    rows="3"
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Detalles adicionales del embarque..."
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    {editingEmbarque ? 'Actualizar' : 'Crear'} Embarque
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ✅ MODAL DE CREAR/EDITAR ELIMINADO - No se necesita crear embarques manualmente */}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 // admin_web/src/pages/Recolecciones.jsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // ✅ AGREGADO
 import { useAuth } from '../context/AuthContext';
 import { 
   Package, 
@@ -19,6 +20,7 @@ import CambiarEstado from '../components/recolecciones/CambiarEstado';
 
 export default function Recolecciones() {
   const { userData } = useAuth();
+  const navigate = useNavigate(); // ✅ AGREGADO
   const [recolecciones, setRecolecciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,7 +167,7 @@ export default function Recolecciones() {
             </button>
             {esRecolector && (
               <button
-                onClick={() => window.location.href = '/recolecciones/nueva'}
+                onClick={() => navigate('/recolecciones/nueva')} // ✅ CORREGIDO
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -206,7 +208,7 @@ export default function Recolecciones() {
             </p>
             {esRecolector && (
               <button
-                onClick={() => window.location.href = '/recolecciones/nueva'}
+                onClick={() => navigate('/recolecciones/nueva')} // ✅ CORREGIDO
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="w-5 h-5" />
@@ -252,7 +254,7 @@ export default function Recolecciones() {
                         </button>
                       )}
                       <button
-                        onClick={() => window.location.href = `/recolecciones/${recoleccion.tracking_numero || recoleccion.id}`}
+                        onClick={() => navigate(`/recolecciones/${recoleccion.tracking_numero || recoleccion.id}`)} // ✅ CORREGIDO
                         className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                         title="Ver detalles"
                       >
