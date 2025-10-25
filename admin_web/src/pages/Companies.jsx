@@ -34,9 +34,20 @@ const Companies = () => {
     try {
       setLoading(true);
       const response = await api.get('/companies');
-      setCompanies(response.data || []);
+      
+      // ✅ FIX: Manejar múltiples formatos de respuesta del backend
+      const companiesData = response.data?.data || response.data?.companies || response.data || [];
+      
+      // ✅ FIX: Asegurar que sea un array
+      const companiesArray = Array.isArray(companiesData) ? companiesData : [];
+      
+      console.log('✅ Compañías cargadas:', companiesArray.length);
+      setCompanies(companiesArray);
+      
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error cargando compañías:', error);
+      // ✅ FIX: Siempre setear array vacío en caso de error
+      setCompanies([]);
       alert('Error al cargar compañías');
     } finally {
       setLoading(false);
@@ -201,16 +212,15 @@ const Companies = () => {
       premium: 'Premium',
       enterprise: 'Enterprise'
     };
-    return labels[plan] || plan;
+    return labels[plan] || 'Básico';
   };
 
   if (userData?.rol !== 'super_admin') {
     return (
       <div className="p-6">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 text-center">
-          <p className="text-red-800 dark:text-red-200 text-lg font-medium">
-            ⛔ No tienes permisos para acceder a esta página
-          </p>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p className="font-bold">Acceso Denegado</p>
+          <p className="text-sm">Solo los Super Administradores pueden gestionar compañías.</p>
         </div>
       </div>
     );
@@ -222,160 +232,128 @@ const Companies = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Gestión de Compañías</h1>
-          <p className="text-gray-600 dark:text-gray-400">Administra las empresas del sistema Multi-Tenant</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Administra las compañías del sistema Multi-Tenant
+          </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
         >
-          <span>+</span>
-          Nueva Compañía
+          + Nueva Compañía
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Compañías</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{companies.length}</p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-              <span className="text-2xl">🏢</span>
-            </div>
+      {/* Companies Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando compañías...</p>
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Activas</p>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {companies.filter(c => c.activo).length}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-              <span className="text-2xl">✅</span>
-            </div>
+        ) : companies.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
+              No hay compañías registradas
+            </p>
+            <button
+              onClick={openCreateModal}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Crear Primera Compañía
+            </button>
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Inactivas</p>
-              <p className="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">
-                {companies.filter(c => !c.activo).length}
-              </p>
-            </div>
-            <div className="p-3 bg-red-100 dark:bg-red-900 rounded-full">
-              <span className="text-2xl">⛔</span>
-            </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Compañía
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Plan
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Creación
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Admin Email
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {companies.map((company) => (
+                  <tr key={company.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {company.nombre || 'Sin nombre'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        ID: {company.id}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPlanBadge(company.plan)}`}>
+                        {getPlanLabel(company.plan)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        company.activo 
+                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
+                          : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                      }`}>
+                        {company.activo ? '✓ Activa' : '✗ Inactiva'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {company.fechaCreacion 
+                        ? new Date(company.fechaCreacion.toDate ? company.fechaCreacion.toDate() : company.fechaCreacion).toLocaleDateString() 
+                        : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {company.adminEmail || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEditModal(company)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleToggleCompany(company.id, company.activo)}
+                          className={`${
+                            company.activo 
+                              ? 'text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300'
+                              : 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300'
+                          }`}
+                        >
+                          {company.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(company)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Premium</p>
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                {companies.filter(c => c.plan === 'premium' || c.plan === 'enterprise').length}
-              </p>
-            </div>
-            <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-              <span className="text-2xl">⭐</span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
-
-      {/* Lista de Compañías */}
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando compañías...</p>
-        </div>
-      ) : companies.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400 text-lg">No hay compañías registradas</p>
-          <p className="text-gray-400 dark:text-gray-500 mt-2">Crea la primera compañía para empezar</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {companies.map((company) => (
-            <div key={company.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{company.nombre}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">ID: {company.id}</p>
-                </div>
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                  company.activo 
-                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                    : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                }`}>
-                  {company.activo ? 'Activa' : 'Inactiva'}
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                  <span>📧</span>
-                  <span>{company.adminEmail}</span>
-                </div>
-                {company.telefono && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <span>📞</span>
-                    <span>{company.telefono}</span>
-                  </div>
-                )}
-                {company.direccion && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <span>📍</span>
-                    <span>{company.direccion}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPlanBadge(company.plan)}`}>
-                  Plan {getPlanLabel(company.plan)}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {new Date(company.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-
-              <div className="flex gap-2 pt-4 border-t dark:border-gray-700">
-                <button
-                  onClick={() => openEditModal(company)}
-                  className="flex-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 px-3 py-2 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleToggleCompany(company.id, company.activo)}
-                  className={`flex-1 px-3 py-2 rounded text-sm transition ${
-                    company.activo 
-                      ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/50' 
-                      : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50'
-                  }`}
-                >
-                  {company.activo ? 'Desactivar' : 'Activar'}
-                </button>
-                <button
-                  onClick={() => openDeleteModal(company)}
-                  className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 px-3 py-2 rounded text-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition"
-                  title="Eliminar permanentemente"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Modal Create/Edit */}
       {showModal && (
