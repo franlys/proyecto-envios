@@ -48,7 +48,7 @@ router.get('/', checkRole('super_admin', 'admin_general'), async (req, res) => {
 
     res.json({
       success: true,
-      empleados
+      data: empleados // ✅ CORRECCIÓN: Cambia "empleados" por "data"
     });
 
   } catch (error) {
