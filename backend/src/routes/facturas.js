@@ -8,7 +8,58 @@ const router = express.Router();
 // Aplicar middleware de autenticación a todas las rutas
 router.use(verifyToken);
 
+// ============================================
+// GET - Estadísticas para Secretaria
+// ============================================
+router.get('/stats-secretaria', async (req, res) => {
+  try {
+    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userData = userDoc.data();
+
+    if (!userData.companyId) {
+      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+    }
+
+    // Contar facturas sin confirmar
+    let facturasSinConfirmar = 0;
+    let facturasConfirmadas = 0;
+    let facturasTotal = 0;
+
+    try {
+      const facturasSnapshot = await db.collection('facturas')
+        .where('companyId', '==', userData.companyId)
+        .get();
+
+      facturasSnapshot.forEach(doc => {
+        const factura = doc.data();
+        facturasTotal++;
+        if (factura.estado === 'sin_confirmar') {
+          facturasSinConfirmar++;
+        } else if (factura.estado === 'confirmada') {
+          facturasConfirmadas++;
+        }
+      });
+    } catch (error) {
+      console.log('No hay facturas');
+    }
+
+    res.json({
+      facturasSinConfirmar,
+      facturasConfirmadas,
+      facturasTotal,
+      porcentajeConfirmadas: facturasTotal > 0 
+        ? Math.round((facturasConfirmadas / facturasTotal) * 100) 
+        : 0
+    });
+  } catch (error) {
+    console.error('Error en stats-secretaria:', error);
+    res.status(500).json({ error: 'Error al obtener estadísticas' });
+  }
+});
+
+// ============================================
 // GET - Obtener facturas no entregadas
+// ============================================
 router.get('/no-entregadas', async (req, res) => {
   try {
     // ← NUEVO: Obtener datos del usuario
@@ -78,7 +129,9 @@ router.get('/no-entregadas', async (req, res) => {
   }
 });
 
+// ============================================
 // POST - Reasignar factura
+// ============================================
 router.post('/reasignar', async (req, res) => {
   try {
     const { facturaId, accion, observaciones, nuevaRutaId } = req.body;
@@ -178,7 +231,9 @@ router.post('/reasignar', async (req, res) => {
   }
 });
 
+// ============================================
 // GET - Obtener historial de una factura
+// ============================================
 router.get('/:id/historial', async (req, res) => {
   try {
     const { id } = req.params;
@@ -225,7 +280,9 @@ router.get('/:id/historial', async (req, res) => {
   }
 });
 
+// ============================================
 // GET - Buscar facturas con filtros
+// ============================================
 router.get('/buscar', async (req, res) => {
   try {
     const { cliente, numeroFactura, estado, rutaId, fechaDesde, fechaHasta } = req.query;
@@ -287,7 +344,9 @@ router.get('/buscar', async (req, res) => {
   }
 });
 
+// ============================================
 // GET - Obtener estadísticas de facturas
+// ============================================
 router.get('/estadisticas', async (req, res) => {
   try {
     // ← NUEVO: Obtener datos del usuario

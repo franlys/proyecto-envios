@@ -7,7 +7,72 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-// GET /api/embarques
+// ============================================
+// ENDPOINT: Stats para Almacén
+// ============================================
+router.get('/stats-almacen', async (req, res) => {
+  try {
+    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userData = userDoc.data();
+
+    if (!userData.companyId) {
+      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+    }
+
+    // Stats de embarques activos
+    const embarquesSnapshot = await db.collection('embarques')
+      .where('companyId', '==', userData.companyId)
+      .where('estado', '==', 'activo')
+      .get();
+    
+    const embarquesActivos = embarquesSnapshot.size;
+
+    // Stats de rutas creadas
+    let rutasCreadas = 0;
+    try {
+      const rutasSnapshot = await db.collection('rutas')
+        .where('companyId', '==', userData.companyId)
+        .get();
+      rutasCreadas = rutasSnapshot.size;
+    } catch (error) {
+      console.log('No hay rutas');
+    }
+
+    // Stats de facturas no entregadas
+    let facturasNoEntregadas = 0;
+    let facturasListasParaRuta = 0;
+    try {
+      const facturasSnapshot = await db.collection('facturas')
+        .where('companyId', '==', userData.companyId)
+        .get();
+      
+      facturasSnapshot.forEach(doc => {
+        const factura = doc.data();
+        if (factura.estado === 'no_entregada') {
+          facturasNoEntregadas++;
+        } else if (factura.estado === 'confirmada' && !factura.ruta_id) {
+          facturasListasParaRuta++;
+        }
+      });
+    } catch (error) {
+      console.log('No hay facturas');
+    }
+
+    res.json({
+      embarquesActivos,
+      rutasCreadas,
+      facturasNoEntregadas,
+      facturasListasParaRuta
+    });
+  } catch (error) {
+    console.error('Error en stats-almacen:', error);
+    res.status(500).json({ error: 'Error al obtener estadísticas de almacén' });
+  }
+});
+
+// ============================================
+// ENDPOINT: GET /api/embarques
+// ============================================
 router.get('/', async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
@@ -26,8 +91,14 @@ router.get('/', async (req, res) => {
       query = query.where('companyId', '==', userData.companyId);
     }
 
+    const { estado, limit = 100 } = req.query;
+
+    if (estado) {
+      query = query.where('estado', '==', estado);
+    }
+
     // ✅ SIN orderBy para evitar problemas de índices
-    const snapshot = await query.get();
+    const snapshot = await query.limit(parseInt(limit)).get();
     
     const embarques = [];
     snapshot.forEach(doc => {
@@ -52,14 +123,16 @@ router.get('/', async (req, res) => {
       return dateB - dateA;
     });
 
-    res.json(embarques);
+    res.json({ embarques });
   } catch (error) {
     console.error('❌ Error:', error);
     res.status(500).json({ error: 'Error al obtener embarques' });
   }
 });
 
-// GET /api/embarques/:id
+// ============================================
+// ENDPOINT: GET /api/embarques/:id
+// ============================================
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -85,7 +158,9 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/embarques
+// ============================================
+// ENDPOINT: POST /api/embarques
+// ============================================
 router.post('/', async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
@@ -95,7 +170,7 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ error: 'Usuario sin compañía asignada' });
     }
 
-    if (userData.rol !== 'admin' && userData.rol !== 'super_admin') {
+    if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
       return res.status(403).json({ error: 'Solo administradores pueden crear embarques' });
     }
 
@@ -130,14 +205,16 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/embarques/:id
+// ============================================
+// ENDPOINT: PUT /api/embarques/:id
+// ============================================
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
-    if (userData.rol !== 'admin' && userData.rol !== 'super_admin') {
+    if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
       return res.status(403).json({ error: 'Solo administradores pueden actualizar embarques' });
     }
 
@@ -156,14 +233,16 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/embarques/:id
+// ============================================
+// ENDPOINT: DELETE /api/embarques/:id
+// ============================================
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
-    if (userData.rol !== 'admin' && userData.rol !== 'super_admin') {
+    if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
       return res.status(403).json({ error: 'Solo administradores pueden eliminar embarques' });
     }
 

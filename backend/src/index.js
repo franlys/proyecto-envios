@@ -13,7 +13,8 @@ import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
 import facturasRoutes from './routes/facturas.js';
 import recoleccionesRoutes from './routes/recolecciones.js';
-import contenedoresRoutes from './routes/contenedores.js'; // ← NUEVO
+import contenedoresRoutes from './routes/contenedores.js';
+import dashboardRoutes from './routes/dashboard.js'; // ← NUEVO
 
 dotenv.config();
 
@@ -105,7 +106,8 @@ app.use('/api/rutas', rutasRoutes);
 app.use('/api/tickets', ticketsRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/recolecciones', recoleccionesRoutes);
-app.use('/api/contenedores', contenedoresRoutes); // ← NUEVO
+app.use('/api/contenedores', contenedoresRoutes);
+app.use('/api/dashboard', dashboardRoutes); // ← NUEVO
 
 // =====================================================
 // RUTA RAÍZ
@@ -127,7 +129,8 @@ app.get('/', (req, res) => {
       tickets: '/api/tickets',
       facturas: '/api/facturas',
       recolecciones: '/api/recolecciones',
-      contenedores: '/api/contenedores' // ← NUEVO
+      contenedores: '/api/contenedores',
+      dashboard: '/api/dashboard' // ← NUEVO
     }
   });
 });
@@ -165,9 +168,11 @@ app.use('*', (req, res) => {
       'GET    /api/recolecciones/:tracking',
       'GET    /api/recolecciones/recolector/:id',
       'POST   /api/recolecciones/:tracking/fotos',
-      'POST   /api/contenedores/upload-from-drive', // ← NUEVO
-      'GET    /api/contenedores', // ← NUEVO
-      'GET    /api/contenedores/:id' // ← NUEVO
+      'POST   /api/contenedores/upload-from-drive',
+      'GET    /api/contenedores',
+      'GET    /api/contenedores/:id',
+      'GET    /api/dashboard/stats', // ← NUEVO
+      'GET    /api/dashboard/super-admin-stats' // ← NUEVO
     ]
   });
 });
@@ -231,9 +236,11 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/recolecciones/:tracking');
   console.log('   ✅ GET    /api/recolecciones/recolector/:id');
   console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');
-  console.log('   ✅ POST   /api/contenedores/upload-from-drive'); // ← NUEVO
-  console.log('   ✅ GET    /api/contenedores'); // ← NUEVO
-  console.log('   ✅ GET    /api/contenedores/:id'); // ← NUEVO
+  console.log('   ✅ POST   /api/contenedores/upload-from-drive');
+  console.log('   ✅ GET    /api/contenedores');
+  console.log('   ✅ GET    /api/contenedores/:id');
+  console.log('   ✅ GET    /api/dashboard/stats'); // ← NUEVO
+  console.log('   ✅ GET    /api/dashboard/super-admin-stats'); // ← NUEVO
   console.log('\n💡 Tip: Visita http://localhost:' + PORT + '/api/health\n');
 });
 

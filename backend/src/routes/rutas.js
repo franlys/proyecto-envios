@@ -1,4 +1,4 @@
-// backend/src/routes/rutas.js - QUERIES SIMPLIFICADAS
+// backend/src/routes/rutas.js
 import express from 'express';
 import { db } from '../config/firebase.js';
 import { verifyToken } from '../middleware/auth.js';
@@ -6,7 +6,69 @@ import { verifyToken } from '../middleware/auth.js';
 const router = express.Router();
 router.use(verifyToken);
 
+// ============================================
+// GET - Estadísticas para Repartidor
+// ============================================
+router.get('/stats-repartidor', async (req, res) => {
+  try {
+    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userData = userDoc.data();
+
+    if (!userData.companyId) {
+      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+    }
+
+    // Base query
+    let query = db.collection('rutas')
+      .where('companyId', '==', userData.companyId);
+
+    // Si es repartidor, filtrar por su ID
+    if (userData.rol === 'repartidor') {
+      query = query.where('empleadoId', '==', req.user.uid);
+    }
+
+    const snapshot = await query.get();
+
+    let rutasActivas = 0;
+    let rutasCompletadas = 0;
+    let rutasPendientes = 0;
+    let facturasEntregadas = 0;
+    let facturasPendientes = 0;
+
+    snapshot.forEach(doc => {
+      const ruta = doc.data();
+      const estado = ruta.estado?.toLowerCase() || '';
+
+      if (estado === 'en_proceso' || estado === 'activa') {
+        rutasActivas++;
+      } else if (estado === 'completada') {
+        rutasCompletadas++;
+      } else if (estado === 'pendiente') {
+        rutasPendientes++;
+      }
+
+      // Contar facturas
+      facturasEntregadas += ruta.facturasEntregadas || 0;
+      facturasPendientes += ruta.facturasPendientes || 0;
+    });
+
+    res.json({
+      rutasActivas,
+      rutasCompletadas,
+      rutasPendientes,
+      facturasEntregadas,
+      facturasPendientes,
+      totalRutas: snapshot.size
+    });
+  } catch (error) {
+    console.error('Error en stats-repartidor:', error);
+    res.status(500).json({ error: 'Error al obtener estadísticas de repartidor' });
+  }
+});
+
+// ============================================
 // GET - Obtener todas las rutas (SIMPLIFICADO - SIN orderBy)
+// ============================================
 router.get('/', async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
@@ -88,7 +150,9 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ============================================
 // GET - Obtener solo rutas activas (SIMPLIFICADO)
+// ============================================
 router.get('/activas', async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
@@ -146,7 +210,9 @@ router.get('/activas', async (req, res) => {
   }
 });
 
-// POST - Crear nueva ruta (mantener igual)
+// ============================================
+// POST - Crear nueva ruta
+// ============================================
 router.post('/', async (req, res) => {
   try {
     const { 
@@ -225,7 +291,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Resto de endpoints igual...
+// ============================================
+// GET - Obtener detalle de una ruta
+// ============================================
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
