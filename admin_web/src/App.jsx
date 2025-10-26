@@ -9,6 +9,7 @@ import Companies from './pages/Companies';
 import Embarques from './pages/Embarques';
 import Rutas from './pages/Rutas';
 import Recolecciones from './pages/Recolecciones';
+import NuevaRecoleccion from './pages/NuevaRecoleccion'; // ✅ NUEVO: Importar componente
 import PanelSecretarias from './pages/PanelSecretarias';
 import FacturasNoEntregadas from './pages/FacturasNoEntregadas';
 import Empleados from './pages/Empleados';
@@ -61,6 +62,7 @@ function AppContent() {
         {rol === 'admin_general' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} /> {/* ✅ NUEVO */}
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
             <Route path="/secretarias" element={<PanelSecretarias />} />
@@ -76,6 +78,7 @@ function AppContent() {
         {rol === 'recolector' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} /> {/* ✅ NUEVO */}
           </>
         )}
 
@@ -85,6 +88,7 @@ function AppContent() {
         {rol === 'almacen_eeuu' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} /> {/* ✅ NUEVO */}
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/reportes" element={<Reportes />} />
           </>

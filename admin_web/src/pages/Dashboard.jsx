@@ -12,7 +12,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ CORRECCIÓN: Redireccionar según rol específico
+  // Redireccionar según rol específico
   useEffect(() => {
     if (!authLoading && userData) {
       const rol = userData.rol;
@@ -40,7 +40,7 @@ const Dashboard = () => {
     }
   }, [userData, authLoading, navigate]);
 
-  // ✅ CORRECCIÓN: Cargar estadísticas con manejo de errores completo
+  // ✅ CORRECCIÓN: Cargar estadísticas adaptado al formato real del backend
   useEffect(() => {
     const fetchStats = async () => {
       // Solo cargar stats si el usuario es admin
@@ -53,19 +53,36 @@ const Dashboard = () => {
         setError(null);
 
         const response = await api.get('/dashboard/stats');
+        console.log('📊 Respuesta del backend:', response.data);
         
-        if (response.data.success) {
-          setStats(response.data.stats);
-        } else {
-          throw new Error(response.data.error || 'Error al cargar estadísticas');
-        }
+        // ✅ CORRECCIÓN: El backend devuelve directamente los datos, no dentro de data.stats
+        const data = response.data;
+        
+        // Transformar los datos del backend al formato que espera el frontend
+        const transformedStats = {
+          embarquesActivos: data.embarques?.activos || 0,
+          recoleccionesHoy: data.recolecciones?.hoy || 0,
+          rutasEnCurso: data.rutas?.enCurso || data.rutas?.activas || 0,
+          facturasPendientes: data.facturas?.pendientes || 0,
+          // Datos adicionales que podemos usar
+          totalUsuarios: data.usuarios?.total || 0,
+          usuariosActivos: data.usuarios?.activos || 0,
+          totalRecolecciones: data.recolecciones?.total || 0,
+          totalEmbarques: data.embarques?.total || 0,
+          totalRutas: data.rutas?.total || 0,
+          totalFacturas: data.facturas?.total || 0,
+          facturasEntregadas: data.facturas?.entregadas || 0,
+          // Información de la empresa
+          empresa: data.empresa || null
+        };
+
+        console.log('✅ Stats transformadas:', transformedStats);
+        setStats(transformedStats);
 
       } catch (err) {
         console.error('❌ Error cargando estadísticas:', err);
         
-        // ✅ CORRECCIÓN: Manejo específico de diferentes tipos de errores
         if (err.response) {
-          // Error del servidor
           if (err.response.status === 401) {
             setError('Sesión expirada. Por favor, inicia sesión nuevamente.');
             setTimeout(() => navigate('/login'), 2000);
@@ -77,10 +94,8 @@ const Dashboard = () => {
             setError(err.response.data?.error || 'Error al cargar estadísticas');
           }
         } else if (err.request) {
-          // Error de red
           setError('Error de conexión. Verifica tu internet e intenta nuevamente.');
         } else {
-          // Otro tipo de error
           setError(err.message || 'Error desconocido al cargar estadísticas');
         }
       } finally {
@@ -93,7 +108,6 @@ const Dashboard = () => {
     }
   }, [userData, authLoading, navigate]);
 
-  // ✅ CORRECCIÓN: Mostrar estados de carga y error apropiadamente
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -105,7 +119,6 @@ const Dashboard = () => {
     );
   }
 
-  // ✅ CORRECCIÓN: Mostrar error con opción de reintentar
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -135,7 +148,6 @@ const Dashboard = () => {
     );
   }
 
-  // ✅ CORRECCIÓN: Validar que stats exista antes de renderizar
   if (!stats) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -155,66 +167,138 @@ const Dashboard = () => {
           Dashboard - {userData?.rol === 'super_admin' ? 'Super Admin' : 'Administrador General'}
         </h1>
         <p className="text-gray-600">Bienvenido, {userData?.nombre}</p>
+        {stats.empresa && (
+          <p className="text-sm text-gray-500 mt-1">
+            Empresa: {stats.empresa.nombre} - Plan: {stats.empresa.plan}
+          </p>
+        )}
       </div>
 
       {/* Estadísticas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Embarques Activos"
-          value={stats.embarquesActivos || 0}
+          value={stats.embarquesActivos}
+          subtitle={`Total: ${stats.totalEmbarques || 0}`}
           icon="📦"
           color="blue"
         />
         <StatCard
           title="Recolecciones Hoy"
-          value={stats.recoleccionesHoy || 0}
+          value={stats.recoleccionesHoy}
+          subtitle={`Total: ${stats.totalRecolecciones || 0}`}
           icon="🚚"
           color="green"
         />
         <StatCard
           title="Rutas en Curso"
-          value={stats.rutasEnCurso || 0}
+          value={stats.rutasEnCurso}
+          subtitle={`Total: ${stats.totalRutas || 0}`}
           icon="🚗"
           color="yellow"
         />
         <StatCard
           title="Facturas Pendientes"
-          value={stats.facturasPendientes || 0}
+          value={stats.facturasPendientes}
+          subtitle={`Entregadas: ${stats.facturasEntregadas || 0}`}
           icon="📄"
           color="red"
         />
       </div>
 
-      {/* Actividad Reciente */}
+      {/* Estadísticas adicionales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Usuarios del Sistema</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalUsuarios || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Activos: {stats.usuariosActivos || 0}
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+              <span className="text-2xl">👥</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total de Facturas</p>
+              <p className="text-2xl font-bold text-gray-800">{stats.totalFacturas || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {stats.totalFacturas > 0 
+                  ? `${Math.round((stats.facturasEntregadas / stats.totalFacturas) * 100)}% entregadas`
+                  : 'Sin facturas'
+                }
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+              <span className="text-2xl">📋</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Estado del Sistema</p>
+              <p className="text-2xl font-bold text-green-600">Operativo</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Todos los servicios funcionando
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+              <span className="text-2xl">✅</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Accesos rápidos */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Actividad Reciente</h2>
-        {stats.actividadReciente && stats.actividadReciente.length > 0 ? (
-          <ul className="space-y-3">
-            {stats.actividadReciente.map((actividad, index) => (
-              <li key={index} className="flex items-start border-b pb-3 last:border-b-0">
-                <span className="text-2xl mr-3">{actividad.icon || '📌'}</span>
-                <div className="flex-1">
-                  <p className="text-gray-800 font-medium">{actividad.descripcion}</p>
-                  <p className="text-sm text-gray-500">{actividad.fecha}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500 text-center py-4">No hay actividad reciente</p>
-        )}
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Accesos Rápidos</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <QuickAccessButton
+            title="Embarques"
+            icon="📦"
+            color="blue"
+            onClick={() => navigate('/embarques')}
+          />
+          <QuickAccessButton
+            title="Recolecciones"
+            icon="🚚"
+            color="green"
+            onClick={() => navigate('/recolecciones')}
+          />
+          <QuickAccessButton
+            title="Rutas"
+            icon="🚗"
+            color="yellow"
+            onClick={() => navigate('/rutas')}
+          />
+          <QuickAccessButton
+            title="Reportes"
+            icon="📊"
+            color="purple"
+            onClick={() => navigate('/reportes')}
+          />
+        </div>
       </div>
     </div>
   );
 };
 
-// ✅ CORRECCIÓN: Componente StatCard con validación de props
-const StatCard = ({ title, value, icon, color }) => {
+// Componente StatCard
+const StatCard = ({ title, value, subtitle, icon, color }) => {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600',
     green: 'bg-green-100 text-green-600',
     yellow: 'bg-yellow-100 text-yellow-600',
-    red: 'bg-red-100 text-red-600'
+    red: 'bg-red-100 text-red-600',
+    purple: 'bg-purple-100 text-purple-600'
   };
 
   return (
@@ -223,12 +307,35 @@ const StatCard = ({ title, value, icon, color }) => {
         <div>
           <p className="text-sm text-gray-600 mb-1">{title}</p>
           <p className="text-3xl font-bold text-gray-800">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+          )}
         </div>
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClasses[color] || colorClasses.blue}`}>
           <span className="text-2xl">{icon}</span>
         </div>
       </div>
     </div>
+  );
+};
+
+// Componente QuickAccessButton
+const QuickAccessButton = ({ title, icon, color, onClick }) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-600',
+    green: 'bg-green-50 hover:bg-green-100 text-green-600',
+    yellow: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-600',
+    purple: 'bg-purple-50 hover:bg-purple-100 text-purple-600'
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`p-4 rounded-lg transition ${colorClasses[color]} flex flex-col items-center justify-center gap-2`}
+    >
+      <span className="text-3xl">{icon}</span>
+      <span className="text-sm font-medium">{title}</span>
+    </button>
   );
 };
 
