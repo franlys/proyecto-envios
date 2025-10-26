@@ -1,12 +1,12 @@
 // backend/src/routes/companies.js
 import express from 'express';
-import { verifyUser, requireRole } from '../middleware/authSimple.js';
+import { verifyToken, checkRole } from '../middleware/auth.js';
 import { db } from '../config/firebase.js';
 
 const router = express.Router();
 
 // Aplicar autenticación a todas las rutas
-router.use(verifyUser);
+router.use(verifyToken);
 
 /**
  * GET /api/companies
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     let companies = [];
 
     // Super admin ve todas las compañías
-    if (req.user.rol === 'super_admin') {
+    if (req.userData.rol === 'super_admin') {
       const snapshot = await db.collection('companies').get();
       
       snapshot.forEach(doc => {
@@ -32,8 +32,8 @@ router.get('/', async (req, res) => {
       console.log(`✅ Super Admin - ${companies.length} compañías encontradas`);
     } 
     // Admin general solo ve su compañía
-    else if (req.user.companyId) {
-      const companyDoc = await db.collection('companies').doc(req.user.companyId).get();
+    else if (req.userData.companyId) {
+      const companyDoc = await db.collection('companies').doc(req.userData.companyId).get();
       
       if (companyDoc.exists) {
         companies.push({
@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
         });
       }
 
-      console.log(`✅ Admin General - Compañía encontrada: ${req.user.companyId}`);
+      console.log(`✅ Admin General - Compañía encontrada: ${req.userData.companyId}`);
     }
 
     res.json({
@@ -67,10 +67,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/my-limits', async (req, res) => {
   try {
-    console.log('👤 Usuario:', req.user.uid, '-', req.user.rol);
+    console.log('👤 Usuario:', req.userData.uid, '-', req.userData.rol);
 
     // Si es super_admin, devolver límites ilimitados
-    if (req.user.rol === 'super_admin') {
+    if (req.userData.rol === 'super_admin') {
       const limits = {
         plan: 'enterprise',
         usuarios: { 
@@ -101,7 +101,7 @@ router.get('/my-limits', async (req, res) => {
       });
     }
 
-    if (!req.user.companyId) {
+    if (!req.userData.companyId) {
       return res.status(403).json({
         success: false,
         error: 'Usuario sin compañía asignada'
@@ -109,7 +109,7 @@ router.get('/my-limits', async (req, res) => {
     }
 
     // Obtener datos de la compañía
-    const companyDoc = await db.collection('companies').doc(req.user.companyId).get();
+    const companyDoc = await db.collection('companies').doc(req.userData.companyId).get();
     if (!companyDoc.exists) {
       return res.status(404).json({
         success: false,
@@ -121,13 +121,13 @@ router.get('/my-limits', async (req, res) => {
     
     // Contar usuarios de la compañía
     const usuariosSnapshot = await db.collection('usuarios')
-      .where('companyId', '==', req.user.companyId)
+      .where('companyId', '==', req.userData.companyId)
       .where('activo', '==', true)
       .get();
     
     // Contar rutas activas
     const rutasSnapshot = await db.collection('rutas')
-      .where('companyId', '==', req.user.companyId)
+      .where('companyId', '==', req.userData.companyId)
       .where('estado', '==', 'activa')
       .get();
     
@@ -136,7 +136,7 @@ router.get('/my-limits', async (req, res) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     const facturasSnapshot = await db.collection('facturas')
-      .where('companyId', '==', req.user.companyId)
+      .where('companyId', '==', req.userData.companyId)
       .get();
 
     let facturasMesCount = 0;
@@ -214,7 +214,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
     // Verificar permisos: super_admin puede ver todas, usuarios solo su compañía
-    if (req.user.rol !== 'super_admin' && req.user.companyId !== id) {
+    if (req.userData.rol !== 'super_admin' && req.userData.companyId !== id) {
       return res.status(403).json({
         success: false,
         error: 'No tienes acceso a esta compañía'
@@ -257,7 +257,7 @@ router.get('/:id', async (req, res) => {
  * POST /api/companies
  * Crear nueva compañía (solo super_admin)
  */
-router.post('/', requireRole('super_admin'), async (req, res) => {
+router.post('/', checkRole('super_admin'), async (req, res) => {
   try {
     const { nombre, plan, adminEmail, adminNombre } = req.body;
     
@@ -273,7 +273,7 @@ router.post('/', requireRole('super_admin'), async (req, res) => {
       plan,
       activo: true,
       fechaCreacion: new Date(),
-      createdBy: req.user.uid
+      createdBy: req.userData.uid
     };
     
     const companyRef = await db.collection('companies').add(companyData);
@@ -285,7 +285,7 @@ router.post('/', requireRole('super_admin'), async (req, res) => {
       companyId: companyRef.id,
       activo: true,
       fechaCreacion: new Date(),
-      createdBy: req.user.uid
+      createdBy: req.userData.uid
     };
     
     await db.collection('usuarios').add(adminData);
@@ -313,7 +313,7 @@ router.post('/', requireRole('super_admin'), async (req, res) => {
  * PATCH /api/companies/:id
  * Actualizar compañía (solo super_admin)
  */
-router.patch('/:id', requireRole('super_admin'), async (req, res) => {
+router.patch('/:id', checkRole('super_admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, plan, activo } = req.body;
@@ -347,7 +347,7 @@ router.patch('/:id', requireRole('super_admin'), async (req, res) => {
  * DELETE /api/companies/:id
  * Eliminar compañía (solo super_admin)
  */
-router.delete('/:id', requireRole('super_admin'), async (req, res) => {
+router.delete('/:id', checkRole('super_admin'), async (req, res) => {
   try {
     const { id } = req.params;
 
