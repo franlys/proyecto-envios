@@ -14,7 +14,7 @@ import ticketsRoutes from './routes/tickets.js';
 import facturasRoutes from './routes/facturas.js';
 import recoleccionesRoutes from './routes/recolecciones.js';
 import contenedoresRoutes from './routes/contenedores.js';
-import dashboardRoutes from './routes/dashboard.js'; // ← NUEVO
+import dashboardRoutes from './routes/dashboard.js';
 
 dotenv.config();
 
@@ -107,7 +107,7 @@ app.use('/api/tickets', ticketsRoutes);
 app.use('/api/facturas', facturasRoutes);
 app.use('/api/recolecciones', recoleccionesRoutes);
 app.use('/api/contenedores', contenedoresRoutes);
-app.use('/api/dashboard', dashboardRoutes); // ← NUEVO
+app.use('/api/dashboard', dashboardRoutes);
 
 // =====================================================
 // RUTA RAÍZ
@@ -130,7 +130,7 @@ app.get('/', (req, res) => {
       facturas: '/api/facturas',
       recolecciones: '/api/recolecciones',
       contenedores: '/api/contenedores',
-      dashboard: '/api/dashboard' // ← NUEVO
+      dashboard: '/api/dashboard'
     }
   });
 });
@@ -148,16 +148,21 @@ app.use('*', (req, res) => {
       'GET    /api/health',
       'POST   /api/auth/login',
       'POST   /api/auth/register',
+      'GET    /api/auth/profile',
       'GET    /api/companies',
       'POST   /api/companies',
+      'GET    /api/companies/my-limits',
       'GET    /api/empleados',
       'POST   /api/empleados',
       'PATCH  /api/empleados/change-password/:id',
       'GET    /api/reportes/rutas',
       'GET    /api/reportes/facturas',
       'GET    /api/embarques',
+      'GET    /api/embarques/stats',
       'GET    /api/rutas',
+      'GET    /api/rutas/stats',
       'GET    /api/facturas',
+      'GET    /api/facturas/stats',
       'GET    /api/facturas/no-entregadas',
       'POST   /api/tickets',
       'GET    /api/tickets/my-tickets',
@@ -165,14 +170,17 @@ app.use('*', (req, res) => {
       'PATCH  /api/tickets/:id/respond',
       'PATCH  /api/tickets/:id/close',
       'POST   /api/recolecciones',
+      'GET    /api/recolecciones/stats',
       'GET    /api/recolecciones/:tracking',
       'GET    /api/recolecciones/recolector/:id',
       'POST   /api/recolecciones/:tracking/fotos',
       'POST   /api/contenedores/upload-from-drive',
       'GET    /api/contenedores',
       'GET    /api/contenedores/:id',
-      'GET    /api/dashboard/stats', // ← NUEVO
-      'GET    /api/dashboard/super-admin-stats' // ← NUEVO
+      'GET    /api/dashboard/stats',
+      'GET    /api/dashboard/stats-super-admin',
+      'GET    /api/dashboard/stats-admin-general',
+      'GET    /api/dashboard/health'
     ]
   });
 });
@@ -216,16 +224,21 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/health');
   console.log('   ✅ POST   /api/auth/login');
   console.log('   ✅ POST   /api/auth/register');
+  console.log('   ✅ GET    /api/auth/profile');
   console.log('   ✅ GET    /api/companies');
   console.log('   ✅ POST   /api/companies');
+  console.log('   ✅ GET    /api/companies/my-limits');
   console.log('   ✅ GET    /api/empleados');
   console.log('   ✅ POST   /api/empleados');
   console.log('   ✅ PATCH  /api/empleados/change-password/:id');
   console.log('   ✅ GET    /api/reportes/rutas');
   console.log('   ✅ GET    /api/reportes/facturas');
   console.log('   ✅ GET    /api/embarques');
+  console.log('   ✅ GET    /api/embarques/stats');
   console.log('   ✅ GET    /api/rutas');
+  console.log('   ✅ GET    /api/rutas/stats');
   console.log('   ✅ GET    /api/facturas');
+  console.log('   ✅ GET    /api/facturas/stats');
   console.log('   ✅ GET    /api/facturas/no-entregadas');
   console.log('   ✅ POST   /api/tickets');
   console.log('   ✅ GET    /api/tickets/my-tickets');
@@ -233,14 +246,17 @@ app.listen(PORT, () => {
   console.log('   ✅ PATCH  /api/tickets/:id/respond');
   console.log('   ✅ PATCH  /api/tickets/:id/close');
   console.log('   ✅ POST   /api/recolecciones');
+  console.log('   ✅ GET    /api/recolecciones/stats');
   console.log('   ✅ GET    /api/recolecciones/:tracking');
   console.log('   ✅ GET    /api/recolecciones/recolector/:id');
   console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');
   console.log('   ✅ POST   /api/contenedores/upload-from-drive');
   console.log('   ✅ GET    /api/contenedores');
   console.log('   ✅ GET    /api/contenedores/:id');
-  console.log('   ✅ GET    /api/dashboard/stats'); // ← NUEVO
-  console.log('   ✅ GET    /api/dashboard/super-admin-stats'); // ← NUEVO
+  console.log('   ✅ GET    /api/dashboard/stats');
+  console.log('   ✅ GET    /api/dashboard/stats-super-admin');
+  console.log('   ✅ GET    /api/dashboard/stats-admin-general');
+  console.log('   ✅ GET    /api/dashboard/health');
   console.log('\n💡 Tip: Visita http://localhost:' + PORT + '/api/health\n');
 });
 

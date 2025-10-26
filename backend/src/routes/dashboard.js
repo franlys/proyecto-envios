@@ -1,125 +1,112 @@
 // backend/src/routes/dashboard.js
 import express from 'express';
+import { 
+  getStatsSuperAdmin, 
+  getStatsAdminGeneral, 
+  getStatsPublic 
+} from '../controllers/dashboardController.js';
 import { verifyToken } from '../middleware/auth.js';
-import { db } from '../config/firebase.js';
 
 const router = express.Router();
 
-router.use(verifyToken);
-
-// ============================================
-// ENDPOINT: Stats para Super Admin
-// ============================================
-router.get('/super-admin-stats', async (req, res) => {
+/**
+ * @route   GET /api/dashboard/stats-super-admin
+ * @desc    Obtener estadísticas globales (solo super_admin)
+ * @access  Private (super_admin)
+ */
+router.get('/stats-super-admin', verifyToken, async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    const userData = userDoc.data();
-
-    if (userData.rol !== 'super_admin') {
-      return res.status(403).json({ error: 'Acceso denegado' });
+    // Verificar que sea super_admin
+    if (req.userData.rol !== 'super_admin') {
+      return res.status(403).json({ 
+        error: 'Acceso denegado',
+        message: 'Solo super admins pueden acceder a estas estadísticas' 
+      });
     }
 
-    // Contar compañías
-    const companiesSnapshot = await db.collection('companies').get();
-    const totalCompanies = companiesSnapshot.size;
-
-    // Contar usuarios
-    const usersSnapshot = await db.collection('usuarios').get();
-    const totalUsers = usersSnapshot.size;
-
-    // Contar tickets (si existe la colección)
-    let openTickets = 0;
-    try {
-      const ticketsSnapshot = await db.collection('tickets')
-        .where('estado', '==', 'abierto')
-        .get();
-      openTickets = ticketsSnapshot.size;
-    } catch (error) {
-      console.log('No hay colección de tickets');
-    }
-
-    res.json({
-      totalCompanies,
-      totalUsers,
-      openTickets,
-      systemStatus: 'operational'
-    });
+    await getStatsSuperAdmin(req, res);
   } catch (error) {
-    console.error('Error en super-admin-stats:', error);
-    res.status(500).json({ error: 'Error al obtener estadísticas' });
+    console.error('❌ Error en ruta stats-super-admin:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener estadísticas',
+      details: error.message 
+    });
   }
 });
 
-// ============================================
-// ENDPOINT: Stats para Admin General
-// ============================================
-router.get('/stats', async (req, res) => {
+/**
+ * @route   GET /api/dashboard/stats-admin-general
+ * @desc    Obtener estadísticas de la empresa (solo admin_general)
+ * @access  Private (admin_general)
+ */
+router.get('/stats-admin-general', verifyToken, async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    const userData = userDoc.data();
-
-    if (!userData.companyId) {
-      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
-    }
-
-    // Stats de embarques
-    const embarquesSnapshot = await db.collection('embarques')
-      .where('companyId', '==', userData.companyId)
-      .where('estado', '==', 'activo')
-      .get();
-    const totalEmbarques = embarquesSnapshot.size;
-
-    // Stats de rutas
-    let rutasActivas = 0;
-    try {
-      const rutasSnapshot = await db.collection('rutas')
-        .where('companyId', '==', userData.companyId)
-        .where('estado', '==', 'en_proceso')
-        .get();
-      rutasActivas = rutasSnapshot.size;
-    } catch (error) {
-      console.log('No hay rutas');
-    }
-
-    // Stats de empleados
-    const empleadosSnapshot = await db.collection('usuarios')
-      .where('companyId', '==', userData.companyId)
-      .get();
-    const totalEmpleados = empleadosSnapshot.size;
-
-    // Stats de facturas (si existen)
-    let facturasEntregadas = 0;
-    let facturasPendientes = 0;
-    let facturasNoEntregadas = 0;
-    try {
-      const facturasSnapshot = await db.collection('facturas')
-        .where('companyId', '==', userData.companyId)
-        .get();
-      
-      facturasSnapshot.forEach(doc => {
-        const factura = doc.data();
-        if (factura.estado === 'entregada') facturasEntregadas++;
-        else if (factura.estado === 'pendiente') facturasPendientes++;
-        else if (factura.estado === 'no_entregada') facturasNoEntregadas++;
+    // Verificar que sea admin_general
+    if (req.userData.rol !== 'admin_general' && req.userData.rol !== 'super_admin') {
+      return res.status(403).json({ 
+        error: 'Acceso denegado',
+        message: 'Solo admin general puede acceder a estas estadísticas' 
       });
-    } catch (error) {
-      console.log('No hay facturas');
     }
 
-    res.json({
-      totalEmbarques,
-      rutasActivas,
-      totalEmpleados,
-      facturasEntregadas,
-      facturasPendientes,
-      facturasNoEntregadas,
-      totalGastos: 0,
-      totalIngresos: 0
-    });
+    await getStatsAdminGeneral(req, res);
   } catch (error) {
-    console.error('Error en stats:', error);
-    res.status(500).json({ error: 'Error al obtener estadísticas' });
+    console.error('❌ Error en ruta stats-admin-general:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener estadísticas',
+      details: error.message 
+    });
   }
+});
+
+/**
+ * @route   GET /api/dashboard/stats
+ * @desc    Obtener estadísticas según el rol del usuario
+ * @access  Private
+ */
+router.get('/stats', verifyToken, async (req, res) => {
+  try {
+    const { rol } = req.userData;
+
+    console.log(`📊 Solicitando stats para rol: ${rol}`);
+
+    // Redirigir según el rol
+    if (rol === 'super_admin') {
+      return await getStatsSuperAdmin(req, res);
+    }
+
+    if (rol === 'admin_general') {
+      return await getStatsAdminGeneral(req, res);
+    }
+
+    // Para otros roles, devolver estadísticas básicas
+    await getStatsPublic(req, res);
+
+  } catch (error) {
+    console.error('❌ Error en ruta stats:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener estadísticas',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * @route   GET /api/dashboard/health
+ * @desc    Verificar que el módulo de dashboard está funcionando
+ * @access  Public
+ */
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    module: 'Dashboard',
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      'GET /api/dashboard/stats-super-admin',
+      'GET /api/dashboard/stats-admin-general',
+      'GET /api/dashboard/stats'
+    ]
+  });
 });
 
 export default router;
