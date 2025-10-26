@@ -12,10 +12,12 @@ export const getStatsSuperAdmin = async (req, res) => {
     // Contar empresas
     const companiesSnapshot = await db.collection('companies').get();
     const totalCompanies = companiesSnapshot.size;
+    const activeCompanies = companiesSnapshot.docs.filter(doc => doc.data().activo !== false).length;
 
     // Contar usuarios totales
     const usersSnapshot = await db.collection('usuarios').get();
     const totalUsers = usersSnapshot.size;
+    const activeUsers = usersSnapshot.docs.filter(doc => doc.data().activo === true).length;
 
     // Contar por rol
     const rolesCounts = {
@@ -38,6 +40,15 @@ export const getStatsSuperAdmin = async (req, res) => {
     const recoleccionesSnapshot = await db.collection('recolecciones').get();
     const totalRecolecciones = recoleccionesSnapshot.size;
 
+    // Contar recolecciones de hoy
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const recoleccionesHoy = recoleccionesSnapshot.docs.filter(doc => {
+      const data = doc.data();
+      const fechaCreacion = data.fecha_creacion?.toDate ? data.fecha_creacion.toDate() : new Date(data.fecha_creacion);
+      return fechaCreacion >= today;
+    }).length;
+
     // Contar por estado
     const recoleccionesEstados = {
       pendiente: 0,
@@ -49,18 +60,26 @@ export const getStatsSuperAdmin = async (req, res) => {
 
     recoleccionesSnapshot.forEach(doc => {
       const rec = doc.data();
-      if (rec.estado && recoleccionesEstados.hasOwnProperty(rec.estado)) {
-        recoleccionesEstados[rec.estado]++;
+      const estado = rec.estado || rec.status || 'pendiente';
+      if (recoleccionesEstados.hasOwnProperty(estado.toLowerCase())) {
+        recoleccionesEstados[estado.toLowerCase()]++;
       }
     });
 
     // Contar embarques totales
     const embarquesSnapshot = await db.collection('embarques').get();
     const totalEmbarques = embarquesSnapshot.size;
+    const embarquesActivos = embarquesSnapshot.docs.filter(doc => 
+      doc.data().estado === 'activo' || doc.data().estado === 'en_proceso'
+    ).length;
 
     // Contar rutas totales
     const rutasSnapshot = await db.collection('rutas').get();
     const totalRutas = rutasSnapshot.size;
+    const rutasActivas = rutasSnapshot.docs.filter(doc => 
+      doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
+    ).length;
+    const rutasEnCurso = rutasActivas; // Alias
 
     // Contar facturas totales
     const facturasSnapshot = await db.collection('facturas').get();
@@ -76,8 +95,9 @@ export const getStatsSuperAdmin = async (req, res) => {
 
     facturasSnapshot.forEach(doc => {
       const factura = doc.data();
-      if (factura.estado && facturasEstados.hasOwnProperty(factura.estado)) {
-        facturasEstados[factura.estado]++;
+      const estado = (factura.estado || 'pendiente').toLowerCase();
+      if (facturasEstados.hasOwnProperty(estado)) {
+        facturasEstados[estado]++;
       }
     });
 
@@ -87,40 +107,50 @@ export const getStatsSuperAdmin = async (req, res) => {
 
     const recentRecolecciones = recoleccionesSnapshot.docs.filter(doc => {
       const data = doc.data();
-      return data.fecha_creacion && new Date(data.fecha_creacion) >= thirtyDaysAgo;
+      const fechaCreacion = data.fecha_creacion?.toDate ? data.fecha_creacion.toDate() : new Date(data.fecha_creacion);
+      return fechaCreacion >= thirtyDaysAgo;
     }).length;
 
     const recentEmbarques = embarquesSnapshot.docs.filter(doc => {
       const data = doc.data();
-      return data.fecha_creacion && new Date(data.fecha_creacion) >= thirtyDaysAgo;
+      const fechaCreacion = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || data.fecha_creacion);
+      return fechaCreacion >= thirtyDaysAgo;
     }).length;
 
-    // Respuesta
+    // Respuesta con formato adaptado para el frontend
     const stats = {
-      empresas: {
-        total: totalCompanies,
-        activas: totalCompanies // TODO: agregar campo 'activa' a companies
-      },
+      empresa: null, // Super admin no tiene empresa específica
       usuarios: {
         total: totalUsers,
+        activos: activeUsers,
         porRol: rolesCounts
       },
       recolecciones: {
         total: totalRecolecciones,
+        hoy: recoleccionesHoy,
         porEstado: recoleccionesEstados,
         ultimos30Dias: recentRecolecciones
       },
       embarques: {
         total: totalEmbarques,
+        activos: embarquesActivos,
         ultimos30Dias: recentEmbarques
       },
       rutas: {
         total: totalRutas,
-        activas: rutasSnapshot.docs.filter(doc => doc.data().estado === 'activa').length
+        activas: rutasActivas,
+        enCurso: rutasEnCurso
       },
       facturas: {
         total: totalFacturas,
+        pendientes: facturasEstados.pendiente,
+        entregadas: facturasEstados.entregada,
+        noEntregadas: facturasEstados.no_entregada,
         porEstado: facturasEstados
+      },
+      empresas: {
+        total: totalCompanies,
+        activas: activeCompanies
       }
     };
 
@@ -156,6 +186,7 @@ export const getStatsAdminGeneral = async (req, res) => {
       .get();
     
     const totalUsers = usersSnapshot.size;
+    const activeUsers = usersSnapshot.docs.filter(doc => doc.data().activo === true).length;
 
     // Contar por rol
     const rolesCounts = {
@@ -181,6 +212,15 @@ export const getStatsAdminGeneral = async (req, res) => {
     
     const totalRecolecciones = recoleccionesSnapshot.size;
 
+    // Contar recolecciones de hoy
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const recoleccionesHoy = recoleccionesSnapshot.docs.filter(doc => {
+      const data = doc.data();
+      const fechaCreacion = data.fecha_creacion?.toDate ? data.fecha_creacion.toDate() : new Date(data.fecha_creacion);
+      return fechaCreacion >= today;
+    }).length;
+
     // Contar por estado
     const recoleccionesEstados = {
       pendiente: 0,
@@ -192,8 +232,9 @@ export const getStatsAdminGeneral = async (req, res) => {
 
     recoleccionesSnapshot.forEach(doc => {
       const rec = doc.data();
-      if (rec.estado && recoleccionesEstados.hasOwnProperty(rec.estado)) {
-        recoleccionesEstados[rec.estado]++;
+      const estado = rec.estado || rec.status || 'pendiente';
+      if (recoleccionesEstados.hasOwnProperty(estado.toLowerCase())) {
+        recoleccionesEstados[estado.toLowerCase()]++;
       }
     });
 
@@ -203,6 +244,9 @@ export const getStatsAdminGeneral = async (req, res) => {
       .get();
     
     const totalEmbarques = embarquesSnapshot.size;
+    const embarquesActivos = embarquesSnapshot.docs.filter(doc => 
+      doc.data().estado === 'activo' || doc.data().estado === 'en_proceso'
+    ).length;
 
     // Contar rutas de la empresa
     const rutasSnapshot = await db.collection('rutas')
@@ -210,6 +254,11 @@ export const getStatsAdminGeneral = async (req, res) => {
       .get();
     
     const totalRutas = rutasSnapshot.size;
+    const rutasActivas = rutasSnapshot.docs.filter(doc => 
+      doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
+    ).length;
+    const rutasEnCurso = rutasActivas;
+    const rutasCompletadas = rutasSnapshot.docs.filter(doc => doc.data().estado === 'completada').length;
 
     // Contar facturas de la empresa
     const facturasSnapshot = await db.collection('facturas')
@@ -228,8 +277,9 @@ export const getStatsAdminGeneral = async (req, res) => {
 
     facturasSnapshot.forEach(doc => {
       const factura = doc.data();
-      if (factura.estado && facturasEstados.hasOwnProperty(factura.estado)) {
-        facturasEstados[factura.estado]++;
+      const estado = (factura.estado || 'pendiente').toLowerCase();
+      if (facturasEstados.hasOwnProperty(estado)) {
+        facturasEstados[estado]++;
       }
     });
 
@@ -239,19 +289,21 @@ export const getStatsAdminGeneral = async (req, res) => {
 
     const recentRecolecciones = recoleccionesSnapshot.docs.filter(doc => {
       const data = doc.data();
-      return data.fecha_creacion && new Date(data.fecha_creacion) >= thirtyDaysAgo;
+      const fechaCreacion = data.fecha_creacion?.toDate ? data.fecha_creacion.toDate() : new Date(data.fecha_creacion);
+      return fechaCreacion >= thirtyDaysAgo;
     }).length;
 
     const recentEmbarques = embarquesSnapshot.docs.filter(doc => {
       const data = doc.data();
-      return data.fecha_creacion && new Date(data.fecha_creacion) >= thirtyDaysAgo;
+      const fechaCreacion = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || data.fecha_creacion);
+      return fechaCreacion >= thirtyDaysAgo;
     }).length;
 
     // Obtener información de la empresa
     const companyDoc = await db.collection('companies').doc(companyId).get();
     const companyData = companyDoc.exists ? companyDoc.data() : null;
 
-    // Respuesta
+    // Respuesta con formato adaptado para el frontend
     const stats = {
       empresa: {
         id: companyId,
@@ -260,26 +312,32 @@ export const getStatsAdminGeneral = async (req, res) => {
       },
       usuarios: {
         total: totalUsers,
+        activos: activeUsers,
         porRol: rolesCounts
       },
       recolecciones: {
         total: totalRecolecciones,
+        hoy: recoleccionesHoy,
         porEstado: recoleccionesEstados,
         ultimos30Dias: recentRecolecciones
       },
       embarques: {
         total: totalEmbarques,
+        activos: embarquesActivos,
         ultimos30Dias: recentEmbarques
       },
       rutas: {
         total: totalRutas,
-        activas: rutasSnapshot.docs.filter(doc => doc.data().estado === 'activa').length,
-        completadas: rutasSnapshot.docs.filter(doc => doc.data().estado === 'completada').length
+        activas: rutasActivas,
+        enCurso: rutasEnCurso,
+        completadas: rutasCompletadas
       },
       facturas: {
         total: totalFacturas,
-        porEstado: facturasEstados,
-        noEntregadas: facturasEstados.no_entregada
+        pendientes: facturasEstados.pendiente,
+        entregadas: facturasEstados.entregada,
+        noEntregadas: facturasEstados.no_entregada,
+        porEstado: facturasEstados
       }
     };
 
