@@ -1,6 +1,7 @@
 // backend/src/routes/auth.js
 import express from 'express';
 import { db, admin } from '../config/firebase.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -13,6 +14,32 @@ router.get('/test', (req, res) => {
     message: 'Auth route working',
     timestamp: new Date().toISOString()
   });
+});
+
+/**
+ * GET /api/auth/profile
+ * ✅ CORREGIDO: Ahora usa el middleware verifyToken
+ */
+router.get('/profile', verifyToken, async (req, res) => {
+  try {
+    // req.userData ya viene del middleware verifyToken
+    res.json({
+      success: true,
+      uid: req.userData.uid,
+      email: req.userData.email,
+      nombre: req.userData.nombre,
+      rol: req.userData.rol,
+      companyId: req.userData.companyId,
+      activo: req.userData.activo
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo perfil:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener perfil del usuario',
+      details: error.message
+    });
+  }
 });
 
 /**
@@ -45,7 +72,8 @@ router.post('/register', async (req, res) => {
       'admin_general', 
       'admin',           // Compatibilidad con código antiguo
       'recolector',      // Nuevo rol
-      'almacen_eeuu',    // Nuevo rol (futuro)
+      'almacen_rd',      // Almacén República Dominicana
+      'almacen_eeuu',    // Almacén Estados Unidos (futuro)
       'secretaria', 
       'almacen',         // Almacén RD
       'repartidor'
@@ -163,64 +191,20 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * GET /api/auth/profile
- * Obtener perfil del usuario autenticado
+ * POST /api/auth/refresh-token
+ * Endpoint para forzar renovación de token
  */
-router.get('/profile', async (req, res) => {
+router.post('/refresh-token', verifyToken, async (req, res) => {
   try {
-    // En una implementación real, verificarías el token aquí
-    // Por ahora, asumimos que el uid viene en los headers o query
-    const userId = req.headers['x-user-id'] || req.query.uid;
-
-    if (!userId) {
-      return res.status(401).json({
-        error: 'No autenticado',
-        hint: 'Envía el uid en el header X-User-Id'
-      });
-    }
-
-    const userDoc = await db.collection('usuarios').doc(userId).get();
-    
-    if (!userDoc.exists) {
-      return res.status(404).json({ 
-        error: 'Usuario no encontrado' 
-      });
-    }
-    
-    const userData = userDoc.data();
-    
-    // Obtener datos de la compañía si existe
-    let companyData = null;
-    if (userData.companyId) {
-      const companyDoc = await db.collection('companies').doc(userData.companyId).get();
-      if (companyDoc.exists) {
-        companyData = {
-          id: userData.companyId,
-          nombre: companyDoc.data().nombre,
-          plan: companyDoc.data().plan || 'basic'
-        };
-      }
-    }
-    
     res.json({
       success: true,
-      user: {
-        uid: userId,
-        email: userData.email,
-        nombre: userData.nombre,
-        rol: userData.rol,
-        activo: userData.activo,
-        telefono: userData.telefono || null,
-        direccion: userData.direccion || null,
-        company: companyData
-      }
+      message: 'Token válido',
+      userData: req.userData
     });
-
   } catch (error) {
-    console.error('Error obteniendo perfil:', error);
-    res.status(500).json({ 
-      error: 'Error al obtener perfil',
-      details: error.message
+    res.status(500).json({
+      success: false,
+      error: 'Error validando token'
     });
   }
 });
@@ -229,16 +213,9 @@ router.get('/profile', async (req, res) => {
  * PATCH /api/auth/update-profile
  * Actualizar perfil del usuario
  */
-router.patch('/update-profile', async (req, res) => {
+router.patch('/update-profile', verifyToken, async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.query.uid;
-
-    if (!userId) {
-      return res.status(401).json({
-        error: 'No autenticado'
-      });
-    }
-
+    const userId = req.userData.uid;
     const { nombre, telefono, direccion } = req.body;
 
     const updateData = {
@@ -276,16 +253,10 @@ router.patch('/update-profile', async (req, res) => {
  * POST /api/auth/change-password
  * Cambiar contraseña (requiere autenticación)
  */
-router.post('/change-password', async (req, res) => {
+router.post('/change-password', verifyToken, async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] || req.query.uid;
+    const userId = req.userData.uid;
     const { newPassword } = req.body;
-
-    if (!userId) {
-      return res.status(401).json({
-        error: 'No autenticado'
-      });
-    }
 
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({
@@ -323,6 +294,7 @@ router.get('/verify-role/:rol', (req, res) => {
     'admin_general', 
     'admin',
     'recolector',
+    'almacen_rd',
     'almacen_eeuu',
     'secretaria', 
     'almacen', 
