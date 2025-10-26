@@ -1,143 +1,121 @@
 ﻿// admin_web/src/pages/Dashboard.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, TruckIcon, Users, DollarSign, AlertTriangle, CheckCircle, Clock, FileText, MapPin, Phone, Bell } from 'lucide-react';
-import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const Dashboard = () => {
-  const { userData } = useAuth();
+  const { userData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({});
+  
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [recentData, setRecentData] = useState([]);
   const [error, setError] = useState(null);
 
-  // Normalizar rol (admin → admin_general)
-  const rol = userData?.rol === 'admin' ? 'admin_general' : userData?.rol || 'admin_general';
-
+  // ✅ CORRECCIÓN: Redireccionar según rol específico
   useEffect(() => {
-    loadDashboardData();
-  }, [rol]);
+    if (!authLoading && userData) {
+      const rol = userData.rol;
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Cargar datos según el rol
-      switch (rol) {
-        case 'super_admin':
-          const superAdminRes = await api.get('/dashboard/super-admin-stats');
-          setStats(superAdminRes.data);
-          break;
-          
-        case 'admin_general':
-          const adminRes = await api.get('/dashboard/stats');
-          setStats(adminRes.data);
-          break;
-          
-        case 'secretaria':
-          const secretariaRes = await api.get('/facturas/stats-secretaria');
-          setStats(secretariaRes.data);
-          const facturasRes = await api.get('/facturas?estado=sin_confirmar&limit=5');
-          setRecentData(facturasRes.data.facturas || []);
-          break;
-          
-        case 'recolector':
-          const recolectorRes = await api.get('/recolecciones/stats');
-          setStats(recolectorRes.data);
-          const recoleccionesRes = await api.get('/recolecciones?limit=5');
-          setRecentData(recoleccionesRes.data.recolecciones || []);
-          break;
-          
-        case 'almacen':
-        case 'almacen_rd':
-        case 'almacen_eeuu':
-          const almacenRes = await api.get('/embarques/stats-almacen');
-          setStats(almacenRes.data);
-          const embarquesRes = await api.get('/embarques?estado=activo&limit=5');
-          setRecentData(embarquesRes.data.embarques || []);
-          break;
-          
-        case 'repartidor':
-          const repartidorRes = await api.get('/rutas/stats-repartidor');
-          setStats(repartidorRes.data);
-          const rutasRes = await api.get('/rutas?estado=en_proceso&limit=5');
-          setRecentData(rutasRes.data.rutas || []);
-          break;
-          
-        default:
-          const defaultRes = await api.get('/dashboard/stats');
-          setStats(defaultRes.data);
+      // Redirigir a dashboard específico según rol
+      if (rol === 'secretaria') {
+        navigate('/secretarias');
+        return;
+      } else if (rol === 'recolector') {
+        navigate('/recolecciones');
+        return;
+      } else if (rol === 'repartidor') {
+        navigate('/rutas');
+        return;
+      } else if (rol === 'almacen_rd') {
+        navigate('/embarques');
+        return;
       }
-    } catch (error) {
-      // ✅ MEJOR MANEJO DE ERRORES
-      console.error('Error cargando dashboard:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        endpoint: error.config?.url
-      });
       
-      setError(error.response?.data?.error || error.message || 'Error al cargar el dashboard');
-      
-      // Usar datos por defecto si falla
-      setStats({
-        // Stats generales
-        totalEmbarques: 0,
-        rutasActivas: 0,
-        totalEmpleados: 0,
-        facturasEntregadas: 0,
-        facturasPendientes: 0,
-        facturasNoEntregadas: 0,
-        totalGastos: 0,
-        totalIngresos: 0,
-        // Stats de recolector
-        recoleccionesHoy: 0,
-        recoleccionesTotales: 0,
-        enTransito: 0,
-        completadas: 0,
-        // Stats de almacén
-        embarquesActivos: 0,
-        rutasCreadas: 0,
-        facturasListasParaRuta: 0,
-        // Stats de secretaria
-        facturasSinConfirmar: 0,
-        facturasConfirmadas: 0,
-        facturasTotal: 0,
-        // Stats de repartidor
-        rutasCompletadas: 0,
-        rutasPendientes: 0
-      });
-    } finally {
-      setLoading(false);
+      // Solo admin_general y super_admin ven este dashboard
+      if (rol !== 'admin_general' && rol !== 'super_admin') {
+        navigate('/');
+        return;
+      }
     }
-  };
+  }, [userData, authLoading, navigate]);
 
-  // Loading state
-  if (loading) {
+  // ✅ CORRECCIÓN: Cargar estadísticas con manejo de errores completo
+  useEffect(() => {
+    const fetchStats = async () => {
+      // Solo cargar stats si el usuario es admin
+      if (!userData || (userData.rol !== 'admin_general' && userData.rol !== 'super_admin')) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await api.get('/dashboard/stats');
+        
+        if (response.data.success) {
+          setStats(response.data.stats);
+        } else {
+          throw new Error(response.data.error || 'Error al cargar estadísticas');
+        }
+
+      } catch (err) {
+        console.error('❌ Error cargando estadísticas:', err);
+        
+        // ✅ CORRECCIÓN: Manejo específico de diferentes tipos de errores
+        if (err.response) {
+          // Error del servidor
+          if (err.response.status === 401) {
+            setError('Sesión expirada. Por favor, inicia sesión nuevamente.');
+            setTimeout(() => navigate('/login'), 2000);
+          } else if (err.response.status === 403) {
+            setError('No tienes permisos para ver estas estadísticas.');
+          } else if (err.response.status === 500) {
+            setError('Error del servidor. Intenta nuevamente más tarde.');
+          } else {
+            setError(err.response.data?.error || 'Error al cargar estadísticas');
+          }
+        } else if (err.request) {
+          // Error de red
+          setError('Error de conexión. Verifica tu internet e intenta nuevamente.');
+        } else {
+          // Otro tipo de error
+          setError(err.message || 'Error desconocido al cargar estadísticas');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading && userData) {
+      fetchStats();
+    }
+  }, [userData, authLoading, navigate]);
+
+  // ✅ CORRECCIÓN: Mostrar estados de carga y error apropiadamente
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
       </div>
     );
   }
 
-  // Error state
+  // ✅ CORRECCIÓN: Mostrar error con opción de reintentar
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <div className="flex items-center mb-4">
-            <AlertTriangle className="h-6 w-6 text-red-600 mr-2" />
-            <h3 className="text-lg font-semibold text-red-900">Error al cargar el dashboard</h3>
-          </div>
-          <p className="text-red-700 mb-4">{error}</p>
+        <div className="text-center max-w-md p-6">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => loadDashboardData()}
-            className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition-colors"
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
           >
             Reintentar
           </button>
@@ -146,406 +124,110 @@ const Dashboard = () => {
     );
   }
 
-  // DASHBOARD SUPER ADMIN
-  if (rol === 'super_admin') {
+  if (loading) {
     return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Dashboard Super Admin</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">Total Compañías</p>
-                <p className="text-3xl font-bold">{stats.totalCompanies || 0}</p>
-              </div>
-              <Package className="h-12 w-12 text-blue-200" />
-            </div>
-          </div>
-
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Total Usuarios</p>
-                <p className="text-3xl font-bold">{stats.totalUsers || 0}</p>
-              </div>
-              <Users className="h-12 w-12 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100">Tickets Abiertos</p>
-                <p className="text-3xl font-bold">{stats.openTickets || 0}</p>
-              </div>
-              <AlertTriangle className="h-12 w-12 text-yellow-200" />
-            </div>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando estadísticas...</p>
         </div>
       </div>
     );
   }
 
-  // DASHBOARD ADMIN GENERAL
-  if (rol === 'admin_general') {
+  // ✅ CORRECCIÓN: Validar que stats exista antes de renderizar
+  if (!stats) {
     return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Panel de Administración</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">Embarques Activos</p>
-                <p className="text-3xl font-bold">{stats.totalEmbarques || 0}</p>
-              </div>
-              <Package className="h-12 w-12 text-blue-200" />
-            </div>
-          </div>
-
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Rutas Activas</p>
-                <p className="text-3xl font-bold">{stats.rutasActivas || 0}</p>
-              </div>
-              <TruckIcon className="h-12 w-12 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-purple-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100">Total Empleados</p>
-                <p className="text-3xl font-bold">{stats.totalEmpleados || 0}</p>
-              </div>
-              <Users className="h-12 w-12 text-purple-200" />
-            </div>
-          </div>
-
-          <div className="bg-orange-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100">Facturas Entregadas</p>
-                <p className="text-3xl font-bold">{stats.facturasEntregadas || 0}</p>
-              </div>
-              <CheckCircle className="h-12 w-12 text-orange-200" />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Facturas Pendientes</h3>
-            <p className="text-3xl font-bold text-yellow-600">{stats.facturasPendientes || 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Facturas No Entregadas</h3>
-            <p className="text-3xl font-bold text-red-600">{stats.facturasNoEntregadas || 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Total Gastos</h3>
-            <p className="text-3xl font-bold text-gray-700">${stats.totalGastos || 0}</p>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center max-w-md p-6">
+          <div className="text-yellow-500 text-5xl mb-4">📊</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Sin Datos</h2>
+          <p className="text-gray-600">No hay estadísticas disponibles en este momento.</p>
         </div>
       </div>
     );
   }
 
-  // DASHBOARD SECRETARIA
-  if (rol === 'secretaria') {
-    return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Panel de Secretaría</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100">Facturas Sin Confirmar</p>
-                <p className="text-3xl font-bold">{stats.facturasSinConfirmar || 0}</p>
-              </div>
-              <AlertTriangle className="h-12 w-12 text-yellow-200" />
-            </div>
-          </div>
-
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Facturas Confirmadas</p>
-                <p className="text-3xl font-bold">{stats.facturasConfirmadas || 0}</p>
-              </div>
-              <CheckCircle className="h-12 w-12 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">Total de Facturas</p>
-                <p className="text-3xl font-bold">{stats.facturasTotal || 0}</p>
-              </div>
-              <FileText className="h-12 w-12 text-blue-200" />
-            </div>
-          </div>
-        </div>
-
-        {recentData.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Facturas Recientes Sin Confirmar</h2>
-            <div className="space-y-2">
-              {recentData.map((factura) => (
-                <div key={factura.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <span>{factura.numeroFactura}</span>
-                  <span className="text-sm text-gray-600">{factura.cliente}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // DASHBOARD RECOLECTOR
-  if (rol === 'recolector') {
-    return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">¡Hola, {userData?.nombre}!</h1>
-        <p className="text-gray-600 mb-8">Panel de Recolecciones - Estados Unidos</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">Recolecciones Hoy</p>
-                <p className="text-3xl font-bold">{stats.recoleccionesHoy || stats.hoy || 0}</p>
-              </div>
-              <Clock className="h-12 w-12 text-blue-200" />
-            </div>
-          </div>
-
-          <div className="bg-purple-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100">Total Recolecciones</p>
-                <p className="text-3xl font-bold">{stats.recoleccionesTotales || stats.total || 0}</p>
-              </div>
-              <Package className="h-12 w-12 text-purple-200" />
-            </div>
-          </div>
-
-          <div className="bg-orange-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100">En Tránsito</p>
-                <p className="text-3xl font-bold">{stats.enTransito || stats.enProceso || 0}</p>
-              </div>
-              <TruckIcon className="h-12 w-12 text-orange-200" />
-            </div>
-          </div>
-
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Completadas</p>
-                <p className="text-3xl font-bold">{stats.completadas || stats.entregadas || 0}</p>
-              </div>
-              <CheckCircle className="h-12 w-12 text-green-200" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Recolecciones Recientes</h2>
-          {recentData.length > 0 ? (
-            <div className="space-y-2">
-              {recentData.map((recoleccion) => (
-                <div key={recoleccion.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-semibold">{recoleccion.tracking_numero}</p>
-                    <p className="text-sm text-gray-600">{recoleccion.remitente?.nombre || 'Sin remitente'}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded text-sm ${
-                    recoleccion.status === 'Entregado' ? 'bg-green-100 text-green-800' :
-                    recoleccion.status === 'En tránsito' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {recoleccion.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No hay recolecciones recientes</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // DASHBOARD ALMACÉN
-  if (rol === 'almacen' || rol === 'almacen_rd' || rol === 'almacen_eeuu') {
-    return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Panel de Almacén</h1>
-        <p className="text-gray-600 mb-8">Gestión de embarques y rutas de entrega</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">Embarques Activos</p>
-                <p className="text-3xl font-bold">{stats.embarquesActivos || 0}</p>
-              </div>
-              <Package className="h-12 w-12 text-blue-200" />
-            </div>
-          </div>
-
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Rutas Creadas</p>
-                <p className="text-3xl font-bold">{stats.rutasCreadas || 0}</p>
-              </div>
-              <TruckIcon className="h-12 w-12 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-red-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100">Facturas No Entregadas</p>
-                <p className="text-3xl font-bold">{stats.facturasNoEntregadas || 0}</p>
-              </div>
-              <AlertTriangle className="h-12 w-12 text-red-200" />
-            </div>
-          </div>
-
-          <div className="bg-purple-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100">Listas para Ruta</p>
-                <p className="text-3xl font-bold">{stats.facturasListasParaRuta || 0}</p>
-              </div>
-              <FileText className="h-12 w-12 text-purple-200" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Embarques Recientes</h2>
-          {recentData.length > 0 ? (
-            <div className="space-y-2">
-              {recentData.map((embarque) => (
-                <div key={embarque.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-semibold">{embarque.nombre}</p>
-                    <p className="text-sm text-gray-600">{embarque.descripcion}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded text-sm ${
-                    embarque.estado === 'activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {embarque.estado}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No hay embarques recientes</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // DASHBOARD REPARTIDOR
-  if (rol === 'repartidor') {
-    return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6">Panel de Repartidor</h1>
-        <p className="text-gray-600 mb-8">Gestión de rutas y entregas</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100">Rutas Activas</p>
-                <p className="text-3xl font-bold">{stats.rutasActivas || 0}</p>
-              </div>
-              <TruckIcon className="h-12 w-12 text-blue-200" />
-            </div>
-          </div>
-
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100">Facturas Entregadas</p>
-                <p className="text-3xl font-bold">{stats.facturasEntregadas || 0}</p>
-              </div>
-              <CheckCircle className="h-12 w-12 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100">Facturas Pendientes</p>
-                <p className="text-3xl font-bold">{stats.facturasPendientes || 0}</p>
-              </div>
-              <Clock className="h-12 w-12 text-yellow-200" />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Rutas Completadas</h3>
-            <p className="text-3xl font-bold text-green-600">{stats.rutasCompletadas || 0}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Rutas Pendientes</h3>
-            <p className="text-3xl font-bold text-yellow-600">{stats.rutasPendientes || 0}</p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Rutas Recientes</h2>
-          {recentData.length > 0 ? (
-            <div className="space-y-2">
-              {recentData.map((ruta) => (
-                <div key={ruta.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-semibold">{ruta.nombre}</p>
-                    <p className="text-sm text-gray-600">Facturas: {ruta.totalFacturas || 0}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded text-sm ${
-                    ruta.estado === 'completada' ? 'bg-green-100 text-green-800' :
-                    ruta.estado === 'en_proceso' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {ruta.estado}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4">No hay rutas recientes</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Default fallback
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <p className="text-gray-600">Bienvenido al sistema</p>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">
+          Dashboard - {userData?.rol === 'super_admin' ? 'Super Admin' : 'Administrador General'}
+        </h1>
+        <p className="text-gray-600">Bienvenido, {userData?.nombre}</p>
+      </div>
+
+      {/* Estadísticas principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <StatCard
+          title="Embarques Activos"
+          value={stats.embarquesActivos || 0}
+          icon="📦"
+          color="blue"
+        />
+        <StatCard
+          title="Recolecciones Hoy"
+          value={stats.recoleccionesHoy || 0}
+          icon="🚚"
+          color="green"
+        />
+        <StatCard
+          title="Rutas en Curso"
+          value={stats.rutasEnCurso || 0}
+          icon="🚗"
+          color="yellow"
+        />
+        <StatCard
+          title="Facturas Pendientes"
+          value={stats.facturasPendientes || 0}
+          icon="📄"
+          color="red"
+        />
+      </div>
+
+      {/* Actividad Reciente */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Actividad Reciente</h2>
+        {stats.actividadReciente && stats.actividadReciente.length > 0 ? (
+          <ul className="space-y-3">
+            {stats.actividadReciente.map((actividad, index) => (
+              <li key={index} className="flex items-start border-b pb-3 last:border-b-0">
+                <span className="text-2xl mr-3">{actividad.icon || '📌'}</span>
+                <div className="flex-1">
+                  <p className="text-gray-800 font-medium">{actividad.descripcion}</p>
+                  <p className="text-sm text-gray-500">{actividad.fecha}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No hay actividad reciente</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ✅ CORRECCIÓN: Componente StatCard con validación de props
+const StatCard = ({ title, value, icon, color }) => {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    yellow: 'bg-yellow-100 text-yellow-600',
+    red: 'bg-red-100 text-red-600'
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600 mb-1">{title}</p>
+          <p className="text-3xl font-bold text-gray-800">{value}</p>
+        </div>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClasses[color] || colorClasses.blue}`}>
+          <span className="text-2xl">{icon}</span>
+        </div>
+      </div>
     </div>
   );
 };
