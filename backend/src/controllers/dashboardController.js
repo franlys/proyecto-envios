@@ -9,13 +9,38 @@ export const getStatsSuperAdmin = async (req, res) => {
   try {
     console.log('📊 Obteniendo estadísticas Super Admin...');
 
+    // --- INICIA REPARACIÓN ---
+    // 1. Definir todas las promesas de consulta
+    const companiesPromise = db.collection('companies').get();
+    const usersPromise = db.collection('usuarios').get();
+    const recoleccionesPromise = db.collection('recolecciones').get();
+    const embarquesPromise = db.collection('embarques').get();
+    const rutasPromise = db.collection('rutas').get();
+    const facturasPromise = db.collection('facturas').get();
+
+    // 2. Ejecutarlas todas al mismo tiempo
+    const [
+      companiesSnapshot,
+      usersSnapshot,
+      recoleccionesSnapshot,
+      embarquesSnapshot,
+      rutasSnapshot,
+      facturasSnapshot
+    ] = await Promise.all([
+      companiesPromise,
+      usersPromise,
+      recoleccionesPromise,
+      embarquesPromise,
+      rutasPromise,
+      facturasPromise
+    ]);
+    // --- TERMINA REPARACIÓN ---
+
     // Contar empresas
-    const companiesSnapshot = await db.collection('companies').get();
     const totalCompanies = companiesSnapshot.size;
     const activeCompanies = companiesSnapshot.docs.filter(doc => doc.data().activo !== false).length;
 
     // Contar usuarios totales
-    const usersSnapshot = await db.collection('usuarios').get();
     const totalUsers = usersSnapshot.size;
     const activeUsers = usersSnapshot.docs.filter(doc => doc.data().activo === true).length;
 
@@ -37,7 +62,6 @@ export const getStatsSuperAdmin = async (req, res) => {
     });
 
     // Contar recolecciones totales
-    const recoleccionesSnapshot = await db.collection('recolecciones').get();
     const totalRecolecciones = recoleccionesSnapshot.size;
 
     // Contar recolecciones de hoy
@@ -67,14 +91,12 @@ export const getStatsSuperAdmin = async (req, res) => {
     });
 
     // Contar embarques totales
-    const embarquesSnapshot = await db.collection('embarques').get();
     const totalEmbarques = embarquesSnapshot.size;
     const embarquesActivos = embarquesSnapshot.docs.filter(doc => 
       doc.data().estado === 'activo' || doc.data().estado === 'en_proceso'
     ).length;
 
     // Contar rutas totales
-    const rutasSnapshot = await db.collection('rutas').get();
     const totalRutas = rutasSnapshot.size;
     const rutasActivas = rutasSnapshot.docs.filter(doc => 
       doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
@@ -82,7 +104,6 @@ export const getStatsSuperAdmin = async (req, res) => {
     const rutasEnCurso = rutasActivas; // Alias
 
     // Contar facturas totales
-    const facturasSnapshot = await db.collection('facturas').get();
     const totalFacturas = facturasSnapshot.size;
 
     // Estadísticas de facturas
@@ -180,11 +201,44 @@ export const getStatsAdminGeneral = async (req, res) => {
 
     console.log(`📊 Obteniendo estadísticas para empresa: ${companyId}`);
 
-    // Contar usuarios de la empresa
-    const usersSnapshot = await db.collection('usuarios')
+    // --- INICIA REPARACIÓN ---
+    // 1. Definir todas las promesas de consulta
+    const usersPromise = db.collection('usuarios')
       .where('companyId', '==', companyId)
       .get();
-    
+    const recoleccionesPromise = db.collection('recolecciones')
+      .where('companyId', '==', companyId)
+      .get();
+    const embarquesPromise = db.collection('embarques')
+      .where('companyId', '==', companyId)
+      .get();
+    const rutasPromise = db.collection('rutas')
+      .where('companyId', '==', companyId)
+      .get();
+    const facturasPromise = db.collection('facturas')
+      .where('companyId', '==', companyId)
+      .get();
+    const companyPromise = db.collection('companies').doc(companyId).get();
+
+    // 2. Ejecutarlas todas al mismo tiempo
+    const [
+      usersSnapshot,
+      recoleccionesSnapshot,
+      embarquesSnapshot,
+      rutasSnapshot,
+      facturasSnapshot,
+      companyDoc
+    ] = await Promise.all([
+      usersPromise,
+      recoleccionesPromise,
+      embarquesPromise,
+      rutasPromise,
+      facturasPromise,
+      companyPromise
+    ]);
+    // --- TERMINA REPARACIÓN ---
+
+    // Contar usuarios de la empresa
     const totalUsers = usersSnapshot.size;
     const activeUsers = usersSnapshot.docs.filter(doc => doc.data().activo === true).length;
 
@@ -206,10 +260,6 @@ export const getStatsAdminGeneral = async (req, res) => {
     });
 
     // Contar recolecciones de la empresa
-    const recoleccionesSnapshot = await db.collection('recolecciones')
-      .where('companyId', '==', companyId)
-      .get();
-    
     const totalRecolecciones = recoleccionesSnapshot.size;
 
     // Contar recolecciones de hoy
@@ -239,20 +289,12 @@ export const getStatsAdminGeneral = async (req, res) => {
     });
 
     // Contar embarques de la empresa
-    const embarquesSnapshot = await db.collection('embarques')
-      .where('companyId', '==', companyId)
-      .get();
-    
     const totalEmbarques = embarquesSnapshot.size;
     const embarquesActivos = embarquesSnapshot.docs.filter(doc => 
       doc.data().estado === 'activo' || doc.data().estado === 'en_proceso'
     ).length;
 
     // Contar rutas de la empresa
-    const rutasSnapshot = await db.collection('rutas')
-      .where('companyId', '==', companyId)
-      .get();
-    
     const totalRutas = rutasSnapshot.size;
     const rutasActivas = rutasSnapshot.docs.filter(doc => 
       doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
@@ -261,10 +303,6 @@ export const getStatsAdminGeneral = async (req, res) => {
     const rutasCompletadas = rutasSnapshot.docs.filter(doc => doc.data().estado === 'completada').length;
 
     // Contar facturas de la empresa
-    const facturasSnapshot = await db.collection('facturas')
-      .where('companyId', '==', companyId)
-      .get();
-    
     const totalFacturas = facturasSnapshot.size;
 
     // Estadísticas de facturas
@@ -299,8 +337,7 @@ export const getStatsAdminGeneral = async (req, res) => {
       return fechaCreacion >= thirtyDaysAgo;
     }).length;
 
-    // Obtener información de la empresa
-    const companyDoc = await db.collection('companies').doc(companyId).get();
+    // Obtener información de la empresa (ya obtenida en Promise.all)
     const companyData = companyDoc.exists ? companyDoc.data() : null;
 
     // Respuesta con formato adaptado para el frontend
