@@ -39,7 +39,7 @@ const PanelSecretarias = () => {
   const fetchEmbarques = async () => {
     try {
       const response = await api.get('/embarques');
-      const embarquesActivos = (response.data.data || response.data || []).filter(e => e.estado === 'activo');
+      const embarquesActivos = (response.data.data || []).filter(e => e.estado === 'activo');
       setEmbarques(embarquesActivos);
     } catch (error) {
       console.error('Error al cargar embarques:', error);
@@ -52,7 +52,7 @@ const PanelSecretarias = () => {
   const fetchContenedores = async () => {
     try {
       const response = await api.get('/contenedores');
-      const contenedoresData = response.data.data || response.data || [];
+      const contenedoresData = response.data.data || [];
       setContenedores(contenedoresData);
     } catch (error) {
       console.error('Error al cargar contenedores:', error);

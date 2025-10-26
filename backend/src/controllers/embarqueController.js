@@ -57,7 +57,7 @@ export const getAllEmbarques = async (req, res) => {
       ...doc.data()
     }));
 
-    res.json(embarques);
+    res.json({ data: embarques });
   } catch (error) {
     console.error('Error obteniendo embarques:', error);
     res.status(500).json({ error: error.message });
