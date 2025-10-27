@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ CORRECCIÓN: Función para verificar si el token está expirado
+  // ✅ Función para verificar si el token está expirado
   const isTokenExpired = (token) => {
     if (!token) return true;
     
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ CORRECCIÓN: Función para renovar el token automáticamente
+  // ✅ Función para renovar el token automáticamente
   const refreshToken = async (firebaseUser) => {
     try {
       const newToken = await firebaseUser.getIdToken(true); // true = force refresh
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ CORRECCIÓN: Verificar token periódicamente y renovar si está próximo a expirar
+  // ✅ Verificar token periódicamente y renovar si está próximo a expirar
   useEffect(() => {
     const checkTokenExpiration = async () => {
       const token = localStorage.getItem('token');
@@ -97,16 +97,25 @@ export const AuthProvider = ({ children }) => {
           // Obtener token
           const token = localStorage.getItem('token');
           
-          // ✅ CORRECCIÓN: Verificar si el token existe y no está expirado
+          // ✅ Verificar si el token existe y no está expirado
           if (!token || isTokenExpired(token)) {
             console.log('⚠️ Token expirado o no existe, obteniendo nuevo token...');
             const newToken = await firebaseUser.getIdToken(true);
             localStorage.setItem('token', newToken);
           }
           
-          // Obtener datos del perfil
+          // ✅ CORRECCIÓN CRÍTICA: Obtener datos del perfil con formato estandarizado
           const response = await api.get('/auth/profile');
-          setUserData(response.data);
+          
+          console.log('📥 Respuesta de /auth/profile:', response.data);
+          
+          // ✅ Validar que la respuesta tenga el formato correcto
+          if (response.data.success && response.data.data) {
+            setUserData(response.data.data); // ✅ Usar response.data.data
+            console.log('✅ Datos de usuario cargados:', response.data.data);
+          } else {
+            throw new Error(response.data.error || 'Formato de respuesta inválido');
+          }
           
         } catch (error) {
           console.error('❌ Error obteniendo perfil:', error);
@@ -114,6 +123,10 @@ export const AuthProvider = ({ children }) => {
           // Si el error es de autenticación, hacer logout
           if (error.response && error.response.status === 401) {
             console.log('⚠️ Token inválido, cerrando sesión...');
+            await logout();
+          } else {
+            // Para otros errores, también es mejor hacer logout
+            console.log('⚠️ Error crítico obteniendo perfil, cerrando sesión...');
             await logout();
           }
         }
@@ -158,7 +171,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ✅ CORRECCIÓN: Exponer función para forzar renovación de token
+  // ✅ Función para forzar renovación de token
   const forceRefreshToken = async () => {
     if (!user) {
       throw new Error('No hay usuario autenticado');
@@ -172,8 +185,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loading,
-    forceRefreshToken, // ✅ Nueva función exportada
-    isTokenExpired      // ✅ Nueva función exportada
+    forceRefreshToken,
+    isTokenExpired
   };
 
   return (
