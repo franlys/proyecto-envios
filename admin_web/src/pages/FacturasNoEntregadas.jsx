@@ -26,10 +26,17 @@ const FacturasNoEntregadas = () => {
     try {
       setLoading(true);
       const response = await api.get('/facturas/no-entregadas');
-      setFacturas(Array.isArray(response.data) ? response.data : []);
+      
+      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
+      if (response.data.success) {
+        setFacturas(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar facturas no entregadas');
+      }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al cargar facturas no entregadas');
+      alert('Error al cargar facturas no entregadas: ' + error.message);
+      setFacturas([]);
     } finally {
       setLoading(false);
     }
@@ -38,9 +45,16 @@ const FacturasNoEntregadas = () => {
   const fetchRutas = async () => {
     try {
       const response = await api.get('/rutas');
-      setRutas(Array.isArray(response.data) ? response.data : []);
+      
+      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
+      if (response.data.success) {
+        setRutas(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar rutas');
+      }
     } catch (error) {
       console.error('Error al cargar rutas:', error);
+      setRutas([]);
     }
   };
 

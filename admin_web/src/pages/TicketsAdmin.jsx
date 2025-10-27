@@ -18,15 +18,22 @@ const TicketsAdmin = () => {
     }
   }, [userData]);
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchTickets = async () => {
     try {
       setLoading(true);
       const response = await api.get('/tickets/all');
+      
+      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
       if (response.data.success) {
-        setTickets(response.data.tickets);
+        setTickets(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar tickets');
       }
     } catch (error) {
       console.error('Error cargando tickets:', error);
+      setTickets([]);
+      alert('Error al cargar tickets');
     } finally {
       setLoading(false);
     }

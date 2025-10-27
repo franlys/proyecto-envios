@@ -13,6 +13,7 @@ export const getAllUsers = async (req, res) => {
     if (userData.rol !== 'super_admin') {
       if (!userData.companyId) {
         return res.status(403).json({ 
+          success: false,
           error: 'Usuario sin compañía asignada' 
         });
       }
@@ -25,10 +26,16 @@ export const getAllUsers = async (req, res) => {
       ...doc.data()
     }));
 
-    res.json(users);
+    res.json({ 
+      success: true,  // ✅ CORREGIDO
+      data: users     // ✅ CORREGIDO
+    });
   } catch (error) {
     console.error('Error obteniendo usuarios:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 
@@ -49,6 +56,7 @@ export const getUsersByRole = async (req, res) => {
     if (userData.rol !== 'super_admin') {
       if (!userData.companyId) {
         return res.status(403).json({ 
+          success: false,
           error: 'Usuario sin compañía asignada' 
         });
       }
@@ -62,10 +70,16 @@ export const getUsersByRole = async (req, res) => {
       ...doc.data()
     }));
 
-    res.json(users);
+    res.json({ 
+      success: true,  // ✅ CORREGIDO
+      data: users     // ✅ CORREGIDO
+    });
   } catch (error) {
     console.error('Error obteniendo usuarios por rol:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 
@@ -76,7 +90,10 @@ export const getUserById = async (req, res) => {
     const userDoc = await db.collection('usuarios').doc(id).get();
     
     if (!userDoc.exists) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Usuario no encontrado' 
+      });
     }
 
     // ← NUEVO: Verificar permisos
@@ -85,13 +102,22 @@ export const getUserById = async (req, res) => {
     const targetUserData = userDoc.data();
 
     if (currentUserData.rol !== 'super_admin' && targetUserData.companyId !== currentUserData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este usuario' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este usuario' 
+      });
     }
 
-    res.json({ id: userDoc.id, ...userDoc.data() });
+    res.json({ 
+      success: true,
+      data: { id: userDoc.id, ...userDoc.data() }  // ✅ CORREGIDO
+    });
   } catch (error) {
     console.error('Error obteniendo usuario:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 
@@ -104,7 +130,10 @@ export const updateUser = async (req, res) => {
     // ← NUEVO: Verificar que el usuario existe
     const targetUserDoc = await db.collection('usuarios').doc(id).get();
     if (!targetUserDoc.exists) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Usuario no encontrado' 
+      });
     }
 
     // ← NUEVO: Verificar permisos
@@ -113,7 +142,10 @@ export const updateUser = async (req, res) => {
     const targetUserData = targetUserDoc.data();
 
     if (currentUserData.rol !== 'super_admin' && targetUserData.companyId !== currentUserData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este usuario' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este usuario' 
+      });
     }
 
     const updates = {};
@@ -125,10 +157,16 @@ export const updateUser = async (req, res) => {
 
     await db.collection('usuarios').doc(id).update(updates);
 
-    res.json({ message: 'Usuario actualizado exitosamente' });
+    res.json({ 
+      success: true,
+      message: 'Usuario actualizado exitosamente' 
+    });
   } catch (error) {
     console.error('Error actualizando usuario:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 
@@ -140,7 +178,10 @@ export const deactivateUser = async (req, res) => {
     // ← NUEVO: Verificar que el usuario existe
     const targetUserDoc = await db.collection('usuarios').doc(id).get();
     if (!targetUserDoc.exists) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Usuario no encontrado' 
+      });
     }
 
     // ← NUEVO: Verificar permisos
@@ -149,7 +190,10 @@ export const deactivateUser = async (req, res) => {
     const targetUserData = targetUserDoc.data();
 
     if (currentUserData.rol !== 'super_admin' && targetUserData.companyId !== currentUserData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este usuario' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este usuario' 
+      });
     }
 
     await db.collection('usuarios').doc(id).update({
@@ -160,10 +204,16 @@ export const deactivateUser = async (req, res) => {
     // Deshabilitar en Firebase Auth
     await auth.updateUser(id, { disabled: true });
 
-    res.json({ message: 'Usuario desactivado exitosamente' });
+    res.json({ 
+      success: true,
+      message: 'Usuario desactivado exitosamente' 
+    });
   } catch (error) {
     console.error('Error desactivando usuario:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 
@@ -175,7 +225,10 @@ export const activateUser = async (req, res) => {
     // ← NUEVO: Verificar que el usuario existe
     const targetUserDoc = await db.collection('usuarios').doc(id).get();
     if (!targetUserDoc.exists) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Usuario no encontrado' 
+      });
     }
 
     // ← NUEVO: Verificar permisos
@@ -184,7 +237,10 @@ export const activateUser = async (req, res) => {
     const targetUserData = targetUserDoc.data();
 
     if (currentUserData.rol !== 'super_admin' && targetUserData.companyId !== currentUserData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este usuario' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este usuario' 
+      });
     }
 
     await db.collection('usuarios').doc(id).update({
@@ -195,9 +251,15 @@ export const activateUser = async (req, res) => {
     // Habilitar en Firebase Auth
     await auth.updateUser(id, { disabled: false });
 
-    res.json({ message: 'Usuario activado exitosamente' });
+    res.json({ 
+      success: true,
+      message: 'Usuario activado exitosamente' 
+    });
   } catch (error) {
     console.error('Error activando usuario:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };

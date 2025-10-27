@@ -1,7 +1,7 @@
 // admin_web/src/pages/DetalleRuta.jsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../services/api'; // ← USAR API EN LUGAR DE FIREBASE
+import api from '../services/api';
 
 const DetalleRuta = () => {
   const { id } = useParams();
@@ -15,23 +15,21 @@ const DetalleRuta = () => {
     fetchRutaCompleta();
   }, [id]);
 
-  // ← MODIFICADO: Usar API del backend
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchRutaCompleta = async () => {
     try {
-      // Obtener la ruta completa desde el backend (ya incluye facturas, gastos y empleado)
       const response = await api.get(`/rutas/${id}`);
       
-      if (!response.data) {
-        console.error('Ruta no encontrada');
-        navigate('/rutas');
-        return;
+      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
+      if (response.data.success) {
+        const rutaData = response.data.data;
+        
+        setRuta(rutaData);
+        setFacturas(rutaData.facturas || []);
+        setGastos(rutaData.gastos || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar la ruta');
       }
-
-      const rutaData = response.data;
-      
-      setRuta(rutaData);
-      setFacturas(rutaData.facturas || []);
-      setGastos(rutaData.gastos || []);
 
     } catch (error) {
       console.error('Error al cargar ruta:', error);

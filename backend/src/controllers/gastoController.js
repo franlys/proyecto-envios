@@ -1,4 +1,4 @@
-// backend/src/controllers/gastosController.js
+// backend/src/controllers/gastoController.js
 import { db } from '../config/firebase.js';
 
 // POST - Crear nuevo gasto
@@ -9,12 +9,14 @@ export const createGasto = async (req, res) => {
     // Validaciones
     if (!rutaId || !tipo || !monto) {
       return res.status(400).json({ 
+        success: false,
         error: 'Faltan datos requeridos' 
       });
     }
 
     if (monto <= 0) {
       return res.status(400).json({ 
+        success: false,
         error: 'El monto debe ser mayor a 0' 
       });
     }
@@ -22,7 +24,10 @@ export const createGasto = async (req, res) => {
     // Verificar que la ruta existe
     const rutaDoc = await db.collection('rutas').doc(rutaId).get();
     if (!rutaDoc.exists) {
-      return res.status(404).json({ error: 'Ruta no encontrada' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Ruta no encontrada' 
+      });
     }
 
     const rutaData = rutaDoc.data();
@@ -32,12 +37,16 @@ export const createGasto = async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'super_admin' && rutaData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a esta ruta' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a esta ruta' 
+      });
     }
 
     // Verificar que la ruta no esté completada
     if (rutaData.estado === 'completada') {
       return res.status(400).json({ 
+        success: false,
         error: 'No se pueden agregar gastos a una ruta completada' 
       });
     }
@@ -46,7 +55,7 @@ export const createGasto = async (req, res) => {
     const nuevoGasto = {
       rutaId,
       empleadoId: rutaData.empleadoId,
-      companyId: rutaData.companyId, // ← NUEVO: Heredar companyId de la ruta
+      companyId: rutaData.companyId,
       tipo,
       descripcion: descripcion || '',
       monto: parseFloat(monto),
@@ -59,14 +68,18 @@ export const createGasto = async (req, res) => {
     const gastoRef = await db.collection('gastos').add(nuevoGasto);
 
     res.status(201).json({
+      success: true,
       id: gastoRef.id,
-      ...nuevoGasto,
+      data: nuevoGasto,  // ✅ CORREGIDO
       message: 'Gasto registrado exitosamente'
     });
 
   } catch (error) {
     console.error('Error al crear gasto:', error);
-    res.status(500).json({ error: 'Error al crear el gasto' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al crear el gasto' 
+    });
   }
 };
 
@@ -78,7 +91,10 @@ export const getGastosByRuta = async (req, res) => {
     // Verificar que la ruta existe
     const rutaDoc = await db.collection('rutas').doc(rutaId).get();
     if (!rutaDoc.exists) {
-      return res.status(404).json({ error: 'Ruta no encontrada' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Ruta no encontrada' 
+      });
     }
 
     const rutaData = rutaDoc.data();
@@ -88,7 +104,10 @@ export const getGastosByRuta = async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'super_admin' && rutaData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a esta ruta' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a esta ruta' 
+      });
     }
 
     // Obtener gastos
@@ -114,7 +133,8 @@ export const getGastosByRuta = async (req, res) => {
     const balance = montoAsignado - totalGastos;
 
     res.json({
-      gastos,
+      success: true,  // ✅ CORREGIDO
+      data: gastos,   // ✅ CORREGIDO
       resumen: {
         totalGastos,
         montoAsignado,
@@ -125,7 +145,10 @@ export const getGastosByRuta = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener gastos de ruta:', error);
-    res.status(500).json({ error: 'Error al obtener gastos' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener gastos' 
+    });
   }
 };
 
@@ -142,14 +165,20 @@ export const getGastosByEmpleado = async (req, res) => {
     // Verificar que el empleado existe
     const empleadoDoc = await db.collection('usuarios').doc(empleadoId).get();
     if (!empleadoDoc.exists) {
-      return res.status(404).json({ error: 'Empleado no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Empleado no encontrado' 
+      });
     }
 
     const empleadoData = empleadoDoc.data();
 
     // ← NUEVO: Verificar permisos
     if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este empleado' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este empleado' 
+      });
     }
 
     // Construir query
@@ -204,11 +233,12 @@ export const getGastosByEmpleado = async (req, res) => {
     }
 
     res.json({
+      success: true,  // ✅ CORREGIDO
       empleado: {
         id: empleadoId,
         nombre: empleadoData.nombre
       },
-      gastos,
+      data: gastos,   // ✅ CORREGIDO
       resumen: {
         totalGastos,
         cantidadGastos: gastos.length,
@@ -221,7 +251,10 @@ export const getGastosByEmpleado = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener gastos de empleado:', error);
-    res.status(500).json({ error: 'Error al obtener gastos' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener gastos' 
+    });
   }
 };
 
@@ -234,7 +267,10 @@ export const updateGasto = async (req, res) => {
     // Verificar que el gasto existe
     const gastoDoc = await db.collection('gastos').doc(id).get();
     if (!gastoDoc.exists) {
-      return res.status(404).json({ error: 'Gasto no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Gasto no encontrado' 
+      });
     }
 
     const gastoData = gastoDoc.data();
@@ -244,7 +280,10 @@ export const updateGasto = async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'super_admin' && gastoData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este gasto' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este gasto' 
+      });
     }
 
     // Verificar que la ruta asociada no esté completada
@@ -252,6 +291,7 @@ export const updateGasto = async (req, res) => {
       const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
       if (rutaDoc.exists && rutaDoc.data().estado === 'completada') {
         return res.status(400).json({ 
+          success: false,
           error: 'No se pueden modificar gastos de rutas completadas' 
         });
       }
@@ -267,7 +307,10 @@ export const updateGasto = async (req, res) => {
     if (descripcion !== undefined) actualizacion.descripcion = descripcion;
     if (monto) {
       if (parseFloat(monto) <= 0) {
-        return res.status(400).json({ error: 'El monto debe ser mayor a 0' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'El monto debe ser mayor a 0' 
+        });
       }
       actualizacion.monto = parseFloat(monto);
     }
@@ -275,14 +318,17 @@ export const updateGasto = async (req, res) => {
     await db.collection('gastos').doc(id).update(actualizacion);
 
     res.json({
+      success: true,
       message: 'Gasto actualizado exitosamente',
-      id,
-      ...actualizacion
+      data: { id, ...actualizacion }  // ✅ CORREGIDO
     });
 
   } catch (error) {
     console.error('Error al actualizar gasto:', error);
-    res.status(500).json({ error: 'Error al actualizar el gasto' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al actualizar el gasto' 
+    });
   }
 };
 
@@ -294,7 +340,10 @@ export const deleteGasto = async (req, res) => {
     // Verificar que el gasto existe
     const gastoDoc = await db.collection('gastos').doc(id).get();
     if (!gastoDoc.exists) {
-      return res.status(404).json({ error: 'Gasto no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Gasto no encontrado' 
+      });
     }
 
     const gastoData = gastoDoc.data();
@@ -304,7 +353,10 @@ export const deleteGasto = async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'super_admin' && gastoData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este gasto' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este gasto' 
+      });
     }
 
     // Verificar que la ruta asociada no esté completada
@@ -312,6 +364,7 @@ export const deleteGasto = async (req, res) => {
       const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
       if (rutaDoc.exists && rutaDoc.data().estado === 'completada') {
         return res.status(400).json({ 
+          success: false,
           error: 'No se pueden eliminar gastos de rutas completadas' 
         });
       }
@@ -320,12 +373,16 @@ export const deleteGasto = async (req, res) => {
     await db.collection('gastos').doc(id).delete();
 
     res.json({
+      success: true,
       message: 'Gasto eliminado exitosamente',
       id
     });
 
   } catch (error) {
     console.error('Error al eliminar gasto:', error);
-    res.status(500).json({ error: 'Error al eliminar el gasto' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al eliminar el gasto' 
+    });
   }
 };

@@ -36,11 +36,18 @@ const PanelSecretarias = () => {
     }
   }, [selectedEmbarque, selectedContenedor]);
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchEmbarques = async () => {
     try {
       const response = await api.get('/embarques');
-      const embarquesActivos = (response.data.data || []).filter(e => e.estado === 'activo');
-      setEmbarques(embarquesActivos);
+      
+      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
+      if (response.data.success) {
+        const embarquesActivos = (response.data.data || []).filter(e => e.estado === 'activo');
+        setEmbarques(embarquesActivos);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar embarques');
+      }
     } catch (error) {
       console.error('Error al cargar embarques:', error);
       alert('Error al cargar embarques');
@@ -49,11 +56,17 @@ const PanelSecretarias = () => {
     }
   };
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchContenedores = async () => {
     try {
       const response = await api.get('/contenedores');
-      const contenedoresData = response.data.data || [];
-      setContenedores(contenedoresData);
+      
+      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
+      if (response.data.success) {
+        setContenedores(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar contenedores');
+      }
     } catch (error) {
       console.error('Error al cargar contenedores:', error);
     }

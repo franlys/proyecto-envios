@@ -26,11 +26,18 @@ const Rutas = () => {
     fetchRutas();
   }, []);
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchRutas = async () => {
     try {
       setLoading(true);
       const response = await api.get('/rutas');
-      setRutas(Array.isArray(response.data) ? response.data : []);
+      
+      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
+      if (response.data.success) {
+        setRutas(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar rutas');
+      }
     } catch (error) {
       console.error('Error:', error);
       alert('Error al cargar rutas');
@@ -39,21 +46,35 @@ const Rutas = () => {
     }
   };
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const openCreateModal = async () => {
     try {
       const embarquesRes = await api.get('/embarques');
-      setEmbarques(Array.isArray(embarquesRes.data) ? embarquesRes.data : []);
+      
+      // ✅ CORRECCIÓN: Validar success para embarques
+      if (embarquesRes.data.success) {
+        setEmbarques(embarquesRes.data.data || []);
+      } else {
+        throw new Error(embarquesRes.data.error || 'Error al cargar embarques');
+      }
       
       const repartidoresRes = await api.get('/empleados/repartidores');
-      setRepartidores(repartidoresRes.data.repartidores || []);
+      
+      // ✅ CORRECCIÓN: Validar success para repartidores
+      if (repartidoresRes.data.success) {
+        setRepartidores(repartidoresRes.data.data || []);
+      } else {
+        throw new Error(repartidoresRes.data.error || 'Error al cargar repartidores');
+      }
       
       setShowModal(true);
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al cargar datos para crear ruta');
+      alert(error.message || 'Error al cargar datos para crear ruta');
     }
   };
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const handleEmbarqueChange = async (embarqueId) => {
     setSelectedEmbarque(embarqueId);
     setSelectedFacturas([]);
@@ -66,13 +87,19 @@ const Rutas = () => {
 
     try {
       const response = await api.get(`/embarques/${embarqueId}`);
-      const facturasDisponibles = (response.data.facturas || []).filter(
-        f => f.estado === 'pendiente' || !f.estado
-      );
-      setFacturas(facturasDisponibles);
+      
+      // ✅ CORRECCIÓN: Validar success antes de usar facturas
+      if (response.data.success) {
+        const facturasDisponibles = (response.data.data.facturas || []).filter(
+          f => f.estado === 'pendiente' || !f.estado
+        );
+        setFacturas(facturasDisponibles);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar facturas del embarque');
+      }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al cargar facturas del embarque');
+      alert(error.message || 'Error al cargar facturas del embarque');
     }
   };
 

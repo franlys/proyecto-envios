@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 /**
- * GET /api/empleados
+ * ✅ CORREGIDO - GET /api/empleados
  * Obtener lista de empleados
  */
 router.get('/', checkRole('super_admin', 'admin_general'), async (req, res) => {
@@ -46,9 +46,10 @@ router.get('/', checkRole('super_admin', 'admin_general'), async (req, res) => {
       });
     });
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      data: empleados // ✅ CORRECCIÓN: Cambia "empleados" por "data"
+      data: empleados
     });
 
   } catch (error) {
@@ -62,7 +63,7 @@ router.get('/', checkRole('super_admin', 'admin_general'), async (req, res) => {
 });
 
 /**
- * ✅ NUEVO ENDPOINT: GET /api/empleados/repartidores
+ * ✅ CORREGIDO - GET /api/empleados/repartidores
  * Obtener solo repartidores activos de la compañía del usuario
  */
 router.get('/repartidores', async (req, res) => {
@@ -92,9 +93,10 @@ router.get('/repartidores', async (req, res) => {
       });
     });
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      repartidores
+      data: repartidores
     });
 
   } catch (error) {
@@ -108,7 +110,7 @@ router.get('/repartidores', async (req, res) => {
 });
 
 /**
- * GET /api/empleados/:id
+ * ✅ CORREGIDO - GET /api/empleados/:id
  * Obtener un empleado específico
  */
 router.get('/:id', checkRole('super_admin', 'admin_general'), async (req, res) => {
@@ -135,9 +137,10 @@ router.get('/:id', checkRole('super_admin', 'admin_general'), async (req, res) =
       });
     }
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      empleado: {
+      data: {
         id: empleadoDoc.id,
         ...empleadoData
       }
@@ -205,7 +208,7 @@ router.post('/', checkRole('super_admin', 'admin_general'), async (req, res) => 
     res.status(201).json({
       success: true,
       message: 'Empleado creado exitosamente',
-      empleado: {
+      data: {
         id: userRecord.uid,
         email,
         nombre,

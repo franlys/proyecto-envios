@@ -1,17 +1,18 @@
-// backend/middleware/checkPlanLimits.js
-const { db } = require('../config/firebase');
-const { checkLimit, hasFeature, getPlanFeatures } = require('../models/Company');
+// backend/src/middleware/checkPlanLimits.js
+import { db } from '../config/firebase.js';
+import { checkLimit, hasFeature, getPlanFeatures } from '../models/Company.js';
 
 /**
  * Middleware para verificar límites del plan
  */
-const checkPlanLimit = (limitName) => {
+export const checkPlanLimit = (limitName) => {
   return async (req, res, next) => {
     try {
       const companyId = req.userData?.companyId;
       
       if (!companyId) {
         return res.status(403).json({ 
+          success: false, // ✅ CORRECCIÓN
           error: 'No tienes una compañía asociada' 
         });
       }
@@ -20,7 +21,10 @@ const checkPlanLimit = (limitName) => {
       const companyDoc = await db.collection('companies').doc(companyId).get();
       
       if (!companyDoc.exists) {
-        return res.status(404).json({ error: 'Compañía no encontrada' });
+        return res.status(404).json({ 
+          success: false, // ✅ CORRECCIÓN
+          error: 'Compañía no encontrada' 
+        });
       }
 
       const company = companyDoc.data();
@@ -62,6 +66,7 @@ const checkPlanLimit = (limitName) => {
       
       if (!limitCheck.allowed) {
         return res.status(403).json({
+          success: false, // ✅ CORRECCIÓN
           error: `Has alcanzado el límite de tu plan`,
           plan: company.plan,
           limit: limitCheck.limit,
@@ -81,7 +86,10 @@ const checkPlanLimit = (limitName) => {
       next();
     } catch (error) {
       console.error('Error verificando límite:', error);
-      res.status(500).json({ error: 'Error verificando límite del plan' });
+      res.status(500).json({ 
+        success: false, // ✅ CORRECCIÓN
+        error: 'Error verificando límite del plan' 
+      });
     }
   };
 };
@@ -89,13 +97,14 @@ const checkPlanLimit = (limitName) => {
 /**
  * Middleware para verificar si tiene una feature
  */
-const requireFeature = (featureName) => {
+export const requireFeature = (featureName) => {
   return async (req, res, next) => {
     try {
-      const companyId = req.user.companyId;
+      const companyId = req.userData?.companyId;
       
       if (!companyId) {
         return res.status(403).json({ 
+          success: false, // ✅ CORRECCIÓN
           error: 'No tienes una compañía asociada' 
         });
       }
@@ -103,7 +112,10 @@ const requireFeature = (featureName) => {
       const companyDoc = await db.collection('companies').doc(companyId).get();
       
       if (!companyDoc.exists) {
-        return res.status(404).json({ error: 'Compañía no encontrada' });
+        return res.status(404).json({ 
+          success: false, // ✅ CORRECCIÓN
+          error: 'Compañía no encontrada' 
+        });
       }
 
       const company = companyDoc.data();
@@ -112,6 +124,7 @@ const requireFeature = (featureName) => {
         const features = getPlanFeatures(company.plan);
         
         return res.status(403).json({
+          success: false, // ✅ CORRECCIÓN
           error: `Esta función no está disponible en tu plan actual`,
           feature: featureName,
           plan: company.plan,
@@ -130,12 +143,15 @@ const requireFeature = (featureName) => {
       next();
     } catch (error) {
       console.error('Error verificando feature:', error);
-      res.status(500).json({ error: 'Error verificando permisos' });
+      res.status(500).json({ 
+        success: false, // ✅ CORRECCIÓN
+        error: 'Error verificando permisos' 
+      });
     }
   };
 };
 
-module.exports = {
+export default {
   checkPlanLimit,
   requireFeature
 };

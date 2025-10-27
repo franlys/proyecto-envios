@@ -1,17 +1,10 @@
-// backend/src/routes/facturas.js
-import express from 'express';
+// backend/src/controllers/facturasController.js
 import { db } from '../config/firebase.js';
-import { verifyToken } from '../middleware/auth.js';
 
-const router = express.Router();
-
-// Aplicar middleware de autenticación a todas las rutas
-router.use(verifyToken);
-
-// ============================================
-// GET - Estadísticas para Secretaria
-// ============================================
-router.get('/stats-secretaria', async (req, res) => {
+/**
+ * GET - Estadísticas para Secretaria
+ */
+export const getStatsSecretaria = async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
@@ -64,12 +57,12 @@ router.get('/stats-secretaria', async (req, res) => {
       error: 'Error al obtener estadísticas' 
     });
   }
-});
+};
 
-// ============================================
-// GET - Obtener facturas no entregadas
-// ============================================
-router.get('/no-entregadas', async (req, res) => {
+/**
+ * GET - Obtener facturas no entregadas
+ */
+export const getFacturasNoEntregadas = async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
@@ -139,12 +132,12 @@ router.get('/no-entregadas', async (req, res) => {
       error: 'Error al obtener facturas no entregadas' 
     });
   }
-});
+};
 
-// ============================================
-// POST - Reasignar factura
-// ============================================
-router.post('/reasignar', async (req, res) => {
+/**
+ * POST - Reasignar factura
+ */
+export const reasignarFactura = async (req, res) => {
   try {
     const { facturaId, accion, observaciones, nuevaRutaId } = req.body;
 
@@ -259,12 +252,12 @@ router.post('/reasignar', async (req, res) => {
       error: 'Error al reasignar la factura' 
     });
   }
-});
+};
 
-// ============================================
-// GET - Obtener historial de una factura
-// ============================================
-router.get('/:id/historial', async (req, res) => {
+/**
+ * GET - Obtener historial de una factura
+ */
+export const getHistorialFactura = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -320,12 +313,12 @@ router.get('/:id/historial', async (req, res) => {
       error: 'Error al obtener historial' 
     });
   }
-});
+};
 
-// ============================================
-// GET - Buscar facturas con filtros
-// ============================================
-router.get('/buscar', async (req, res) => {
+/**
+ * GET - Buscar facturas con filtros
+ */
+export const buscarFacturas = async (req, res) => {
   try {
     const { cliente, numeroFactura, estado, rutaId, fechaDesde, fechaHasta } = req.query;
 
@@ -389,12 +382,12 @@ router.get('/buscar', async (req, res) => {
       error: 'Error al buscar facturas' 
     });
   }
-});
+};
 
-// ============================================
-// GET - Obtener estadísticas de facturas
-// ============================================
-router.get('/estadisticas', async (req, res) => {
+/**
+ * GET - Obtener estadísticas de facturas
+ */
+export const getEstadisticasFacturas = async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
@@ -452,6 +445,4 @@ router.get('/estadisticas', async (req, res) => {
       error: 'Error al obtener estadísticas' 
     });
   }
-});
-
-export default router;
+};

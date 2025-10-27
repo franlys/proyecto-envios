@@ -15,7 +15,10 @@ router.get('/stats-repartidor', async (req, res) => {
     const userData = userDoc.data();
 
     if (!userData.companyId) {
-      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Usuario sin compañía asignada' 
+      });
     }
 
     // Base query
@@ -52,22 +55,29 @@ router.get('/stats-repartidor', async (req, res) => {
       facturasPendientes += ruta.facturasPendientes || 0;
     });
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
-      rutasActivas,
-      rutasCompletadas,
-      rutasPendientes,
-      facturasEntregadas,
-      facturasPendientes,
-      totalRutas: snapshot.size
+      success: true,
+      data: {
+        rutasActivas,
+        rutasCompletadas,
+        rutasPendientes,
+        facturasEntregadas,
+        facturasPendientes,
+        totalRutas: snapshot.size
+      }
     });
   } catch (error) {
     console.error('Error en stats-repartidor:', error);
-    res.status(500).json({ error: 'Error al obtener estadísticas de repartidor' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener estadísticas de repartidor' 
+    });
   }
 });
 
 // ============================================
-// GET - Obtener todas las rutas (SIMPLIFICADO - SIN orderBy)
+// ✅ CORREGIDO - GET - Obtener todas las rutas
 // ============================================
 router.get('/', async (req, res) => {
   try {
@@ -81,7 +91,7 @@ router.get('/', async (req, res) => {
       query = query.where('companyId', '==', userData.companyId);
     }
 
-    const rutasSnapshot = await query.limit(50).get(); // Límite simple
+    const rutasSnapshot = await query.limit(50).get();
 
     const rutas = [];
     
@@ -140,18 +150,25 @@ router.get('/', async (req, res) => {
     rutas.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
       const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-      return dateB - dateA; // Orden descendente
+      return dateB - dateA;
     });
 
-    res.json(rutas);
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({
+      success: true,
+      data: rutas
+    });
   } catch (error) {
     console.error('Error al obtener rutas:', error);
-    res.status(500).json({ error: 'Error al obtener rutas' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener rutas' 
+    });
   }
 });
 
 // ============================================
-// GET - Obtener solo rutas activas (SIMPLIFICADO)
+// ✅ CORREGIDO - GET - Obtener solo rutas activas
 // ============================================
 router.get('/activas', async (req, res) => {
   try {
@@ -161,7 +178,6 @@ router.get('/activas', async (req, res) => {
     let query = db.collection('rutas')
       .where('estado', 'in', ['pendiente', 'en_proceso']);
 
-    // NO agregar más filtros para evitar índices compuestos
     const rutasSnapshot = await query.limit(50).get();
 
     const rutas = [];
@@ -203,10 +219,17 @@ router.get('/activas', async (req, res) => {
       });
     }
 
-    res.json(rutas);
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({
+      success: true,
+      data: rutas
+    });
   } catch (error) {
     console.error('Error al obtener rutas activas:', error);
-    res.status(500).json({ error: 'Error al obtener rutas activas' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener rutas activas' 
+    });
   }
 });
 
@@ -225,19 +248,24 @@ router.post('/', async (req, res) => {
 
     if (!embarqueId || !empleadoId || !facturasIds || facturasIds.length === 0) {
       return res.status(400).json({ 
+        success: false,
         error: 'Faltan datos requeridos' 
       });
     }
 
     if (!montoAsignado || parseFloat(montoAsignado) <= 0) {
       return res.status(400).json({ 
+        success: false,
         error: 'El monto asignado debe ser mayor a 0' 
       });
     }
 
     const embarqueDoc = await db.collection('embarques').doc(embarqueId).get();
     if (!embarqueDoc.exists) {
-      return res.status(404).json({ error: 'Embarque no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Embarque no encontrado' 
+      });
     }
     const embarqueData = embarqueDoc.data();
 
@@ -245,12 +273,18 @@ router.post('/', async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este embarque' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este embarque' 
+      });
     }
 
     const empleadoDoc = await db.collection('usuarios').doc(empleadoId).get();
     if (!empleadoDoc.exists) {
-      return res.status(404).json({ error: 'Empleado no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Empleado no encontrado' 
+      });
     }
 
     const nuevaRuta = {
@@ -280,19 +314,25 @@ router.post('/', async (req, res) => {
     await batch.commit();
 
     res.status(201).json({
-      id: rutaRef.id,
-      ...nuevaRuta,
-      message: 'Ruta creada exitosamente'
+      success: true,
+      message: 'Ruta creada exitosamente',
+      data: {
+        id: rutaRef.id,
+        ...nuevaRuta
+      }
     });
 
   } catch (error) {
     console.error('Error al crear ruta:', error);
-    res.status(500).json({ error: 'Error al crear la ruta' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al crear la ruta' 
+    });
   }
 });
 
 // ============================================
-// GET - Obtener detalle de una ruta
+// ✅ CORREGIDO - GET - Obtener detalle de una ruta
 // ============================================
 router.get('/:id', async (req, res) => {
   try {
@@ -300,7 +340,10 @@ router.get('/:id', async (req, res) => {
 
     const rutaDoc = await db.collection('rutas').doc(id).get();
     if (!rutaDoc.exists) {
-      return res.status(404).json({ error: 'Ruta no encontrada' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Ruta no encontrada' 
+      });
     }
 
     const rutaData = rutaDoc.data();
@@ -309,7 +352,10 @@ router.get('/:id', async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'super_admin' && rutaData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a esta ruta' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a esta ruta' 
+      });
     }
 
     let empleadoData = null;
@@ -342,19 +388,26 @@ router.get('/:id', async (req, res) => {
       totalGastos += gasto.monto || 0;
     });
 
+    // ✅ FORMATO ESTANDARIZADO - Devuelve "data" en lugar de propiedades sueltas
     res.json({
-      id,
-      ...rutaData,
-      empleado: empleadoData,
-      facturas,
-      gastos,
-      totalGastos,
-      balance: (rutaData.montoAsignado || 0) - totalGastos
+      success: true,
+      data: {
+        id,
+        ...rutaData,
+        empleado: empleadoData,
+        facturas,
+        gastos,
+        totalGastos,
+        balance: (rutaData.montoAsignado || 0) - totalGastos
+      }
     });
 
   } catch (error) {
     console.error('Error al obtener detalle de ruta:', error);
-    res.status(500).json({ error: 'Error al obtener detalle de la ruta' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener detalle de la ruta' 
+    });
   }
 });
 

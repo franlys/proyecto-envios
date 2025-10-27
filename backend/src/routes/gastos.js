@@ -48,10 +48,14 @@ router.post('/', checkRole('empleado'), async (req, res) => {
 
     const gastoRef = await db.collection('gastos').add(nuevoGasto);
 
+    // ✅ CORRECCIÓN: Formato estandarizado
     res.status(201).json({
-      id: gastoRef.id,
-      ...nuevoGasto,
-      message: 'Gasto registrado exitosamente'
+      success: true,
+      message: 'Gasto registrado exitosamente',
+      data: {
+        id: gastoRef.id,
+        ...nuevoGasto
+      }
     });
 
   } catch (error) {
@@ -88,8 +92,10 @@ router.get('/ruta/:rutaId', async (req, res) => {
     const montoAsignado = rutaData.montoAsignado || 0;
     const balance = montoAsignado - totalGastos;
 
+    // ✅ CORRECCIÓN: success + data
     res.json({
-      gastos,
+      success: true,
+      data: gastos,
       resumen: {
         totalGastos,
         montoAsignado,
@@ -151,9 +157,11 @@ router.get('/empleado/:empleadoId', async (req, res) => {
       gastosPorTipo[tipo] = (gastosPorTipo[tipo] || 0) + (gastoData.monto || 0);
     }
 
+    // ✅ CORRECCIÓN: success + data
     res.json({
+      success: true,
       empleado: { id: empleadoId, nombre: empleadoDoc.data().nombre },
-      gastos,
+      data: gastos,
       resumen: {
         totalGastos,
         cantidadGastos: gastos.length,
@@ -208,7 +216,12 @@ router.put('/:id', checkRole('admin_general', 'empleado'), async (req, res) => {
 
     await db.collection('gastos').doc(id).update(actualizacion);
 
-    res.json({ message: 'Gasto actualizado exitosamente', id, ...actualizacion });
+    // ✅ CORRECCIÓN: success + data
+    res.json({
+      success: true,
+      message: 'Gasto actualizado exitosamente',
+      data: { id, ...actualizacion }
+    });
 
   } catch (error) {
     console.error('Error al actualizar gasto:', error);
@@ -239,7 +252,11 @@ router.delete('/:id', checkRole('admin_general'), async (req, res) => {
 
     await db.collection('gastos').doc(id).delete();
 
-    res.json({ message: 'Gasto eliminado exitosamente', id });
+    // ✅ CORRECCIÓN: success
+    res.json({
+      success: true,
+      message: 'Gasto eliminado exitosamente'
+    });
 
   } catch (error) {
     console.error('Error al eliminar gasto:', error);

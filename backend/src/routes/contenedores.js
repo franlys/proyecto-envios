@@ -15,10 +15,8 @@ router.post('/upload-from-drive', async (req, res) => {
   try {
     const { fileName, fileData, base64Data, embarqueId, fileId } = req.body;
     
-    // ✅ CORRECCIÓN: Aceptar fileData O base64Data
     const excelData = fileData || base64Data;
     
-    // Validaciones
     if (!fileName || !excelData) {
       return res.status(400).json({
         success: false,
@@ -33,10 +31,7 @@ router.post('/upload-from-drive', async (req, res) => {
 
     console.log('📁 Procesando archivo:', fileName);
 
-    // Decodificar base64 a buffer
     const buffer = Buffer.from(excelData, 'base64');
-    
-    // Leer Excel
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
@@ -51,7 +46,6 @@ router.post('/upload-from-drive', async (req, res) => {
       });
     }
 
-    // Procesar cada fila del Excel
     const facturas = [];
     const errores = [];
 
@@ -59,21 +53,19 @@ router.post('/upload-from-drive', async (req, res) => {
       const row = data[i];
       
       try {
-        // Validar campos requeridos
         const numeroFactura = row['Número de Factura'] || row['Numero de Factura'] || row['factura'];
         const cliente = row['Cliente'] || row['cliente'];
         const monto = parseFloat(row['Monto'] || row['monto'] || 0);
         
         if (!numeroFactura || !cliente) {
           errores.push({
-            fila: i + 2, // +2 porque Excel empieza en 1 y tiene header
+            fila: i + 2,
             error: 'Faltan datos requeridos (número de factura o cliente)',
             datos: row
           });
           continue;
         }
 
-        // Crear objeto de factura
         const factura = {
           numeroFactura: String(numeroFactura).trim(),
           cliente: String(cliente).trim(),
@@ -98,7 +90,6 @@ router.post('/upload-from-drive', async (req, res) => {
       }
     }
 
-    // Guardar facturas en Firestore
     const batch = db.batch();
     const facturasRef = db.collection('facturas');
 
@@ -111,7 +102,6 @@ router.post('/upload-from-drive', async (req, res) => {
 
     console.log(`✅ ${facturas.length} facturas procesadas exitosamente`);
 
-    // Si hay un embarqueId, actualizar el embarque
     if (embarqueId) {
       const embarqueRef = db.collection('embarques').doc(embarqueId);
       await embarqueRef.update({
@@ -139,7 +129,7 @@ router.post('/upload-from-drive', async (req, res) => {
 });
 
 /**
- * GET /api/contenedores
+ * ✅ CORREGIDO: GET /api/contenedores
  * Listar contenedores disponibles
  */
 router.get('/', async (req, res) => {
@@ -154,7 +144,6 @@ router.get('/', async (req, res) => {
 
     const snapshot = await query.get();
 
-    // Agrupar facturas por contenedor
     const contenedoresMap = new Map();
 
     snapshot.forEach(doc => {
@@ -181,9 +170,10 @@ router.get('/', async (req, res) => {
 
     const contenedores = Array.from(contenedoresMap.values());
 
+    // ✅ CORRECCIÓN: Formato estandarizado
     res.json({
       success: true,
-      contenedores
+      data: contenedores
     });
 
   } catch (error) {
@@ -197,7 +187,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/contenedores/:numeroContenedor
+ * ✅ CORREGIDO: GET /api/contenedores/:numeroContenedor
  * Obtener detalles de un contenedor específico
  */
 router.get('/:numeroContenedor', async (req, res) => {
@@ -224,9 +214,10 @@ router.get('/:numeroContenedor', async (req, res) => {
       totalMonto += factura.monto || 0;
     });
 
+    // ✅ CORRECCIÓN: Formato estandarizado con "data"
     res.json({
       success: true,
-      contenedor: {
+      data: {
         numeroContenedor,
         facturas,
         totalMonto,

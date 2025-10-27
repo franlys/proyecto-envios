@@ -30,23 +30,21 @@ const Companies = () => {
     }
   }, [userData]);
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchCompanies = async () => {
     try {
       setLoading(true);
       const response = await api.get('/companies');
       
-      // ✅ FIX: Manejar múltiples formatos de respuesta del backend
-      const companiesData = response.data?.data || response.data?.companies || response.data || [];
-      
-      // ✅ FIX: Asegurar que sea un array
-      const companiesArray = Array.isArray(companiesData) ? companiesData : [];
-      
-      console.log('✅ Compañías cargadas:', companiesArray.length);
-      setCompanies(companiesArray);
+      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
+      if (response.data.success) {
+        setCompanies(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar compañías');
+      }
       
     } catch (error) {
       console.error('❌ Error cargando compañías:', error);
-      // ✅ FIX: Siempre setear array vacío en caso de error
       setCompanies([]);
       alert('Error al cargar compañías');
     } finally {
@@ -392,7 +390,7 @@ const Companies = () => {
                     value={formData.adminEmail}
                     onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="admin@embarquesiván.com"
+                    placeholder="admin@embarquesivÃ¡n.com"
                     disabled={modalMode === 'edit'}
                   />
                 </div>
@@ -412,7 +410,7 @@ const Companies = () => {
                       minLength={6}
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      🔑 Esta será la contraseña para que el administrador inicie sesión
+                      🔒 Esta será la contraseña para que el administrador inicie sesión
                     </p>
                   </div>
                 )}

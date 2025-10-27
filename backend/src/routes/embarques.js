@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 // ============================================
-// ENDPOINT: Stats para Almacén
+// ✅ CORREGIDO - ENDPOINT: Stats para Almacén
 // ============================================
 router.get('/stats-almacen', async (req, res) => {
   try {
@@ -16,7 +16,10 @@ router.get('/stats-almacen', async (req, res) => {
     const userData = userDoc.data();
 
     if (!userData.companyId) {
-      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Usuario sin compañía asignada' 
+      });
     }
 
     // Stats de embarques activos
@@ -58,20 +61,27 @@ router.get('/stats-almacen', async (req, res) => {
       console.log('No hay facturas');
     }
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
-      embarquesActivos,
-      rutasCreadas,
-      facturasNoEntregadas,
-      facturasListasParaRuta
+      success: true,
+      data: {
+        embarquesActivos,
+        rutasCreadas,
+        facturasNoEntregadas,
+        facturasListasParaRuta
+      }
     });
   } catch (error) {
     console.error('Error en stats-almacen:', error);
-    res.status(500).json({ error: 'Error al obtener estadísticas de almacén' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener estadísticas de almacén' 
+    });
   }
 });
 
 // ============================================
-// ENDPOINT: GET /api/embarques
+// ✅ CORREGIDO - ENDPOINT: GET /api/embarques
 // ============================================
 router.get('/', async (req, res) => {
   try {
@@ -79,14 +89,20 @@ router.get('/', async (req, res) => {
     const userData = userDoc.data();
 
     if (!userDoc.exists) {
-      return res.status(403).json({ error: 'Usuario no encontrado en la base de datos' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Usuario no encontrado en la base de datos' 
+      });
     }
 
     let query = db.collection('embarques');
 
     if (userData.rol !== 'super_admin') {
       if (!userData.companyId) {
-        return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+        return res.status(403).json({ 
+          success: false,
+          error: 'Usuario sin compañía asignada' 
+        });
       }
       query = query.where('companyId', '==', userData.companyId);
     }
@@ -97,7 +113,6 @@ router.get('/', async (req, res) => {
       query = query.where('estado', '==', estado);
     }
 
-    // ✅ SIN orderBy para evitar problemas de índices
     const snapshot = await query.limit(parseInt(limit)).get();
     
     const embarques = [];
@@ -116,22 +131,29 @@ router.get('/', async (req, res) => {
       });
     });
 
-    // Ordenar en memoria (más simple)
+    // Ordenar en memoria
     embarques.sort((a, b) => {
       const dateA = a.fechaCreacion ? new Date(a.fechaCreacion) : new Date(0);
       const dateB = b.fechaCreacion ? new Date(b.fechaCreacion) : new Date(0);
       return dateB - dateA;
     });
 
-    res.json({ embarques });
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({ 
+      success: true,
+      data: embarques 
+    });
   } catch (error) {
     console.error('❌ Error:', error);
-    res.status(500).json({ error: 'Error al obtener embarques' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener embarques' 
+    });
   }
 });
 
 // ============================================
-// ENDPOINT: GET /api/embarques/:id
+// ✅ CORREGIDO - ENDPOINT: GET /api/embarques/:id
 // ============================================
 router.get('/:id', async (req, res) => {
   try {
@@ -142,24 +164,40 @@ router.get('/:id', async (req, res) => {
     const embarqueDoc = await db.collection('embarques').doc(id).get();
     
     if (!embarqueDoc.exists) {
-      return res.status(404).json({ error: 'Embarque no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Embarque no encontrado' 
+      });
     }
 
     const embarqueData = embarqueDoc.data();
 
     if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este embarque' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este embarque' 
+      });
     }
 
-    res.json({ id: embarqueDoc.id, ...embarqueData });
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({ 
+      success: true,
+      data: {
+        id: embarqueDoc.id,
+        ...embarqueData
+      }
+    });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Error al obtener embarque' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener embarque' 
+    });
   }
 });
 
 // ============================================
-// ENDPOINT: POST /api/embarques
+// POST /api/embarques
 // ============================================
 router.post('/', async (req, res) => {
   try {
@@ -167,17 +205,26 @@ router.post('/', async (req, res) => {
     const userData = userDoc.data();
 
     if (!userData.companyId) {
-      return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Usuario sin compañía asignada' 
+      });
     }
 
     if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
-      return res.status(403).json({ error: 'Solo administradores pueden crear embarques' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Solo administradores pueden crear embarques' 
+      });
     }
 
     const { nombre, descripcion } = req.body;
     
     if (!nombre) {
-      return res.status(400).json({ error: 'Nombre del embarque es requerido' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Nombre del embarque es requerido' 
+      });
     }
 
     const embarqueData = {
@@ -195,18 +242,24 @@ router.post('/', async (req, res) => {
     const docRef = await db.collection('embarques').add(embarqueData);
     
     res.status(201).json({
-      id: docRef.id,
-      ...embarqueData,
-      message: 'Embarque creado exitosamente'
+      success: true,
+      message: 'Embarque creado exitosamente',
+      data: {
+        id: docRef.id,
+        ...embarqueData
+      }
     });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Error al crear embarque' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al crear embarque' 
+    });
   }
 });
 
 // ============================================
-// ENDPOINT: PUT /api/embarques/:id
+// PUT /api/embarques/:id
 // ============================================
 router.put('/:id', async (req, res) => {
   try {
@@ -215,7 +268,10 @@ router.put('/:id', async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
-      return res.status(403).json({ error: 'Solo administradores pueden actualizar embarques' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Solo administradores pueden actualizar embarques' 
+      });
     }
 
     const updateData = {
@@ -226,15 +282,21 @@ router.put('/:id', async (req, res) => {
     
     await db.collection('embarques').doc(id).update(updateData);
     
-    res.json({ message: 'Embarque actualizado exitosamente' });
+    res.json({ 
+      success: true,
+      message: 'Embarque actualizado exitosamente' 
+    });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Error al actualizar embarque' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al actualizar embarque' 
+    });
   }
 });
 
 // ============================================
-// ENDPOINT: DELETE /api/embarques/:id
+// DELETE /api/embarques/:id
 // ============================================
 router.delete('/:id', async (req, res) => {
   try {
@@ -243,7 +305,10 @@ router.delete('/:id', async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
-      return res.status(403).json({ error: 'Solo administradores pueden eliminar embarques' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'Solo administradores pueden eliminar embarques' 
+      });
     }
 
     await db.collection('embarques').doc(id).update({
@@ -252,10 +317,16 @@ router.delete('/:id', async (req, res) => {
       eliminadoPor: req.user.uid
     });
     
-    res.json({ message: 'Embarque eliminado exitosamente' });
+    res.json({ 
+      success: true,
+      message: 'Embarque eliminado exitosamente' 
+    });
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Error al eliminar embarque' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al eliminar embarque' 
+    });
   }
 });
 

@@ -79,7 +79,7 @@ export const ticketController = {
 
       res.json({
         success: true,
-        tickets
+        data: tickets  // ✅ CORREGIDO
       });
     } catch (error) {
       console.error('Error obteniendo tickets:', error);
@@ -128,7 +128,7 @@ export const ticketController = {
 
       res.json({
         success: true,
-        tickets
+        data: tickets  // ✅ CORREGIDO
       });
     } catch (error) {
       console.error('Error obteniendo tickets:', error);

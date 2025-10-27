@@ -9,7 +9,7 @@ const router = express.Router();
 const storage = admin.storage().bucket();
 
 /**
- * ✅ NUEVO ENDPOINT - GET /api/recolecciones/stats
+ * ✅ CORREGIDO - GET /api/recolecciones/stats
  * Obtener estadísticas generales de recolecciones para el dashboard
  */
 router.get('/stats', async (req, res) => {
@@ -22,52 +22,52 @@ router.get('/stats', async (req, res) => {
     if (empresa_id) filtros.empresa_id = empresa_id;
 
     // Obtener todas las recolecciones con filtros
-    const recolecciones = await Recoleccion.obtenerConFiltros(filtros, 1000, 0);
+    const resultado = await Recoleccion.obtenerConFiltros(filtros, 1000);
 
     // Calcular estadísticas
     const stats = {
       // Totales
-      total: recolecciones.length,
+      total: resultado.data.length,
       
       // Por status
-      recolectadas: recolecciones.filter(r => r.status === 'Recolectado').length,
-      enAlmacenEEUU: recolecciones.filter(r => r.status === 'En almacén EE.UU.').length,
-      enContenedor: recolecciones.filter(r => r.status === 'En contenedor').length,
-      enTransito: recolecciones.filter(r => r.status === 'En tránsito').length,
-      enAlmacenRD: recolecciones.filter(r => r.status === 'En almacén RD').length,
-      confirmadas: recolecciones.filter(r => r.status === 'Confirmado').length,
-      enRuta: recolecciones.filter(r => r.status === 'En ruta').length,
-      entregadas: recolecciones.filter(r => r.status === 'Entregado').length,
+      recolectadas: resultado.data.filter(r => r.status === 'Recolectado').length,
+      enAlmacenEEUU: resultado.data.filter(r => r.status === 'En almacén EE.UU.').length,
+      enContenedor: resultado.data.filter(r => r.status === 'En contenedor').length,
+      enTransito: resultado.data.filter(r => r.status === 'En tránsito').length,
+      enAlmacenRD: resultado.data.filter(r => r.status === 'En almacén RD').length,
+      confirmadas: resultado.data.filter(r => r.status === 'Confirmado').length,
+      enRuta: resultado.data.filter(r => r.status === 'En ruta').length,
+      entregadas: resultado.data.filter(r => r.status === 'Entregado').length,
 
       // Agrupadas por estado del flujo
-      pendientes: recolecciones.filter(r => 
+      pendientes: resultado.data.filter(r => 
         ['Recolectado', 'En almacén EE.UU.'].includes(r.status)
       ).length,
       
-      enProceso: recolecciones.filter(r => 
+      enProceso: resultado.data.filter(r => 
         ['En contenedor', 'En tránsito', 'En almacén RD'].includes(r.status)
       ).length,
       
-      listas: recolecciones.filter(r => 
+      listas: resultado.data.filter(r => 
         r.status === 'Confirmado'
       ).length,
 
       // Estadísticas adicionales
-      hoy: recolecciones.filter(r => {
+      hoy: resultado.data.filter(r => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const fechaRecoleccion = r.fecha_recoleccion?.toDate ? r.fecha_recoleccion.toDate() : new Date(r.fecha_recoleccion);
         return fechaRecoleccion >= today;
       }).length,
 
-      ultimaSemana: recolecciones.filter(r => {
+      ultimaSemana: resultado.data.filter(r => {
         const lastWeek = new Date();
         lastWeek.setDate(lastWeek.getDate() - 7);
         const fechaRecoleccion = r.fecha_recoleccion?.toDate ? r.fecha_recoleccion.toDate() : new Date(r.fecha_recoleccion);
         return fechaRecoleccion >= lastWeek;
       }).length,
 
-      ultimoMes: recolecciones.filter(r => {
+      ultimoMes: resultado.data.filter(r => {
         const lastMonth = new Date();
         lastMonth.setMonth(lastMonth.getMonth() - 1);
         const fechaRecoleccion = r.fecha_recoleccion?.toDate ? r.fecha_recoleccion.toDate() : new Date(r.fecha_recoleccion);
@@ -75,10 +75,10 @@ router.get('/stats', async (req, res) => {
       }).length
     };
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      data: stats,
-      filtros: filtros
+      data: stats
     });
 
   } catch (error) {
@@ -92,7 +92,7 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
- * GET /api/recolecciones
+ * ✅ CORREGIDO - GET /api/recolecciones
  * Listar todas las recolecciones con filtros
  */
 router.get('/', async (req, res) => {
@@ -123,17 +123,15 @@ router.get('/', async (req, res) => {
       };
     }
 
-    const recolecciones = await Recoleccion.obtenerConFiltros(
+    const resultado = await Recoleccion.obtenerConFiltros(
       filtros, 
-      parseInt(limit), 
-      0
+      parseInt(limit)
     );
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      count: recolecciones.length,
-      data: recolecciones,
-      filtros: filtros
+      data: resultado.data
     });
 
   } catch (error) {
@@ -147,7 +145,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/recolecciones/buscar/:termino
+ * ✅ CORREGIDO - GET /api/recolecciones/buscar/:termino
  * Búsqueda rápida por tracking o nombre
  */
 router.get('/buscar/:termino', async (req, res) => {
@@ -156,10 +154,10 @@ router.get('/buscar/:termino', async (req, res) => {
 
     const recolecciones = await Recoleccion.buscarPorTermino(termino);
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      data: recolecciones,
-      count: recolecciones.length
+      data: recolecciones
     });
 
   } catch (error) {
@@ -174,7 +172,7 @@ router.get('/buscar/:termino', async (req, res) => {
 
 /**
  * GET /api/recolecciones/estadisticas/:recolector_id
- * Obtener estadísticas de un recolector
+ * Obtener estadísticas de un recolector (devuelve objeto único, no lista)
  */
 router.get('/estadisticas/:recolector_id', async (req, res) => {
   try {
@@ -198,7 +196,7 @@ router.get('/estadisticas/:recolector_id', async (req, res) => {
 });
 
 /**
- * GET /api/recolecciones/recolector/:recolectorId
+ * ✅ CORREGIDO - GET /api/recolecciones/recolector/:recolectorId
  * Listar recolecciones de un recolector específico
  */
 router.get('/recolector/:recolectorId', async (req, res) => {
@@ -213,9 +211,9 @@ router.get('/recolector/:recolectorId', async (req, res) => {
 
     const recolecciones = await Recoleccion.listByRecolector(recolectorId, filters);
 
+    // ✅ FORMATO ESTANDARIZADO
     res.json({
       success: true,
-      count: recolecciones.length,
       data: recolecciones
     });
 
@@ -231,7 +229,7 @@ router.get('/recolector/:recolectorId', async (req, res) => {
 
 /**
  * GET /api/recolecciones/:trackingNumero
- * Obtener detalle de una recolección por tracking
+ * Obtener detalle de una recolección por tracking (objeto único, no lista)
  */
 router.get('/:trackingNumero', async (req, res) => {
   try {
@@ -501,7 +499,7 @@ router.post('/:trackingNumero/fotos', upload.array('fotos', 5), async (req, res)
     res.json({
       success: true,
       message: `${fotosUrls.length} foto(s) subida(s) exitosamente`,
-      fotos: fotosUrls
+      data: fotosUrls
     });
 
   } catch (error) {

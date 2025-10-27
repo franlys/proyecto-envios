@@ -18,19 +18,21 @@ router.get('/test', (req, res) => {
 
 /**
  * GET /api/auth/profile
- * ✅ CORREGIDO: Ahora usa el middleware verifyToken
+ * ✅ CORREGIDO: Ahora devuelve { success: true, data: {...} }
  */
 router.get('/profile', verifyToken, async (req, res) => {
   try {
-    // req.userData ya viene del middleware verifyToken
+    // ✅ CORRECCIÓN: Envolver datos en 'data'
     res.json({
       success: true,
-      uid: req.userData.uid,
-      email: req.userData.email,
-      nombre: req.userData.nombre,
-      rol: req.userData.rol,
-      companyId: req.userData.companyId,
-      activo: req.userData.activo
+      data: {
+        uid: req.userData.uid,
+        email: req.userData.email,
+        nombre: req.userData.nombre,
+        rol: req.userData.rol,
+        companyId: req.userData.companyId,
+        activo: req.userData.activo
+      }
     });
   } catch (error) {
     console.error('❌ Error obteniendo perfil:', error);
@@ -44,7 +46,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 /**
  * POST /api/auth/register
- * Registrar nuevo usuario (usado por super_admin o admin_general)
+ * ✅ CORREGIDO: Devuelve { success: true, data: {...} }
  */
 router.post('/register', async (req, res) => {
   try {
@@ -137,15 +139,18 @@ router.post('/register', async (req, res) => {
       }
     }
 
+    // ✅ CORRECCIÓN: Envolver user en 'data'
     res.status(201).json({
       success: true,
       message: 'Usuario creado exitosamente',
-      user: {
-        uid: userRecord.uid,
-        email: email,
-        nombre: nombre,
-        rol: rol,
-        company: companyData
+      data: {
+        user: {
+          uid: userRecord.uid,
+          email: email,
+          nombre: nombre,
+          rol: rol,
+          company: companyData
+        }
       }
     });
 
@@ -192,14 +197,15 @@ router.post('/login', async (req, res) => {
 
 /**
  * POST /api/auth/refresh-token
- * Endpoint para forzar renovación de token
+ * ✅ CORREGIDO: Devuelve { success: true, data: {...} }
  */
 router.post('/refresh-token', verifyToken, async (req, res) => {
   try {
+    // ✅ CORRECCIÓN: Envolver userData en 'data'
     res.json({
       success: true,
       message: 'Token válido',
-      userData: req.userData
+      data: req.userData
     });
   } catch (error) {
     res.status(500).json({

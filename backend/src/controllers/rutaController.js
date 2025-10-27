@@ -99,7 +99,7 @@ export const createRuta = async (req, res) => {
   }
 };
 
-// Obtener todas las rutas
+// ✅ CORRECCIÓN: Obtener todas las rutas
 export const getAllRutas = async (req, res) => {
   try {
     // ← NUEVO: Obtener datos del usuario
@@ -122,14 +122,18 @@ export const getAllRutas = async (req, res) => {
       ...doc.data()
     }));
 
-    res.json(rutas);
+    // ✅ CORRECCIÓN: Formato estandarizado
+    res.json({
+      success: true,
+      data: rutas
+    });
   } catch (error) {
     console.error('Error obteniendo rutas:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Obtener rutas por empleado
+// ✅ CORRECCIÓN: Obtener rutas por empleado
 export const getRutasByEmpleado = async (req, res) => {
   try {
     const { empleadoId } = req.params;
@@ -172,14 +176,18 @@ export const getRutasByEmpleado = async (req, res) => {
       });
     }
 
-    res.json(rutas);
+    // ✅ CORRECCIÓN: Formato estandarizado
+    res.json({
+      success: true,
+      data: rutas
+    });
   } catch (error) {
     console.error('Error obteniendo rutas por empleado:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Obtener ruta por ID
+// ✅ CORRECCIÓN: Obtener ruta por ID
 export const getRutaById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -209,10 +217,14 @@ export const getRutaById = async (req, res) => {
       ...doc.data()
     }));
 
+    // ✅ CORRECCIÓN: Formato estandarizado
     res.json({
-      id: rutaDoc.id,
-      ...rutaData,
-      facturas
+      success: true,
+      data: {
+        id: rutaDoc.id,
+        ...rutaData,
+        facturas
+      }
     });
   } catch (error) {
     console.error('Error obteniendo ruta:', error);

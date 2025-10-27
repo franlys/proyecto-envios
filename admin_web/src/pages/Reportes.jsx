@@ -34,6 +34,7 @@ const Reportes = () => {
     setFechaHasta(hoy.toISOString().split('T')[0]);
   }, []);
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const cargarDatosIniciales = async () => {
     try {
       const [empleadosRes, rutasRes] = await Promise.all([
@@ -41,13 +42,27 @@ const Reportes = () => {
         api.get('/rutas')
       ]);
       
-      setEmpleados(empleadosRes.data.repartidores || []);
-      setRutas(rutasRes.data || []);
+      // ✅ CORRECCIÓN: Validar success para empleados
+      if (empleadosRes.data.success) {
+        setEmpleados(empleadosRes.data.data || []);
+      } else {
+        throw new Error(empleadosRes.data.error || 'Error al cargar empleados');
+      }
+
+      // ✅ CORRECCIÓN: Validar success para rutas
+      if (rutasRes.data.success) {
+        setRutas(rutasRes.data.data || []);
+      } else {
+        throw new Error(rutasRes.data.error || 'Error al cargar rutas');
+      }
+      
     } catch (error) {
       console.error('Error cargando datos:', error);
+      alert('Error al cargar datos iniciales');
     }
   };
 
+  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const generarReporte = async () => {
     try {
       setLoading(true);
@@ -74,10 +89,16 @@ const Reportes = () => {
           throw new Error('Tipo de reporte no válido');
       }
 
-      setDatosReporte(response.data);
+      // ✅ CORRECCIÓN: Validar success antes de usar los datos
+      if (response.data.success) {
+        setDatosReporte(response.data.data);
+      } else {
+        throw new Error(response.data.error || 'Error al generar el reporte');
+      }
+
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al generar el reporte');
+      alert(error.message || 'Error al generar el reporte');
     } finally {
       setLoading(false);
     }

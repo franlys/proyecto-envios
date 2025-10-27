@@ -79,6 +79,7 @@ app.use((req, res, next) => {
 // =====================================================
 app.get('/api/health', (req, res) => {
   res.json({
+    success: true,
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -114,6 +115,7 @@ app.use('/api/dashboard', dashboardRoutes);
 // =====================================================
 app.get('/', (req, res) => {
   res.json({ 
+    success: true,
     message: '🚀 API de Sistema de Envíos',
     version: '2.0.0',
     timestamp: new Date().toISOString(),
@@ -141,6 +143,7 @@ app.get('/', (req, res) => {
 app.use('*', (req, res) => {
   console.log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
+    success: false,
     error: 'Ruta no encontrada',
     method: req.method,
     path: req.originalUrl,
@@ -149,34 +152,61 @@ app.use('*', (req, res) => {
       'POST   /api/auth/login',
       'POST   /api/auth/register',
       'GET    /api/auth/profile',
+      'PATCH  /api/auth/update-profile',
+      'POST   /api/auth/change-password',
       'GET    /api/companies',
       'POST   /api/companies',
       'GET    /api/companies/my-limits',
+      'GET    /api/companies/:id',
+      'PATCH  /api/companies/:id',
+      'DELETE /api/companies/:id',
       'GET    /api/empleados',
+      'GET    /api/empleados/repartidores',
+      'GET    /api/empleados/:id',
       'POST   /api/empleados',
-      'PATCH  /api/empleados/change-password/:id',
+      'PUT    /api/empleados/:id',
+      'DELETE /api/empleados/:id',
+      'PATCH  /api/empleados/:id/change-password',
       'GET    /api/reportes/rutas',
+      'GET    /api/reportes/gastos',
       'GET    /api/reportes/facturas',
+      'GET    /api/reportes/liquidacion/:empleadoId',
+      'GET    /api/reportes/dashboard',
       'GET    /api/embarques',
-      'GET    /api/embarques/stats',
+      'GET    /api/embarques/stats-almacen',
+      'GET    /api/embarques/:id',
+      'POST   /api/embarques',
+      'PUT    /api/embarques/:id',
+      'DELETE /api/embarques/:id',
       'GET    /api/rutas',
-      'GET    /api/rutas/stats',
-      'GET    /api/facturas',
-      'GET    /api/facturas/stats',
+      'GET    /api/rutas/stats-repartidor',
+      'GET    /api/rutas/activas',
+      'GET    /api/rutas/:id',
+      'POST   /api/rutas',
+      'GET    /api/facturas/stats-secretaria',
       'GET    /api/facturas/no-entregadas',
+      'POST   /api/facturas/reasignar',
+      'GET    /api/facturas/:id/historial',
+      'GET    /api/facturas/buscar',
+      'GET    /api/facturas/estadisticas',
       'POST   /api/tickets',
       'GET    /api/tickets/my-tickets',
       'GET    /api/tickets/all',
       'PATCH  /api/tickets/:id/respond',
       'PATCH  /api/tickets/:id/close',
-      'POST   /api/recolecciones',
+      'GET    /api/recolecciones',
       'GET    /api/recolecciones/stats',
-      'GET    /api/recolecciones/:tracking',
-      'GET    /api/recolecciones/recolector/:id',
-      'POST   /api/recolecciones/:tracking/fotos',
+      'GET    /api/recolecciones/buscar/:termino',
+      'GET    /api/recolecciones/estadisticas/:recolector_id',
+      'GET    /api/recolecciones/recolector/:recolectorId',
+      'GET    /api/recolecciones/:trackingNumero',
+      'POST   /api/recolecciones',
+      'PATCH  /api/recolecciones/:trackingNumero/estado',
+      'PATCH  /api/recolecciones/:trackingNumero/status',
+      'POST   /api/recolecciones/:trackingNumero/fotos',
       'POST   /api/contenedores/upload-from-drive',
       'GET    /api/contenedores',
-      'GET    /api/contenedores/:id',
+      'GET    /api/contenedores/:numeroContenedor',
       'GET    /api/dashboard/stats',
       'GET    /api/dashboard/stats-super-admin',
       'GET    /api/dashboard/stats-admin-general',
@@ -193,6 +223,7 @@ app.use((err, req, res, next) => {
   
   if (err.message.includes('CORS')) {
     return res.status(403).json({
+      success: false,
       error: 'CORS Error',
       message: 'Origin not allowed',
       origin: req.headers.origin
@@ -200,6 +231,7 @@ app.use((err, req, res, next) => {
   }
   
   res.status(500).json({
+    success: false,
     error: 'Internal Server Error',
     message: process.env.NODE_ENV === 'production' 
       ? 'Something went wrong' 
@@ -220,6 +252,7 @@ app.listen(PORT, () => {
   console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 CORS configurado para Vercel`);
+  console.log(`✅ Backend 100% Estandarizado con Regla de Oro`);
   console.log('\n📋 Rutas disponibles:');
   console.log('   ✅ GET    /api/health');
   console.log('   ✅ POST   /api/auth/login');
@@ -230,16 +263,16 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/companies/my-limits');
   console.log('   ✅ GET    /api/empleados');
   console.log('   ✅ POST   /api/empleados');
-  console.log('   ✅ PATCH  /api/empleados/change-password/:id');
+  console.log('   ✅ PATCH  /api/empleados/:id/change-password');
   console.log('   ✅ GET    /api/reportes/rutas');
   console.log('   ✅ GET    /api/reportes/facturas');
   console.log('   ✅ GET    /api/embarques');
-  console.log('   ✅ GET    /api/embarques/stats');
+  console.log('   ✅ GET    /api/embarques/stats-almacen');
   console.log('   ✅ GET    /api/rutas');
-  console.log('   ✅ GET    /api/rutas/stats');
-  console.log('   ✅ GET    /api/facturas');
-  console.log('   ✅ GET    /api/facturas/stats');
+  console.log('   ✅ GET    /api/rutas/stats-repartidor');
+  console.log('   ✅ GET    /api/facturas/stats-secretaria');
   console.log('   ✅ GET    /api/facturas/no-entregadas');
+  console.log('   ✅ POST   /api/facturas/reasignar');
   console.log('   ✅ POST   /api/tickets');
   console.log('   ✅ GET    /api/tickets/my-tickets');
   console.log('   ✅ GET    /api/tickets/all');
@@ -248,7 +281,6 @@ app.listen(PORT, () => {
   console.log('   ✅ POST   /api/recolecciones');
   console.log('   ✅ GET    /api/recolecciones/stats');
   console.log('   ✅ GET    /api/recolecciones/:tracking');
-  console.log('   ✅ GET    /api/recolecciones/recolector/:id');
   console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');
   console.log('   ✅ POST   /api/contenedores/upload-from-drive');
   console.log('   ✅ GET    /api/contenedores');

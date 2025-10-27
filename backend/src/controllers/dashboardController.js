@@ -9,8 +9,7 @@ export const getStatsSuperAdmin = async (req, res) => {
   try {
     console.log('📊 Obteniendo estadísticas Super Admin...');
 
-    // --- INICIA REPARACIÓN ---
-    // 1. Definir todas las promesas de consulta
+    // Definir todas las promesas de consulta
     const companiesPromise = db.collection('companies').get();
     const usersPromise = db.collection('usuarios').get();
     const recoleccionesPromise = db.collection('recolecciones').get();
@@ -18,7 +17,7 @@ export const getStatsSuperAdmin = async (req, res) => {
     const rutasPromise = db.collection('rutas').get();
     const facturasPromise = db.collection('facturas').get();
 
-    // 2. Ejecutarlas todas al mismo tiempo
+    // Ejecutarlas todas al mismo tiempo
     const [
       companiesSnapshot,
       usersSnapshot,
@@ -34,7 +33,6 @@ export const getStatsSuperAdmin = async (req, res) => {
       rutasPromise,
       facturasPromise
     ]);
-    // --- TERMINA REPARACIÓN ---
 
     // Contar empresas
     const totalCompanies = companiesSnapshot.size;
@@ -101,7 +99,7 @@ export const getStatsSuperAdmin = async (req, res) => {
     const rutasActivas = rutasSnapshot.docs.filter(doc => 
       doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
     ).length;
-    const rutasEnCurso = rutasActivas; // Alias
+    const rutasEnCurso = rutasActivas;
 
     // Contar facturas totales
     const totalFacturas = facturasSnapshot.size;
@@ -140,47 +138,51 @@ export const getStatsSuperAdmin = async (req, res) => {
 
     // Respuesta con formato adaptado para el frontend
     const stats = {
-      empresa: null, // Super admin no tiene empresa específica
-      usuarios: {
-        total: totalUsers,
-        activos: activeUsers,
-        porRol: rolesCounts
-      },
-      recolecciones: {
-        total: totalRecolecciones,
-        hoy: recoleccionesHoy,
-        porEstado: recoleccionesEstados,
-        ultimos30Dias: recentRecolecciones
-      },
-      embarques: {
-        total: totalEmbarques,
-        activos: embarquesActivos,
-        ultimos30Dias: recentEmbarques
-      },
-      rutas: {
-        total: totalRutas,
-        activas: rutasActivas,
-        enCurso: rutasEnCurso
-      },
-      facturas: {
-        total: totalFacturas,
-        pendientes: facturasEstados.pendiente,
-        entregadas: facturasEstados.entregada,
-        noEntregadas: facturasEstados.no_entregada,
-        porEstado: facturasEstados
-      },
-      empresas: {
-        total: totalCompanies,
-        activas: activeCompanies
+      success: true,
+      data: {
+        empresa: null,
+        usuarios: {
+          total: totalUsers,
+          activos: activeUsers,
+          porRol: rolesCounts
+        },
+        recolecciones: {
+          total: totalRecolecciones,
+          hoy: recoleccionesHoy,
+          porEstado: recoleccionesEstados,
+          ultimos30Dias: recentRecolecciones
+        },
+        embarques: {
+          total: totalEmbarques,
+          activos: embarquesActivos,
+          ultimos30Dias: recentEmbarques
+        },
+        rutas: {
+          total: totalRutas,
+          activas: rutasActivas,
+          enCurso: rutasEnCurso
+        },
+        facturas: {
+          total: totalFacturas,
+          pendientes: facturasEstados.pendiente,
+          entregadas: facturasEstados.entregada,
+          noEntregadas: facturasEstados.no_entregada,
+          porEstado: facturasEstados
+        },
+        empresas: {
+          total: totalCompanies,
+          activas: activeCompanies
+        }
       }
     };
 
-    console.log('✅ Estadísticas Super Admin obtenidas:', stats);
+    console.log('✅ Estadísticas Super Admin obtenidas');
     res.json(stats);
 
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas Super Admin:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Error al obtener estadísticas',
       details: error.message 
     });
@@ -196,13 +198,15 @@ export const getStatsAdminGeneral = async (req, res) => {
     const { companyId } = req.userData;
 
     if (!companyId) {
-      return res.status(400).json({ error: 'No se encontró la empresa del usuario' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'No se encontró la empresa del usuario' 
+      });
     }
 
     console.log(`📊 Obteniendo estadísticas para empresa: ${companyId}`);
 
-    // --- INICIA REPARACIÓN ---
-    // 1. Definir todas las promesas de consulta
+    // Definir todas las promesas de consulta
     const usersPromise = db.collection('usuarios')
       .where('companyId', '==', companyId)
       .get();
@@ -220,7 +224,7 @@ export const getStatsAdminGeneral = async (req, res) => {
       .get();
     const companyPromise = db.collection('companies').doc(companyId).get();
 
-    // 2. Ejecutarlas todas al mismo tiempo
+    // Ejecutarlas todas al mismo tiempo
     const [
       usersSnapshot,
       recoleccionesSnapshot,
@@ -236,7 +240,6 @@ export const getStatsAdminGeneral = async (req, res) => {
       facturasPromise,
       companyPromise
     ]);
-    // --- TERMINA REPARACIÓN ---
 
     // Contar usuarios de la empresa
     const totalUsers = usersSnapshot.size;
@@ -337,53 +340,57 @@ export const getStatsAdminGeneral = async (req, res) => {
       return fechaCreacion >= thirtyDaysAgo;
     }).length;
 
-    // Obtener información de la empresa (ya obtenida en Promise.all)
+    // Obtener información de la empresa
     const companyData = companyDoc.exists ? companyDoc.data() : null;
 
     // Respuesta con formato adaptado para el frontend
     const stats = {
-      empresa: {
-        id: companyId,
-        nombre: companyData?.nombre || 'Sin nombre',
-        plan: companyData?.plan || 'basic'
-      },
-      usuarios: {
-        total: totalUsers,
-        activos: activeUsers,
-        porRol: rolesCounts
-      },
-      recolecciones: {
-        total: totalRecolecciones,
-        hoy: recoleccionesHoy,
-        porEstado: recoleccionesEstados,
-        ultimos30Dias: recentRecolecciones
-      },
-      embarques: {
-        total: totalEmbarques,
-        activos: embarquesActivos,
-        ultimos30Dias: recentEmbarques
-      },
-      rutas: {
-        total: totalRutas,
-        activas: rutasActivas,
-        enCurso: rutasEnCurso,
-        completadas: rutasCompletadas
-      },
-      facturas: {
-        total: totalFacturas,
-        pendientes: facturasEstados.pendiente,
-        entregadas: facturasEstados.entregada,
-        noEntregadas: facturasEstados.no_entregada,
-        porEstado: facturasEstados
+      success: true,
+      data: {
+        empresa: {
+          id: companyId,
+          nombre: companyData?.nombre || 'Sin nombre',
+          plan: companyData?.plan || 'basic'
+        },
+        usuarios: {
+          total: totalUsers,
+          activos: activeUsers,
+          porRol: rolesCounts
+        },
+        recolecciones: {
+          total: totalRecolecciones,
+          hoy: recoleccionesHoy,
+          porEstado: recoleccionesEstados,
+          ultimos30Dias: recentRecolecciones
+        },
+        embarques: {
+          total: totalEmbarques,
+          activos: embarquesActivos,
+          ultimos30Dias: recentEmbarques
+        },
+        rutas: {
+          total: totalRutas,
+          activas: rutasActivas,
+          enCurso: rutasEnCurso,
+          completadas: rutasCompletadas
+        },
+        facturas: {
+          total: totalFacturas,
+          pendientes: facturasEstados.pendiente,
+          entregadas: facturasEstados.entregada,
+          noEntregadas: facturasEstados.no_entregada,
+          porEstado: facturasEstados
+        }
       }
     };
 
-    console.log('✅ Estadísticas Admin General obtenidas:', stats);
+    console.log('✅ Estadísticas Admin General obtenidas');
     res.json(stats);
 
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas Admin General:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Error al obtener estadísticas',
       details: error.message 
     });
@@ -410,8 +417,11 @@ export const getStatsPublic = async (req, res) => {
 
     // Para otros roles, mostrar stats limitadas
     const stats = {
-      mensaje: 'Estadísticas limitadas para este rol',
-      rol: rol
+      success: true,
+      data: {
+        mensaje: 'Estadísticas limitadas para este rol',
+        rol: rol
+      }
     };
 
     res.json(stats);
@@ -419,6 +429,7 @@ export const getStatsPublic = async (req, res) => {
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas públicas:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Error al obtener estadísticas',
       details: error.message 
     });

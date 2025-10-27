@@ -1,4 +1,4 @@
-// backend/src/routes/reportes.js - MEJORADO (mantiene tu lógica)
+// backend/src/routes/reportes.js
 import express from 'express';
 import { db } from '../config/firebase.js';
 import { verifyToken } from '../middleware/auth.js';
@@ -6,7 +6,7 @@ import { verifyToken } from '../middleware/auth.js';
 const router = express.Router();
 router.use(verifyToken);
 
-// GET - Reporte de Rutas
+// ✅ CORREGIDO - GET - Reporte de Rutas
 router.get('/rutas', async (req, res) => {
   try {
     const { fechaDesde, fechaHasta, empleadoId } = req.query;
@@ -17,7 +17,10 @@ router.get('/rutas', async (req, res) => {
 
     if (userData.rol !== 'super_admin') {
       if (!userData.companyId) {
-        return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+        return res.status(403).json({ 
+          success: false,
+          error: 'Usuario sin compañía asignada' 
+        });
       }
       query = query.where('companyId', '==', userData.companyId);
     }
@@ -26,7 +29,6 @@ router.get('/rutas', async (req, res) => {
       query = query.where('empleadoId', '==', empleadoId);
     }
 
-    // ✅ CAMBIO: Sin orderBy para evitar necesitar índices
     const rutasSnapshot = await query.get();
 
     const rutas = [];
@@ -39,7 +41,7 @@ router.get('/rutas', async (req, res) => {
     for (const rutaDoc of rutasSnapshot.docs) {
       const rutaData = rutaDoc.data();
       
-      // ✅ Filtrar por fechas en memoria
+      // Filtrar por fechas en memoria
       if (fechaDesde || fechaHasta) {
         const fechaRuta = rutaData.createdAt?.toDate ? rutaData.createdAt.toDate() : new Date(rutaData.createdAt);
         if (fechaDesde && fechaRuta < new Date(fechaDesde)) continue;
@@ -112,11 +114,11 @@ router.get('/rutas', async (req, res) => {
       totalGastosGeneral += totalGastos;
     }
 
-    // ✅ NUEVO: Ordenar en memoria después de obtener los datos
+    // Ordenar en memoria después de obtener los datos
     rutas.sort((a, b) => {
       const dateA = a.fecha ? new Date(a.fecha) : new Date(0);
       const dateB = b.fecha ? new Date(b.fecha) : new Date(0);
-      return dateB - dateA; // Descendente (más reciente primero)
+      return dateB - dateA;
     });
 
     const resumen = {
@@ -131,15 +133,25 @@ router.get('/rutas', async (req, res) => {
       balance_general: montoTotalAsignado - totalGastosGeneral
     };
 
-    res.json({ rutas, resumen });
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({ 
+      success: true,
+      data: {
+        rutas,
+        resumen
+      }
+    });
 
   } catch (error) {
     console.error('Error al generar reporte de rutas:', error);
-    res.status(500).json({ error: 'Error al generar reporte de rutas' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al generar reporte de rutas' 
+    });
   }
 });
 
-// GET - Reporte de Gastos
+// ✅ CORREGIDO - GET - Reporte de Gastos
 router.get('/gastos', async (req, res) => {
   try {
     const { fechaDesde, fechaHasta, empleadoId, rutaId } = req.query;
@@ -152,7 +164,6 @@ router.get('/gastos', async (req, res) => {
       query = query.where('rutaId', '==', rutaId);
     }
 
-    // ✅ CAMBIO: Sin orderBy para evitar índices
     const gastosSnapshot = await query.get();
 
     const gastos = [];
@@ -168,7 +179,7 @@ router.get('/gastos', async (req, res) => {
     for (const gastoDoc of gastosSnapshot.docs) {
       const gastoData = gastoDoc.data();
       
-      // ✅ Filtrar por fechas en memoria
+      // Filtrar por fechas en memoria
       if (fechaDesde || fechaHasta) {
         const fechaGasto = gastoData.fecha?.toDate ? gastoData.fecha.toDate() : new Date(gastoData.fecha);
         if (fechaDesde && fechaGasto < new Date(fechaDesde)) continue;
@@ -234,7 +245,7 @@ router.get('/gastos', async (req, res) => {
       totalGastos += gastoData.monto || 0;
     }
 
-    // ✅ NUEVO: Ordenar en memoria
+    // Ordenar en memoria
     gastos.sort((a, b) => {
       const dateA = a.fecha ? new Date(a.fecha) : new Date(0);
       const dateB = b.fecha ? new Date(b.fecha) : new Date(0);
@@ -249,15 +260,26 @@ router.get('/gastos', async (req, res) => {
         : 0
     };
 
-    res.json({ gastos, gastosPorTipo, resumen });
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({ 
+      success: true,
+      data: {
+        gastos,
+        gastosPorTipo,
+        resumen
+      }
+    });
 
   } catch (error) {
     console.error('Error al generar reporte de gastos:', error);
-    res.status(500).json({ error: 'Error al generar reporte de gastos' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al generar reporte de gastos' 
+    });
   }
 });
 
-// GET - Reporte de Facturas
+// ✅ CORREGIDO - GET - Reporte de Facturas
 router.get('/facturas', async (req, res) => {
   try {
     const { fechaDesde, fechaHasta, rutaId } = req.query;
@@ -268,7 +290,10 @@ router.get('/facturas', async (req, res) => {
 
     if (userData.rol !== 'super_admin') {
       if (!userData.companyId) {
-        return res.status(403).json({ error: 'Usuario sin compañía asignada' });
+        return res.status(403).json({ 
+          success: false,
+          error: 'Usuario sin compañía asignada' 
+        });
       }
       query = query.where('companyId', '==', userData.companyId);
     }
@@ -359,15 +384,25 @@ router.get('/facturas', async (req, res) => {
       porcentaje_cumplimiento: porcentajeCumplimiento
     };
 
-    res.json({ facturas, resumen });
+    // ✅ FORMATO ESTANDARIZADO
+    res.json({ 
+      success: true,
+      data: {
+        facturas,
+        resumen
+      }
+    });
 
   } catch (error) {
     console.error('Error al generar reporte de facturas:', error);
-    res.status(500).json({ error: 'Error al generar reporte de facturas' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al generar reporte de facturas' 
+    });
   }
 });
 
-// GET - Reporte de liquidación por empleado
+// GET - Reporte de liquidación por empleado (devuelve objeto único)
 router.get('/liquidacion/:empleadoId', async (req, res) => {
   try {
     const { empleadoId } = req.params;
@@ -377,13 +412,19 @@ router.get('/liquidacion/:empleadoId', async (req, res) => {
 
     const empleadoDoc = await db.collection('usuarios').doc(empleadoId).get();
     if (!empleadoDoc.exists) {
-      return res.status(404).json({ error: 'Empleado no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Empleado no encontrado' 
+      });
     }
 
     const empleadoData = empleadoDoc.data();
 
     if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-      return res.status(403).json({ error: 'No tienes acceso a este empleado' });
+      return res.status(403).json({ 
+        success: false,
+        error: 'No tienes acceso a este empleado' 
+      });
     }
 
     let rutasQuery = db.collection('rutas')
@@ -404,7 +445,7 @@ router.get('/liquidacion/:empleadoId', async (req, res) => {
     for (const rutaDoc of rutasSnapshot.docs) {
       const rutaData = rutaDoc.data();
       
-      // ✅ Filtrar fechas en memoria
+      // Filtrar fechas en memoria
       if (fechaDesde || fechaHasta) {
         const fechaRuta = rutaData.createdAt?.toDate ? rutaData.createdAt.toDate() : new Date(rutaData.createdAt);
         if (fechaDesde && fechaRuta < new Date(fechaDesde)) continue;
@@ -476,15 +517,21 @@ router.get('/liquidacion/:empleadoId', async (req, res) => {
       detalleRutas
     };
 
-    res.json(liquidacion);
+    res.json({
+      success: true,
+      data: liquidacion
+    });
 
   } catch (error) {
     console.error('Error al generar liquidación:', error);
-    res.status(500).json({ error: 'Error al generar liquidación' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al generar liquidación' 
+    });
   }
 });
 
-// GET - Dashboard resumen general
+// GET - Dashboard resumen general (devuelve objeto único)
 router.get('/dashboard', async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
@@ -562,35 +609,41 @@ router.get('/dashboard', async (req, res) => {
     });
 
     res.json({
-      periodo: {
-        inicio: inicioMes.toISOString(),
-        fin: finMes.toISOString()
-      },
-      rutas: {
-        total: totalRutas,
-        activas: rutasActivas,
-        completadas: rutasCompletadas
-      },
-      facturas: {
-        pendientes: facturasPendientes,
-        entregadas: facturasEntregadas,
-        noEntregadas: facturasNoEntregadas,
-        total: facturasSnapshot.size
-      },
-      finanzas: {
-        totalGastos,
-        promedioGastoPorRuta: totalRutas > 0 
-          ? Math.round(totalGastos / totalRutas * 100) / 100 
+      success: true,
+      data: {
+        periodo: {
+          inicio: inicioMes.toISOString(),
+          fin: finMes.toISOString()
+        },
+        rutas: {
+          total: totalRutas,
+          activas: rutasActivas,
+          completadas: rutasCompletadas
+        },
+        facturas: {
+          pendientes: facturasPendientes,
+          entregadas: facturasEntregadas,
+          noEntregadas: facturasNoEntregadas,
+          total: facturasSnapshot.size
+        },
+        finanzas: {
+          totalGastos,
+          promedioGastoPorRuta: totalRutas > 0 
+            ? Math.round(totalGastos / totalRutas * 100) / 100 
+            : 0
+        },
+        porcentajeExito: facturasSnapshot.size > 0
+          ? Math.round((facturasEntregadas / facturasSnapshot.size) * 100)
           : 0
-      },
-      porcentajeExito: facturasSnapshot.size > 0
-        ? Math.round((facturasEntregadas / facturasSnapshot.size) * 100)
-        : 0
+      }
     });
 
   } catch (error) {
     console.error('Error al generar dashboard:', error);
-    res.status(500).json({ error: 'Error al generar dashboard' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al generar dashboard' 
+    });
   }
 });
 

@@ -17,6 +17,7 @@ const DashboardSuperAdmin = () => {
     inactiveCompanies: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchSystemHealth();
@@ -42,13 +43,25 @@ const DashboardSuperAdmin = () => {
   };
 
   const fetchCompanies = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await api.get('/companies');
-      const companiesData = response.data?.data || response.data || [];
-      setCompanies(Array.isArray(companiesData) ? companiesData : []);
+      
+      // ✅ SIEMPRE validar success primero
+      if (response.data.success) {
+        // ✅ Acceder a los datos desde response.data.data
+        setCompanies(response.data.data || []);
+      } else {
+        // ✅ Lanzar el error que viene del backend
+        throw new Error(response.data.error || 'Error al cargar compañías');
+      }
     } catch (error) {
-      console.error('❌ Error fetching companies:', error);
-      setCompanies([]);
+      console.error('Error cargando compañías:', error);
+      setError(error.message);
+      setCompanies([]); // ✅ Siempre setear array vacío en caso de error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,8 +82,6 @@ const DashboardSuperAdmin = () => {
 
     } catch (error) {
       console.error('❌ Error fetching stats:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -93,6 +104,22 @@ const DashboardSuperAdmin = () => {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Monitor del Sistema</h1>
         <p className="text-gray-600 dark:text-gray-400">Panel de control y administración del sistema Multi-Tenant</p>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 dark:border-red-600 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <span className="text-red-400 text-xl">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-200">
+                <strong>Error:</strong> {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Health Status Cards */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">

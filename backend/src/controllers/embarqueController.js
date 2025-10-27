@@ -34,7 +34,7 @@ export const createEmbarque = async (req, res) => {
   }
 };
 
-// Obtener todos los embarques
+// ✅ CORRECCIÓN: Obtener todos los embarques
 export const getAllEmbarques = async (req, res) => {
   try {
     // ← NUEVO: Obtener datos del usuario
@@ -57,14 +57,18 @@ export const getAllEmbarques = async (req, res) => {
       ...doc.data()
     }));
 
-    res.json({ data: embarques });
+    // ✅ CORRECCIÓN: Formato estandarizado
+    res.json({
+      success: true,
+      data: embarques
+    });
   } catch (error) {
     console.error('Error obteniendo embarques:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// Obtener embarque por ID
+// ✅ CORRECCIÓN: Obtener embarque por ID
 export const getEmbarqueById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -94,10 +98,14 @@ export const getEmbarqueById = async (req, res) => {
       ...doc.data()
     }));
 
+    // ✅ CORRECCIÓN: Formato estandarizado
     res.json({
-      id: embarqueDoc.id,
-      ...embarqueData,
-      facturas
+      success: true,
+      data: {
+        id: embarqueDoc.id,
+        ...embarqueData,
+        facturas
+      }
     });
   } catch (error) {
     console.error('Error obteniendo embarque:', error);

@@ -20,11 +20,17 @@ const Embarques = () => {
       const response = await api.get('/embarques');
       console.log('📦 Embarques cargados:', response.data);
       
-      const embarquesData = response.data.embarques || response.data || [];
-      setEmbarques(Array.isArray(embarquesData) ? embarquesData : []);
+      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
+      if (response.data.success) {
+        setEmbarques(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar embarques desde la API');
+      }
+
     } catch (error) {
       console.error('❌ Error cargando embarques:', error);
       setEmbarques([]);
+      alert('Error al cargar embarques: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -33,11 +39,17 @@ const Embarques = () => {
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este embarque?')) {
       try {
-        await api.delete(`/embarques/${id}`);
-        loadEmbarques();
+        const response = await api.delete(`/embarques/${id}`);
+        
+        if (response.data.success) {
+          alert('✅ Embarque eliminado exitosamente');
+          loadEmbarques();
+        } else {
+          throw new Error(response.data.error || 'Error al eliminar embarque');
+        }
       } catch (error) {
         console.error('Error eliminando embarque:', error);
-        alert('Error al eliminar embarque');
+        alert('Error al eliminar embarque: ' + error.message);
       }
     }
   };
@@ -93,7 +105,6 @@ const Embarques = () => {
             Los embarques se crean automáticamente desde Google Drive
           </p>
         </div>
-        {/* ✅ BOTÓN "NUEVO EMBARQUE" ELIMINADO - Los embarques se crean automáticamente desde Drive */}
       </div>
 
       {/* Información de actualización automática */}
@@ -261,8 +272,6 @@ const Embarques = () => {
           </table>
         </div>
       </div>
-
-      {/* ✅ MODAL DE CREAR/EDITAR ELIMINADO - No se necesita crear embarques manualmente */}
     </div>
   );
 };

@@ -1,13 +1,13 @@
 // admin_web/src/pages/Recolecciones.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ Importar useNavigate
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Eye, Package, Calendar, MapPin, User, Phone, DollarSign, Camera } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Recolecciones = () => {
   const { userData } = useAuth();
-  const navigate = useNavigate(); // ✅ Inicializar useNavigate
+  const navigate = useNavigate();
   const [recolecciones, setRecolecciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,11 +37,16 @@ const Recolecciones = () => {
       const response = await api.get(url);
       console.log('📦 Recolecciones cargadas:', response.data);
       
-      const recoleccionesData = response.data.recolecciones || response.data || [];
-      setRecolecciones(Array.isArray(recoleccionesData) ? recoleccionesData : []);
+      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
+      if (response.data.success) {
+        setRecolecciones(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Error al cargar recolecciones');
+      }
     } catch (error) {
       console.error('❌ Error cargando recolecciones:', error);
       setRecolecciones([]);
+      alert('Error al cargar recolecciones: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -58,7 +63,6 @@ const Recolecciones = () => {
   };
 
   const handleNuevaRecoleccion = () => {
-    // ✅ CORRECCIÓN: Usar navigate en lugar de window.location.href
     navigate('/recolecciones/nueva');
   };
 
@@ -116,7 +120,6 @@ const Recolecciones = () => {
           </p>
         </div>
         
-        {/* Botón solo visible para recolectores y admin */}
         {(userData?.rol === 'recolector' || userData?.rol === 'admin_general' || userData?.rol === 'almacen_eeuu') && (
           <button
             onClick={handleNuevaRecoleccion}
@@ -131,7 +134,6 @@ const Recolecciones = () => {
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Buscador */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -143,7 +145,6 @@ const Recolecciones = () => {
             />
           </div>
 
-          {/* Filtro de Estado */}
           <div>
             <select
               value={filtroEstado}
@@ -258,7 +259,6 @@ const Recolecciones = () => {
                 </button>
               </div>
 
-              {/* Información del paquete */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="flex items-start gap-2">
                   <Package className="text-gray-400 flex-shrink-0 mt-1" size={18} />
@@ -291,7 +291,6 @@ const Recolecciones = () => {
                 </div>
               </div>
 
-              {/* Información adicional */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center gap-2">
                   <MapPin className="text-gray-400" size={16} />
@@ -315,7 +314,6 @@ const Recolecciones = () => {
                 </div>
               </div>
 
-              {/* Fotos si existen */}
               {recoleccion.fotos && recoleccion.fotos.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-2 mb-2">
@@ -336,7 +334,6 @@ const Recolecciones = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              {/* Header del Modal */}
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -356,9 +353,7 @@ const Recolecciones = () => {
                 </button>
               </div>
 
-              {/* Contenido del Modal */}
               <div className="space-y-6">
-                {/* Información del Paquete */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Información del Paquete</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -381,7 +376,6 @@ const Recolecciones = () => {
                   </div>
                 </div>
 
-                {/* Información del Remitente */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Remitente</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -400,7 +394,6 @@ const Recolecciones = () => {
                   </div>
                 </div>
 
-                {/* Información del Destinatario */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Destinatario</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -419,7 +412,6 @@ const Recolecciones = () => {
                   </div>
                 </div>
 
-                {/* Fotos */}
                 {recoleccionSeleccionada.fotos && recoleccionSeleccionada.fotos.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Fotos del Paquete</h3>
@@ -446,7 +438,6 @@ const Recolecciones = () => {
                   </div>
                 )}
 
-                {/* Historial */}
                 {recoleccionSeleccionada.historial && recoleccionSeleccionada.historial.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Historial de Estados</h3>
@@ -472,7 +463,6 @@ const Recolecciones = () => {
                 )}
               </div>
 
-              {/* Footer del Modal */}
               <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
                 <button
                   onClick={handleCloseModal}

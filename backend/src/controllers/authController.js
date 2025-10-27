@@ -8,6 +8,7 @@ export const register = async (req, res) => {
     // Validaciones
     if (!email || !password || !nombre || !rol) {
       return res.status(400).json({ 
+        success: false,
         error: 'Email, contraseña, nombre y rol son requeridos' 
       });
     }
@@ -15,6 +16,7 @@ export const register = async (req, res) => {
     // Si no es super_admin, requiere companyId
     if (rol !== 'super_admin' && !companyId) {
       return res.status(400).json({ 
+        success: false,
         error: 'Se requiere ID de compañía para este usuario' 
       });
     }
@@ -24,6 +26,7 @@ export const register = async (req, res) => {
       const companyDoc = await db.collection('companies').doc(companyId).get();
       if (!companyDoc.exists) {
         return res.status(404).json({ 
+          success: false,
           error: 'Compañía no encontrada' 
         });
       }
@@ -55,26 +58,39 @@ export const register = async (req, res) => {
     await db.collection('usuarios').doc(userRecord.uid).set(userData);
 
     res.status(201).json({
+      success: true,
       message: 'Usuario registrado exitosamente',
-      uid: userRecord.uid
+      data: {
+        uid: userRecord.uid,
+        email,
+        nombre,
+        rol,
+        companyId: rol !== 'super_admin' ? companyId : null
+      }
     });
   } catch (error) {
     console.error('Error en registro:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
 
 // Obtener información del usuario actual
 export const getProfile = async (req, res) => {
   try {
-    console.log('🔍 Buscando usuario con UID:', req.user.uid); // ← AGREGAR
+    console.log('🔍 Buscando usuario con UID:', req.user.uid);
     
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     
-    console.log('📄 Documento existe:', userDoc.exists); // ← AGREGAR
+    console.log('📄 Documento existe:', userDoc.exists);
     
     if (!userDoc.exists) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Usuario no encontrado' 
+      });
     }
 
     const userData = userDoc.data();
@@ -90,14 +106,30 @@ export const getProfile = async (req, res) => {
       }
     }
 
-    console.log('✅ Usuario encontrado:', userData.email); // ← AGREGAR
+    console.log('✅ Usuario encontrado:', userData.email);
 
-    res.json(userData);
+    res.json({
+      success: true,
+      data: {
+        uid: userData.uid,
+        email: userData.email,
+        nombre: userData.nombre,
+        rol: userData.rol,
+        companyId: userData.companyId,
+        activo: userData.activo,
+        telefono: userData.telefono,
+        company: userData.company || null
+      }
+    });
   } catch (error) {
     console.error('Error obteniendo perfil:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };
+
 // Actualizar perfil
 export const updateProfile = async (req, res) => {
   try {
@@ -110,9 +142,15 @@ export const updateProfile = async (req, res) => {
 
     await db.collection('usuarios').doc(req.user.uid).update(updates);
 
-    res.json({ message: 'Perfil actualizado exitosamente' });
+    res.json({ 
+      success: true,
+      message: 'Perfil actualizado exitosamente' 
+    });
   } catch (error) {
     console.error('Error actualizando perfil:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 };

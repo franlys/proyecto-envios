@@ -6,6 +6,7 @@ import { db } from '../config/firebase.js';
 const router = express.Router();
 router.use(verifyToken);
 
+// GET /api/users - Obtener todos los usuarios
 router.get('/', async (req, res) => {
   try {
     const userData = req.userData;
@@ -23,14 +24,34 @@ router.get('/', async (req, res) => {
       users.push({ id: doc.id, ...doc.data() });
     });
     
-    res.json({ data: users });
+    res.json({ 
+      success: true,  // ✅ CORREGIDO
+      data: users     // ✅ CORREGIDO
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener usuarios' });
+    console.error('Error al obtener usuarios:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al obtener usuarios' 
+    });
   }
 });
 
+// POST /api/users - Crear usuario
 router.post('/', async (req, res) => {
-  res.json({ message: 'Create user - TODO', data: req.body });
+  try {
+    // TODO: Implementar lógica de creación de usuario
+    res.status(501).json({ 
+      success: false,
+      message: 'Endpoint no implementado. Usa /api/auth/register o /api/empleados' 
+    });
+  } catch (error) {
+    console.error('Error al crear usuario:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Error al crear usuario' 
+    });
+  }
 });
 
 export default router;
