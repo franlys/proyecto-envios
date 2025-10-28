@@ -1,11 +1,46 @@
 import { db } from '../config/firebase.js';
 
+/**
+ * Determina la zona geográfica basada en palabras clave en la dirección.
+ * @param {string} direccion La dirección completa de la factura.
+ * @returns {string} El ID de la zona ('capital', 'local_bani', 'cibao', 'sur').
+ */
+const determinarZonaPorDireccion = (direccion) => {
+  if (!direccion) return 'capital'; // Por defecto
+
+  const dir = direccion.toLowerCase();
+
+  // 1. Local (Baní)
+  if (dir.includes('bani') || dir.includes('baní')) {
+    return 'local_bani';
+  }
+
+  // 2. Cibao
+  if (dir.includes('santiago') || 
+      dir.includes('cibao') || 
+      dir.includes('la vega') || 
+      dir.includes('san francisco') || 
+      dir.includes('moca')) {
+    return 'cibao';
+  }
+
+  // 3. Sur
+  if (dir.includes('azua') || 
+      dir.includes('barahona') || 
+      dir.includes('san juan') || 
+      dir.includes('san cristobal')) {
+    return 'sur';
+  }
+
+  // 4. Capital (Default)
+  return 'capital';
+};
+
 // Crear embarque
 export const createEmbarque = async (req, res) => {
   try {
     const { nombre, descripcion, fechaCreacion } = req.body;
 
-    // ← NUEVO: Obtener companyId del usuario
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
@@ -16,7 +51,7 @@ export const createEmbarque = async (req, res) => {
       estado: 'activo',
       totalFacturas: 0,
       facturasEntregadas: 0,
-      companyId: userData.companyId || null, // ← NUEVO: Asignar compañía
+      companyId: userData.companyId || null,
       createdBy: req.user.uid,
       createdAt: new Date().toISOString()
     };
@@ -34,16 +69,14 @@ export const createEmbarque = async (req, res) => {
   }
 };
 
-// ✅ CORRECCIÓN: Obtener todos los embarques
+// Obtener todos los embarques
 export const getAllEmbarques = async (req, res) => {
   try {
-    // ← NUEVO: Obtener datos del usuario
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
     let query = db.collection('embarques');
 
-    // ← NUEVO: Si NO es super_admin, filtrar por compañía
     if (userData.rol !== 'super_admin' && userData.companyId) {
       query = query.where('companyId', '==', userData.companyId);
     }
@@ -57,7 +90,6 @@ export const getAllEmbarques = async (req, res) => {
       ...doc.data()
     }));
 
-    // ✅ CORRECCIÓN: Formato estandarizado
     res.json({
       success: true,
       data: embarques
@@ -68,7 +100,7 @@ export const getAllEmbarques = async (req, res) => {
   }
 };
 
-// ✅ CORRECCIÓN: Obtener embarque por ID
+// Obtener embarque por ID
 export const getEmbarqueById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -78,17 +110,14 @@ export const getEmbarqueById = async (req, res) => {
       return res.status(404).json({ error: 'Embarque no encontrado' });
     }
 
-    // ← NUEVO: Verificar permisos
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
     const embarqueData = embarqueDoc.data();
 
-    // Si NO es super_admin, verificar que sea de su compañía
     if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
       return res.status(403).json({ error: 'No tienes acceso a este embarque' });
     }
 
-    // Obtener facturas del embarque
     const facturasSnapshot = await db.collection('facturas')
       .where('embarqueId', '==', id)
       .get();
@@ -98,7 +127,6 @@ export const getEmbarqueById = async (req, res) => {
       ...doc.data()
     }));
 
-    // ✅ CORRECCIÓN: Formato estandarizado
     res.json({
       success: true,
       data: {
@@ -119,7 +147,6 @@ export const updateEmbarque = async (req, res) => {
     const { id } = req.params;
     const { nombre, descripcion, estado } = req.body;
     
-    // ← NUEVO: Verificar permisos
     const embarqueDoc = await db.collection('embarques').doc(id).get();
     if (!embarqueDoc.exists) {
       return res.status(404).json({ error: 'Embarque no encontrado' });
@@ -153,7 +180,6 @@ export const deleteEmbarque = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // ← NUEVO: Verificar permisos
     const embarqueDoc = await db.collection('embarques').doc(id).get();
     if (!embarqueDoc.exists) {
       return res.status(404).json({ error: 'Embarque no encontrado' });
@@ -167,7 +193,6 @@ export const deleteEmbarque = async (req, res) => {
       return res.status(403).json({ error: 'No tienes acceso a este embarque' });
     }
 
-    // Eliminar facturas asociadas
     const facturasSnapshot = await db.collection('facturas')
       .where('embarqueId', '==', id)
       .get();
@@ -177,7 +202,6 @@ export const deleteEmbarque = async (req, res) => {
       batch.delete(doc.ref);
     });
     
-    // Eliminar embarque
     batch.delete(db.collection('embarques').doc(id));
     
     await batch.commit();
@@ -198,7 +222,6 @@ export const importFacturas = async (req, res) => {
       return res.status(400).json({ error: 'Facturas debe ser un array' });
     }
 
-    // ← NUEVO: Verificar permisos sobre el embarque
     const embarqueDoc = await db.collection('embarques').doc(embarqueId).get();
     if (!embarqueDoc.exists) {
       return res.status(404).json({ error: 'Embarque no encontrado' });
@@ -217,17 +240,22 @@ export const importFacturas = async (req, res) => {
 
     for (const factura of facturas) {
       const facturaRef = db.collection('facturas').doc();
+      
+      // CORRECCIÓN 1: Obtener dirección y determinar zona
+      const direccion = factura.direccion || '';
+      const zonaDeterminada = factura.zona || determinarZonaPorDireccion(direccion);
+
       batch.set(facturaRef, {
         embarqueId,
-        companyId: embarqueData.companyId, // ← NUEVO: Heredar companyId del embarque
+        companyId: embarqueData.companyId,
         numeroFactura: factura.numeroFactura,
         cliente: factura.cliente,
-        direccion: factura.direccion,
+        direccion: direccion, // CORRECCIÓN 2: Usar la dirección limpia
         telefono: factura.telefono || '',
         monto: factura.monto || 0,
         observaciones: factura.observaciones || '',
         sector: factura.sector || '',
-        zona: factura.zona || 'capital',
+        zona: zonaDeterminada, // CORRECCIÓN 3: Usar la zona determinada
         estado: 'sin_confirmar',
         estadoPago: 'pago_recibir',
         createdAt: new Date().toISOString(),

@@ -1,6 +1,5 @@
 // admin_web/src/pages/PanelSecretarias.jsx
-// ✅ CORRECCIÓN: Eliminada la lógica duplicada de "Contenedor".
-// Ahora, "Embarque" es la única fuente de verdad.
+// ✅ CORRECCIÓN COMPLETA: Zona obligatoria sin valor por defecto + eliminada lógica duplicada
 
 import { useState, useEffect } from 'react';
 import { db } from '../services/firebase';
@@ -10,25 +9,23 @@ import api from '../services/api';
 const PanelSecretarias = () => {
   const [activeTab, setActiveTab] = useState('sin_confirmar');
   const [embarques, setEmbarques] = useState([]);
-  // const [contenedores, setContenedores] = useState([]); // <-- ELIMINADO
   const [selectedEmbarque, setSelectedEmbarque] = useState('');
-  // const [selectedContenedor, setSelectedContenedor] = useState(''); // <-- ELIMINADO
   const [selectedZona, setSelectedZona] = useState('todas');
   const [todasLasFacturas, setTodasLasFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFactura, setSelectedFactura] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   
+  // ✅ CORRECCIÓN: zona inicia VACÍA, no con 'capital'
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [sector, setSector] = useState('');
-  const [zona, setZona] = useState('capital');
+  const [zona, setZona] = useState(''); // <-- CAMBIO CRÍTICO
   const [observaciones, setObservaciones] = useState('');
   const [estadoPago, setEstadoPago] = useState('pago_recibir');
 
   useEffect(() => {
     fetchEmbarques();
-    // fetchContenedores(); // <-- ELIMINADO
   }, []);
 
   useEffect(() => {
@@ -37,7 +34,7 @@ const PanelSecretarias = () => {
     } else {
       setTodasLasFacturas([]);
     }
-  }, [selectedEmbarque]); // <-- Dependencia de "selectedContenedor" eliminada
+  }, [selectedEmbarque]);
 
   const fetchEmbarques = async () => {
     try {
@@ -57,21 +54,17 @@ const PanelSecretarias = () => {
     }
   };
 
-  // const fetchContenedores = async () => { ... }; // <-- FUNCIÓN ELIMINADA
-
+  // ✅ CORRECCIÓN: Consulta simplificada, solo por embarqueId
   const fetchFacturas = async () => {
     try {
       setLoading(true);
       const facturasRef = collection(db, 'facturas');
       
-      // ✅ CORRECCIÓN: Consulta simplificada. Solo filtramos por 'embarqueId'.
       let q = query(
         facturasRef, 
         where('embarqueId', '==', selectedEmbarque),
         orderBy('numeroFactura', 'asc')
       );
-      
-      // ✅ CORRECCIÓN: Eliminado el 'if (selectedContenedor)' que creaba la consulta errónea.
       
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const facturasData = snapshot.docs
@@ -102,17 +95,19 @@ const PanelSecretarias = () => {
     setTelefono(factura.telefono || '');
     setDireccion(factura.direccion || '');
     setSector(factura.sector || '');
-    setZona(factura.zona || 'capital');
+    // ✅ CORRECCIÓN: Si ya tiene zona, cargarla; si no, dejar vacío
+    setZona(factura.zona || '');
     setObservaciones(factura.observaciones || '');
     setEstadoPago(factura.estadoPago || 'pago_recibir');
     setShowConfirmModal(true);
   };
 
+  // ✅ CORRECCIÓN: Validación incluye zona obligatoria
   const handleConfirmarFactura = async () => {
     if (!selectedFactura) return;
 
-    if (!telefono || !direccion) {
-      alert('Teléfono y dirección son obligatorios');
+    if (!telefono || !direccion || !zona) {
+      alert('Teléfono, dirección y ZONA son obligatorios');
       return;
     }
 
@@ -161,12 +156,13 @@ const PanelSecretarias = () => {
     }
   };
 
+  // ✅ CORRECCIÓN: zona se resetea a vacío
   const resetForm = () => {
     setSelectedFactura(null);
     setTelefono('');
     setDireccion('');
     setSector('');
-    setZona('capital');
+    setZona(''); // <-- CAMBIO CRÍTICO
     setObservaciones('');
     setEstadoPago('pago_recibir');
   };
@@ -177,7 +173,6 @@ const PanelSecretarias = () => {
     }
   };
 
-  // (El resto de la lógica de filtrado de tabs y contadores es correcta)
   const facturasFiltradas = todasLasFacturas.filter(f => {
     let pasaEstado = false;
     switch (activeTab) {
@@ -209,7 +204,6 @@ const PanelSecretarias = () => {
     no_entregadas: todasLasFacturas.filter(f => f.estado === 'no_entregado' && (selectedZona === 'todas' || f.zona === selectedZona)).length
   };
 
-
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -217,8 +211,7 @@ const PanelSecretarias = () => {
         <p className="text-gray-600 dark:text-gray-400">Confirma y gestiona facturas antes de crear rutas</p>
       </div>
 
-      {/* Selectores de Embarque y Zona */}
-      {/* ✅ CORRECCIÓN: Grid cambiado de 3 a 2 columnas */}
+      {/* ✅ CORRECCIÓN: Grid de 2 columnas (sin contenedor) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -226,23 +219,17 @@ const PanelSecretarias = () => {
           </label>
           <select
             value={selectedEmbarque}
-            onChange={(e) => {
-              setSelectedEmbarque(e.target.value);
-              // setSelectedContenedor(''); // <-- ELIMINADO
-            }}
+            onChange={(e) => setSelectedEmbarque(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Seleccionar embarque...</option>
             {embarques.map(e => (
-              // ✅ CORRECCIÓN: Usar e.id o e._id
               <option key={e.id || e._id} value={e.id || e._id}>
                 {e.nombre} - {new Date(e.fechaCreacion).toLocaleDateString()}
               </option>
             ))}
           </select>
         </div>
-
-        {/* ✅ CORRECCIÓN: Eliminado el dropdown de "Contenedor" */}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -270,7 +257,6 @@ const PanelSecretarias = () => {
         </div>
       ) : (
         <>
-          {/* (El resto del JSX de las pestañas es correcto) */}
           <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('sin_confirmar')}
@@ -365,8 +351,6 @@ const PanelSecretarias = () => {
                           #{factura.numeroFactura}
                         </span>
                         
-                        {/* ✅ CORRECCIÓN: Campo 'contenedor' eliminado, ya no es necesario mostrarlo si es lo mismo que el embarque */}
-                        
                         {factura.zona && (
                           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded">
                             {factura.zona === 'capital' && '🏙️ Capital'}
@@ -451,7 +435,7 @@ const PanelSecretarias = () => {
         </>
       )}
 
-      {/* (El modal es correcto, solo quitamos la referencia a 'contenedor') */}
+      {/* ✅ CORRECCIÓN: Modal con zona obligatoria y sin valor por defecto */}
       {showConfirmModal && selectedFactura && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -464,13 +448,10 @@ const PanelSecretarias = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Factura</p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">#{selectedFactura.numeroFactura}</p>
                 
-                {/* ✅ CORRECCIÓN: Eliminada la info de 'contenedor' del modal */}
-
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Cliente</p>
                 <p className="font-medium text-gray-900 dark:text-white">👤 {selectedFactura.cliente}</p>
               </div>
 
-              {/* (El resto del formulario del modal es correcto) */}
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -521,6 +502,7 @@ const PanelSecretarias = () => {
                   />
                 </div>
 
+                {/* ✅ CORRECCIÓN: Campo zona sin valor por defecto + indicador visual */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Zona de Entrega *
@@ -528,13 +510,19 @@ const PanelSecretarias = () => {
                   <select
                     value={zona}
                     onChange={(e) => setZona(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${
+                      !zona ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    }`}
                   >
+                    <option value="">-- Seleccionar Zona --</option>
                     <option value="capital">🏙️ Capital (Santo Domingo)</option>
                     <option value="cibao">⛰️ Cibao (Santiago)</option>
                     <option value="sur">🌊 Sur</option>
                     <option value="local_bani">🏘️ Local (Baní)</option>
                   </select>
+                  {!zona && (
+                    <p className="text-red-500 text-sm mt-1">⚠️ La zona es obligatoria</p>
+                  )}
                 </div>
 
                 <div>
