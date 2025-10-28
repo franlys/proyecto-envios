@@ -35,10 +35,9 @@ export const getStatsSecretaria = async (req, res) => {
         }
       });
     } catch (error) {
-      console.log('No hay facturas');
+      console.log('No hay facturas disponibles');
     }
 
-    // ✅ CORRECCIÓN: Respuesta estandarizada
     res.json({
       success: true,
       data: {
@@ -83,6 +82,7 @@ export const getFacturasNoEntregadas = async (req, res) => {
       let rutaInfo = null;
       let repartidorInfo = null;
 
+      // Obtener información de la ruta si existe
       if (facturaData.rutaId) {
         const rutaDoc = await db.collection('rutas').doc(facturaData.rutaId).get();
         
@@ -93,6 +93,7 @@ export const getFacturasNoEntregadas = async (req, res) => {
             nombre: rutaData.nombre
           };
 
+          // Obtener información del repartidor si existe
           if (rutaData.empleadoId) {
             const empleadoDoc = await db.collection('usuarios').doc(rutaData.empleadoId).get();
             if (empleadoDoc.exists) {
@@ -120,7 +121,6 @@ export const getFacturasNoEntregadas = async (req, res) => {
       });
     }
 
-    // ✅ CORRECCIÓN: Respuesta estandarizada
     res.json({ 
       success: true, 
       data: facturas 
@@ -141,10 +141,11 @@ export const reasignarFactura = async (req, res) => {
   try {
     const { facturaId, accion, observaciones, nuevaRutaId } = req.body;
 
+    // Validaciones básicas
     if (!facturaId || !accion) {
       return res.status(400).json({ 
         success: false,
-        error: 'Faltan datos requeridos' 
+        error: 'Faltan datos requeridos: facturaId y accion' 
       });
     }
 
@@ -155,6 +156,7 @@ export const reasignarFactura = async (req, res) => {
       });
     }
 
+    // Verificar que la factura existe
     const facturaRef = db.collection('facturas').doc(facturaId);
     const facturaDoc = await facturaRef.get();
 
@@ -167,6 +169,7 @@ export const reasignarFactura = async (req, res) => {
 
     const facturaData = facturaDoc.data();
 
+    // Verificar permisos del usuario
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
@@ -192,6 +195,7 @@ export const reasignarFactura = async (req, res) => {
       companyId: facturaData.companyId
     };
 
+    // Procesar acción
     if (accion === 'pendiente') {
       actualizacion.estado = 'pendiente';
       actualizacion.rutaId = null;
@@ -199,6 +203,7 @@ export const reasignarFactura = async (req, res) => {
       actualizacion.fechaIntento = null;
       
     } else if (accion === 'nueva_ruta') {
+      // Verificar que la nueva ruta existe
       const nuevaRutaDoc = await db.collection('rutas').doc(nuevaRutaId).get();
       if (!nuevaRutaDoc.exists) {
         return res.status(404).json({ 
@@ -209,6 +214,7 @@ export const reasignarFactura = async (req, res) => {
 
       const nuevaRutaData = nuevaRutaDoc.data();
 
+      // Verificar que la ruta pertenece a la misma compañía
       if (nuevaRutaData.companyId !== facturaData.companyId) {
         return res.status(400).json({ 
           success: false,
@@ -216,6 +222,7 @@ export const reasignarFactura = async (req, res) => {
         });
       }
 
+      // Verificar que la ruta no está completada
       if (nuevaRutaData.estado === 'completada') {
         return res.status(400).json({ 
           success: false,
@@ -231,10 +238,10 @@ export const reasignarFactura = async (req, res) => {
       historialData.nuevaRutaId = nuevaRutaId;
     }
 
+    // Actualizar factura y guardar historial
     await facturaRef.update(actualizacion);
     await db.collection('historial_reasignaciones').add(historialData);
 
-    // ✅ CORRECCIÓN: Respuesta estandarizada
     res.json({
       success: true,
       message: 'Factura reasignada exitosamente',
@@ -261,6 +268,7 @@ export const getHistorialFactura = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Verificar que la factura existe
     const facturaDoc = await db.collection('facturas').doc(id).get();
     if (!facturaDoc.exists) {
       return res.status(404).json({ 
@@ -271,6 +279,7 @@ export const getHistorialFactura = async (req, res) => {
 
     const facturaData = facturaDoc.data();
 
+    // Verificar permisos del usuario
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
@@ -281,20 +290,36 @@ export const getHistorialFactura = async (req, res) => {
       });
     }
 
+    // Obtener historial de reasignaciones
     const historialSnapshot = await db.collection('historial_reasignaciones')
       .where('facturaId', '==', id)
       .orderBy('fechaReasignacion', 'desc')
       .get();
 
     const historial = [];
-    historialSnapshot.forEach(doc => {
+    for (const doc of historialSnapshot.docs) {
+      const data = doc.data();
+      
+      // Enriquecer con información del usuario que hizo la acción
+      let usuarioInfo = null;
+      if (data.usuarioId) {
+        const usuarioDoc = await db.collection('usuarios').doc(data.usuarioId).get();
+        if (usuarioDoc.exists) {
+          usuarioInfo = {
+            id: usuarioDoc.id,
+            nombre: usuarioDoc.data().nombre,
+            email: usuarioDoc.data().email
+          };
+        }
+      }
+
       historial.push({
         id: doc.id,
-        ...doc.data()
+        ...data,
+        usuario: usuarioInfo
       });
-    });
+    }
 
-    // ✅ CORRECCIÓN: Respuesta estandarizada
     res.json({
       success: true,
       data: {
@@ -317,26 +342,51 @@ export const getHistorialFactura = async (req, res) => {
 
 /**
  * GET - Buscar facturas con filtros
+ * ✅ MEJORADO: Incluye filtro por embarqueId y mejor manejo de rutaId
  */
 export const buscarFacturas = async (req, res) => {
   try {
-    const { cliente, numeroFactura, estado, rutaId, fechaDesde, fechaHasta } = req.query;
+    // ✅ CORRECCIÓN: Añadir 'embarqueId' a los parámetros
+    const { 
+      cliente, 
+      numeroFactura, 
+      estado, 
+      rutaId, 
+      fechaDesde, 
+      fechaHasta, 
+      embarqueId 
+    } = req.query;
 
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     const userData = userDoc.data();
 
     let query = db.collection('facturas');
 
+    // Filtrar por compañía (excepto super_admin)
     if (userData.rol !== 'super_admin' && userData.companyId) {
       query = query.where('companyId', '==', userData.companyId);
     }
 
+    // Filtrar por estado
     if (estado) {
       query = query.where('estado', '==', estado);
     }
 
+    // ✅ NUEVO: Filtro por embarqueId
+    // Permite obtener solo las facturas de un contenedor específico
+    if (embarqueId) {
+      query = query.where('embarqueId', '==', embarqueId);
+    }
+
+    // ✅ MEJORADO: Manejo correcto del filtro rutaId
     if (rutaId) {
-      query = query.where('rutaId', '==', rutaId);
+      // Si el frontend pide 'rutaId=null', buscamos facturas sin ruta asignada
+      if (rutaId === 'null') {
+        query = query.where('rutaId', '==', null);
+      } else {
+        // Si pide un ID de ruta específico
+        query = query.where('rutaId', '==', rutaId);
+      }
     }
 
     const snapshot = await query.get();
@@ -346,6 +396,9 @@ export const buscarFacturas = async (req, res) => {
       const data = doc.data();
       let incluir = true;
 
+      // Filtros adicionales aplicados en memoria (después de la consulta)
+      // Estos no se pueden hacer en Firestore por limitaciones de índices
+
       if (cliente && !data.cliente?.toLowerCase().includes(cliente.toLowerCase())) {
         incluir = false;
       }
@@ -354,38 +407,52 @@ export const buscarFacturas = async (req, res) => {
         incluir = false;
       }
 
-      if (fechaDesde && new Date(data.createdAt?.toDate()) < new Date(fechaDesde)) {
-        incluir = false;
+      if (fechaDesde && data.createdAt) {
+        const fechaFactura = new Date(data.createdAt.toDate());
+        const fechaDesdeObj = new Date(fechaDesde);
+        if (fechaFactura < fechaDesdeObj) {
+          incluir = false;
+        }
       }
 
-      if (fechaHasta && new Date(data.createdAt?.toDate()) > new Date(fechaHasta + 'T23:59:59')) {
-        incluir = false;
+      if (fechaHasta && data.createdAt) {
+        const fechaFactura = new Date(data.createdAt.toDate());
+        const fechaHastaObj = new Date(fechaHasta + 'T23:59:59');
+        if (fechaFactura > fechaHastaObj) {
+          incluir = false;
+        }
       }
 
       if (incluir) {
         facturas.push({
           id: doc.id,
-          ...data
+          ...data,
+          // Convertir timestamps a formato ISO para el frontend
+          createdAt: data.createdAt?.toDate().toISOString(),
+          updatedAt: data.updatedAt?.toDate().toISOString()
         });
       }
     });
 
-    // ✅ CORRECCIÓN: Respuesta estandarizada
     res.json({ 
       success: true, 
-      data: facturas 
+      data: facturas,
+      count: facturas.length 
     });
+
   } catch (error) {
     console.error('Error al buscar facturas:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Error al buscar facturas' 
+      error: 'Error al buscar facturas',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
 /**
  * GET - Obtener estadísticas de facturas
+ * ✅ MEJORADO: Incluye más detalles en las estadísticas
  */
 export const getEstadisticasFacturas = async (req, res) => {
   try {
@@ -402,42 +469,65 @@ export const getEstadisticasFacturas = async (req, res) => {
     
     let totales = {
       total: 0,
-      pendientes: 0,
-      asignadas: 0,
-      entregadas: 0,
-      no_entregadas: 0
+      sin_confirmar: 0,
+      confirmada: 0,
+      pendiente: 0,
+      asignado: 0,
+      en_ruta: 0,
+      entregado: 0,
+      no_entregado: 0
     };
+
+    let montoTotal = 0;
+    let montoEntregado = 0;
 
     facturasSnapshot.forEach(doc => {
       const factura = doc.data();
       totales.total++;
       
-      switch(factura.estado) {
-        case 'pendiente':
-          totales.pendientes++;
-          break;
-        case 'asignado':
-          totales.asignadas++;
-          break;
-        case 'entregado':
-          totales.entregadas++;
-          break;
-        case 'no_entregado':
-          totales.no_entregadas++;
-          break;
+      // Contar por estado
+      if (totales.hasOwnProperty(factura.estado)) {
+        totales[factura.estado]++;
+      }
+
+      // Sumar montos
+      const monto = parseFloat(factura.monto) || 0;
+      montoTotal += monto;
+      if (factura.estado === 'entregado') {
+        montoEntregado += monto;
       }
     });
 
-    // ✅ CORRECCIÓN: Respuesta estandarizada
+    // Calcular porcentajes
+    const porcentajeEntrega = totales.total > 0 
+      ? Math.round((totales.entregado / totales.total) * 100) 
+      : 0;
+
+    const porcentajeNoEntrega = totales.total > 0
+      ? Math.round((totales.no_entregado / totales.total) * 100)
+      : 0;
+
+    const tasaExito = (totales.entregado + totales.no_entregado) > 0
+      ? Math.round((totales.entregado / (totales.entregado + totales.no_entregado)) * 100)
+      : 0;
+
     res.json({
       success: true,
       data: {
         totales,
-        porcentaje_entrega: totales.total > 0 
-          ? Math.round((totales.entregadas / totales.total) * 100) 
-          : 0
+        montos: {
+          total: montoTotal,
+          entregado: montoEntregado,
+          pendiente: montoTotal - montoEntregado
+        },
+        porcentajes: {
+          entrega: porcentajeEntrega,
+          no_entrega: porcentajeNoEntrega,
+          tasa_exito: tasaExito
+        }
       }
     });
+
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
     res.status(500).json({ 
