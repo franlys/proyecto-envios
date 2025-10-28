@@ -1,4 +1,6 @@
 // admin_web/src/pages/FacturasNoEntregadas.jsx
+// ✅ INTEGRACIÓN DEL CAMPO SECTOR
+
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import ModalReasignarFactura from '../components/modals/ModalReasignarFactura';
@@ -9,12 +11,10 @@ const FacturasNoEntregadas = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedFactura, setSelectedFactura] = useState(null);
 
-  // Filtros
   const [filtroRuta, setFiltroRuta] = useState('');
   const [filtroCliente, setFiltroCliente] = useState('');
   const [filtroFecha, setFiltroFecha] = useState('');
 
-  // Listas para los filtros
   const [rutas, setRutas] = useState([]);
 
   useEffect(() => {
@@ -27,7 +27,6 @@ const FacturasNoEntregadas = () => {
       setLoading(true);
       const response = await api.get('/facturas/no-entregadas');
       
-      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
       if (response.data.success) {
         setFacturas(response.data.data || []);
       } else {
@@ -46,7 +45,6 @@ const FacturasNoEntregadas = () => {
     try {
       const response = await api.get('/rutas');
       
-      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
       if (response.data.success) {
         setRutas(response.data.data || []);
       } else {
@@ -98,18 +96,15 @@ const FacturasNoEntregadas = () => {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Facturas No Entregadas</h1>
         <p className="text-gray-600 dark:text-gray-400">Gestiona y reasigna facturas que no pudieron ser entregadas</p>
       </div>
 
-      {/* Filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-4">Filtros</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Filtro por Ruta */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Ruta
@@ -128,7 +123,6 @@ const FacturasNoEntregadas = () => {
             </select>
           </div>
 
-          {/* Filtro por Cliente */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Cliente
@@ -142,7 +136,6 @@ const FacturasNoEntregadas = () => {
             />
           </div>
 
-          {/* Filtro por Fecha */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Fecha de Intento
@@ -156,7 +149,6 @@ const FacturasNoEntregadas = () => {
           </div>
         </div>
 
-        {/* Botón limpiar filtros */}
         {(filtroRuta || filtroCliente || filtroFecha) && (
           <div className="mt-4">
             <button
@@ -169,7 +161,6 @@ const FacturasNoEntregadas = () => {
         )}
       </div>
 
-      {/* Resumen */}
       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
         <div className="flex items-center gap-2">
           <span className="text-2xl">⚠️</span>
@@ -184,7 +175,6 @@ const FacturasNoEntregadas = () => {
         </div>
       </div>
 
-      {/* Lista de Facturas */}
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -222,6 +212,10 @@ const FacturasNoEntregadas = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     Dirección
                   </th>
+                  {/* ✅ NUEVA COLUMNA: Sector */}
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    Sector
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     Ruta
                   </th>
@@ -247,6 +241,10 @@ const FacturasNoEntregadas = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {factura.direccion}
+                    </td>
+                    {/* ✅ MOSTRAR SECTOR */}
+                    <td className="px-4 py-3 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                      {factura.sector || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {factura.rutaNombre || 'Sin asignar'}
@@ -277,7 +275,6 @@ const FacturasNoEntregadas = () => {
         </div>
       )}
 
-      {/* Modal para Reasignar */}
       {showModal && selectedFactura && (
         <ModalReasignarFactura
           factura={selectedFactura}

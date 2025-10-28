@@ -1,4 +1,6 @@
 ﻿// admin_web/src/pages/Rutas.jsx
+// ✅ INTEGRACIÓN COMPLETA DEL CAMPO SECTOR EN CREACIÓN DE RUTAS
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -22,17 +24,18 @@ const Rutas = () => {
   const [montoAsignado, setMontoAsignado] = useState('');
   const [searchFactura, setSearchFactura] = useState('');
 
+  // ✅ NUEVO: Filtro por sector
+  const [filtroSector, setFiltroSector] = useState('');
+
   useEffect(() => {
     fetchRutas();
   }, []);
 
-  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchRutas = async () => {
     try {
       setLoading(true);
       const response = await api.get('/rutas');
       
-      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
       if (response.data.success) {
         setRutas(response.data.data || []);
       } else {
@@ -46,12 +49,10 @@ const Rutas = () => {
     }
   };
 
-  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const openCreateModal = async () => {
     try {
       const embarquesRes = await api.get('/embarques');
       
-      // ✅ CORRECCIÓN: Validar success para embarques
       if (embarquesRes.data.success) {
         setEmbarques(embarquesRes.data.data || []);
       } else {
@@ -60,7 +61,6 @@ const Rutas = () => {
       
       const repartidoresRes = await api.get('/empleados/repartidores');
       
-      // ✅ CORRECCIÓN: Validar success para repartidores
       if (repartidoresRes.data.success) {
         setRepartidores(repartidoresRes.data.data || []);
       } else {
@@ -74,11 +74,11 @@ const Rutas = () => {
     }
   };
 
-  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const handleEmbarqueChange = async (embarqueId) => {
     setSelectedEmbarque(embarqueId);
     setSelectedFacturas([]);
     setSearchFactura('');
+    setFiltroSector(''); // Reset filtro de sector
     
     if (!embarqueId) {
       setFacturas([]);
@@ -88,7 +88,6 @@ const Rutas = () => {
     try {
       const response = await api.get(`/embarques/${embarqueId}`);
       
-      // ✅ CORRECCIÓN: Validar success antes de usar facturas
       if (response.data.success) {
         const facturasDisponibles = (response.data.data.facturas || []).filter(
           f => f.estado === 'pendiente' || !f.estado
@@ -113,15 +112,30 @@ const Rutas = () => {
     });
   };
 
+  // ✅ FILTRO MEJORADO: Incluye sector
   const filteredFacturas = facturas.filter(factura => {
-    if (!searchFactura) return true;
-    const search = searchFactura.toLowerCase();
-    return (
-      factura.cliente?.toLowerCase().includes(search) ||
-      factura.direccion?.toLowerCase().includes(search) ||
-      factura.numeroFactura?.toLowerCase().includes(search)
-    );
+    // Filtro por búsqueda general
+    if (searchFactura) {
+      const search = searchFactura.toLowerCase();
+      const matches = (
+        factura.cliente?.toLowerCase().includes(search) ||
+        factura.direccion?.toLowerCase().includes(search) ||
+        factura.numeroFactura?.toLowerCase().includes(search) ||
+        factura.sector?.toLowerCase().includes(search) // Buscar también en sector
+      );
+      if (!matches) return false;
+    }
+
+    // Filtro por sector
+    if (filtroSector && factura.sector !== filtroSector) {
+      return false;
+    }
+
+    return true;
   });
+
+  // ✅ Obtener lista única de sectores disponibles
+  const sectoresDisponibles = [...new Set(facturas.map(f => f.sector).filter(Boolean))].sort();
 
   const selectAllFiltered = () => {
     const filteredIds = filteredFacturas.map(f => f.id);
@@ -205,6 +219,7 @@ const Rutas = () => {
     setNombreRuta('');
     setMontoAsignado('');
     setSearchFactura('');
+    setFiltroSector('');
   };
 
   const getEstadoColor = (estado) => {
@@ -375,7 +390,8 @@ const Rutas = () => {
           ))}
         </div>
       )}
-      {/* Modal Crear Ruta */}
+
+      {/* ✅ MODAL MEJORADO CON FILTRO DE SECTOR */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -457,25 +473,57 @@ const Rutas = () => {
                     )}
                   </div>
 
-                  <div className="mb-3">
-                    <input
-                      type="text"
-                      value={searchFactura}
-                      onChange={(e) => setSearchFactura(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="🔍 Buscar por cliente, dirección o número de factura..."
-                    />
-                    {searchFactura && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Mostrando {filteredFacturas.length} de {facturas.length} facturas
-                      </p>
-                    )}
+                  {/* ✅ FILTROS MEJORADOS: Búsqueda + Sector */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <input
+                        type="text"
+                        value={searchFactura}
+                        onChange={(e) => setSearchFactura(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="🔍 Buscar por cliente, dirección, número..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <select
+                        value={filtroSector}
+                        onChange={(e) => setFiltroSector(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">📍 Todos los sectores</option>
+                        {sectoresDisponibles.map((sector) => (
+                          <option key={sector} value={sector}>
+                            {sector}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
+
+                  {(searchFactura || filtroSector) && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Mostrando {filteredFacturas.length} de {facturas.length} facturas
+                      {(searchFactura || filtroSector) && (
+                        <button
+                          onClick={() => {
+                            setSearchFactura('');
+                            setFiltroSector('');
+                          }}
+                          className="ml-2 text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Limpiar filtros
+                        </button>
+                      )}
+                    </p>
+                  )}
 
                   {facturas.length === 0 ? (
                     <p className="text-gray-500 dark:text-gray-400 py-4">No hay facturas disponibles en este embarque</p>
                   ) : filteredFacturas.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400 py-4">No se encontraron facturas con "{searchFactura}"</p>
+                    <p className="text-gray-500 dark:text-gray-400 py-4">
+                      No se encontraron facturas con los filtros aplicados
+                    </p>
                   ) : (
                     <div className="border border-gray-300 dark:border-gray-600 rounded-lg max-h-64 overflow-y-auto">
                       {filteredFacturas.map((factura) => (
@@ -494,8 +542,14 @@ const Rutas = () => {
                             <div className="flex-1">
                               <p className="font-medium text-sm text-gray-900 dark:text-white">{factura.cliente}</p>
                               <p className="text-xs text-gray-600 dark:text-gray-400">{factura.direccion}</p>
-                              <div className="flex gap-3 mt-1">
+                              <div className="flex gap-3 mt-1 flex-wrap">
                                 <p className="text-xs text-gray-500 dark:text-gray-400">📄 {factura.numeroFactura}</p>
+                                {/* ✅ Mostrar sector */}
+                                {factura.sector && (
+                                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                    📍 {factura.sector}
+                                  </p>
+                                )}
                                 {factura.monto && (
                                   <p className="text-xs text-gray-500 dark:text-gray-400">💰 ${factura.monto}</p>
                                 )}

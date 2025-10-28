@@ -1,5 +1,5 @@
 // admin_web/src/pages/PanelSecretarias.jsx
-// ✅ CORRECCIÓN COMPLETA: Zona obligatoria sin valor por defecto + eliminada lógica duplicada
+// ✅ INTEGRACIÓN COMPLETA DEL CAMPO SECTOR
 
 import { useState, useEffect } from 'react';
 import { db } from '../services/firebase';
@@ -16,11 +16,10 @@ const PanelSecretarias = () => {
   const [selectedFactura, setSelectedFactura] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   
-  // ✅ CORRECCIÓN: zona inicia VACÍA, no con 'capital'
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [sector, setSector] = useState('');
-  const [zona, setZona] = useState(''); // <-- CAMBIO CRÍTICO
+  const [zona, setZona] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [estadoPago, setEstadoPago] = useState('pago_recibir');
 
@@ -54,7 +53,6 @@ const PanelSecretarias = () => {
     }
   };
 
-  // ✅ CORRECCIÓN: Consulta simplificada, solo por embarqueId
   const fetchFacturas = async () => {
     try {
       setLoading(true);
@@ -95,14 +93,12 @@ const PanelSecretarias = () => {
     setTelefono(factura.telefono || '');
     setDireccion(factura.direccion || '');
     setSector(factura.sector || '');
-    // ✅ CORRECCIÓN: Si ya tiene zona, cargarla; si no, dejar vacío
     setZona(factura.zona || '');
     setObservaciones(factura.observaciones || '');
     setEstadoPago(factura.estadoPago || 'pago_recibir');
     setShowConfirmModal(true);
   };
 
-  // ✅ CORRECCIÓN: Validación incluye zona obligatoria
   const handleConfirmarFactura = async () => {
     if (!selectedFactura) return;
 
@@ -118,7 +114,7 @@ const PanelSecretarias = () => {
         estado: 'confirmada',
         telefono: telefono,
         direccion: direccion,
-        sector: sector,
+        sector: sector, // ✅ Incluir sector en actualización
         zona: zona,
         observaciones: observaciones,
         estadoPago: estadoPago,
@@ -156,13 +152,12 @@ const PanelSecretarias = () => {
     }
   };
 
-  // ✅ CORRECCIÓN: zona se resetea a vacío
   const resetForm = () => {
     setSelectedFactura(null);
     setTelefono('');
     setDireccion('');
     setSector('');
-    setZona(''); // <-- CAMBIO CRÍTICO
+    setZona('');
     setObservaciones('');
     setEstadoPago('pago_recibir');
   };
@@ -211,7 +206,6 @@ const PanelSecretarias = () => {
         <p className="text-gray-600 dark:text-gray-400">Confirma y gestiona facturas antes de crear rutas</p>
       </div>
 
-      {/* ✅ CORRECCIÓN: Grid de 2 columnas (sin contenedor) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -377,9 +371,15 @@ const PanelSecretarias = () => {
                         </p>
                       )}
 
+                      {/* ✅ MEJORA 1: Mostrar dirección con sector */}
                       {factura.direccion && (
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
                           📍 {factura.direccion}
+                          {factura.sector && (
+                            <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                              ({factura.sector})
+                            </span>
+                          )}
                         </p>
                       )}
 
@@ -435,7 +435,7 @@ const PanelSecretarias = () => {
         </>
       )}
 
-      {/* ✅ CORRECCIÓN: Modal con zona obligatoria y sin valor por defecto */}
+      {/* ✅ MEJORA 2: Modal con campo sector completamente funcional */}
       {showConfirmModal && selectedFactura && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -489,6 +489,7 @@ const PanelSecretarias = () => {
                   />
                 </div>
 
+                {/* ✅ Campo Sector funcional */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Sector
@@ -498,11 +499,13 @@ const PanelSecretarias = () => {
                     value={sector}
                     onChange={(e) => setSector(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Santo Domingo Este"
+                    placeholder="Ej: Los Jardines, Bella Vista, etc."
                   />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Especifica el sector o barrio para facilitar la entrega
+                  </p>
                 </div>
 
-                {/* ✅ CORRECCIÓN: Campo zona sin valor por defecto + indicador visual */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Zona de Entrega *

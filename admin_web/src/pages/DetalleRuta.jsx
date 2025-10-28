@@ -1,4 +1,6 @@
 // admin_web/src/pages/DetalleRuta.jsx
+// ✅ INTEGRACIÓN COMPLETA DEL CAMPO SECTOR
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -15,12 +17,10 @@ const DetalleRuta = () => {
     fetchRutaCompleta();
   }, [id]);
 
-  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchRutaCompleta = async () => {
     try {
       const response = await api.get(`/rutas/${id}`);
       
-      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
       if (response.data.success) {
         const rutaData = response.data.data;
         
@@ -74,7 +74,6 @@ const DetalleRuta = () => {
     );
   }
 
-  // Estadísticas
   const facturasEntregadas = facturas.filter(f => f.estado === 'entregado').length;
   const facturasNoEntregadas = facturas.filter(f => f.estado === 'no_entregado').length;
   const facturasPendientes = facturas.filter(f => 
@@ -317,7 +316,7 @@ const TabsDetalleRuta = ({ facturas, gastos }) => {
   );
 };
 
-// Tabla de Facturas
+// ✅ TABLA DE FACTURAS CON CAMPO SECTOR INTEGRADO
 const TablaFacturas = ({ facturas }) => {
   if (facturas.length === 0) {
     return (
@@ -338,6 +337,7 @@ const TablaFacturas = ({ facturas }) => {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Número</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Cliente</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Dirección</th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Sector</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Monto</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Estado</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Observaciones</th>
@@ -349,6 +349,10 @@ const TablaFacturas = ({ facturas }) => {
               <td className="px-4 py-3 text-sm font-medium text-gray-900">{factura.numeroFactura}</td>
               <td className="px-4 py-3 text-sm text-gray-700">{factura.cliente}</td>
               <td className="px-4 py-3 text-sm text-gray-600">{factura.direccion}</td>
+              {/* ✅ NUEVA COLUMNA: Sector */}
+              <td className="px-4 py-3 text-sm text-blue-600 font-medium">
+                {factura.sector || '-'}
+              </td>
               <td className="px-4 py-3 text-sm font-medium text-gray-900">
                 ${(factura.monto || 0).toLocaleString()}
               </td>

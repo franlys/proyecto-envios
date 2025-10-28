@@ -1,4 +1,6 @@
 // admin_web/src/components/modals/ModalDetalleFactura.jsx
+// ✅ INTEGRACIÓN DEL CAMPO SECTOR
+
 import { useState, useEffect } from 'react';
 import { db } from '../../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -15,18 +17,15 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
       }
 
       try {
-        // Buscar la ruta
         const rutaDoc = await getDoc(doc(db, 'rutas', factura.rutaId));
         
         if (rutaDoc.exists()) {
           const rutaData = rutaDoc.data();
           let empleadoNombre = 'No asignado';
 
-          // Si tiene empleadoNombre guardado, usarlo
           if (rutaData.empleadoNombre) {
             empleadoNombre = rutaData.empleadoNombre;
           } 
-          // Si no, buscar el empleado por ID
           else if (rutaData.empleadoId) {
             try {
               const empleadoDoc = await getDoc(doc(db, 'usuarios', rutaData.empleadoId));
@@ -69,7 +68,7 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Detalles de Factura</h2>
-              <p className="text-blue-100 mt-1">Informacion completa para contacto</p>
+              <p className="text-blue-100 mt-1">Información completa para contacto</p>
             </div>
             <button
               onClick={onClose}
@@ -86,7 +85,7 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Numero de Factura</label>
+                <label className="text-sm font-medium text-gray-500">Número de Factura</label>
                 <p className="text-lg font-bold text-gray-900 mt-1">{factura.numeroFactura}</p>
               </div>
               <div>
@@ -113,7 +112,7 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Informacion del Cliente
+              Información del Cliente
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -132,7 +131,7 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
               {factura.telefono && (
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Telefono</label>
+                    <label className="text-sm font-medium text-gray-500">Teléfono</label>
                     <p className="text-gray-900 font-medium">{factura.telefono}</p>
                   </div>
                   <button
@@ -146,7 +145,7 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-500">Direccion</label>
+                  <label className="text-sm font-medium text-gray-500">Dirección</label>
                   <p className="text-gray-900">{factura.direccion}</p>
                 </div>
                 <button
@@ -156,6 +155,22 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
                   Copiar
                 </button>
               </div>
+
+              {/* ✅ NUEVO: Campo Sector */}
+              {factura.sector && (
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-blue-700">Sector</label>
+                    <p className="text-blue-900 font-medium">{factura.sector}</p>
+                  </div>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(factura.sector)}
+                    className="text-blue-600 hover:text-blue-800 text-sm ml-2"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -200,12 +215,12 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                Informacion de Ruta
+                Información de Ruta
               </h3>
               
               {loading ? (
                 <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
-                  Cargando informacion de ruta...
+                  Cargando información de ruta...
                 </div>
               ) : rutaInfo ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -220,7 +235,7 @@ const ModalDetalleFactura = ({ factura, onClose }) => {
                 </div>
               ) : (
                 <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <p className="text-yellow-800 text-sm">No se pudo cargar la informacion de la ruta</p>
+                  <p className="text-yellow-800 text-sm">No se pudo cargar la información de la ruta</p>
                 </div>
               )}
             </div>
