@@ -1,39 +1,137 @@
 import { db } from '../config/firebase.js';
 
 /**
+ * Lista de sectores conocidos para detección automática.
+ * Esta lista puede ampliarse fácilmente según las necesidades.
+ */
+const sectoresConocidos = [
+  // Santo Domingo y DN
+  'gazcue', 'piantini', 'naco', 'bella vista', 'serrallés', 'mirador sur',
+  'los cacicazgos', 'paraíso', 'renacimiento', 'los prados', 'arroyo hondo',
+  'los rios', 'la esperilla', 'la julia', 'los restauradores', 'ensanche ozama',
+  'villa juana', 'centro de los heroes', 'villa francisca', 'san carlos',
+  'ciudad nueva', 'zona colonial', 'zona universitaria', 'los mina',
+  'villa mella', 'sabana perdida', 'herrera', 'los alcarrizos',
+  
+  // Santiago
+  'bella vista', 'cerros de gurabo', 'los jardines', 'jardines metropolitanos',
+  'los salados', 'cienfuegos', 'pueblo nuevo', 'ensanche libertad',
+  'la otra banda', 'gurabo', 'hato mayor', 'tamboril',
+  
+  // Cibao
+  'la vega', 'moca', 'san francisco de macoris', 'salcedo', 'tenares',
+  
+  // Sur
+  'azua centro', 'barahona centro', 'san juan centro', 'san cristobal centro',
+  
+  // Este
+  'san pedro centro', 'la romana centro', 'higuey', 'bávaro', 'punta cana',
+  'juan dolio', 'guayacanes',
+  
+  // Baní
+  'pueblo', 'el centro', 'los robles', 'las americas', 'villa fundacion'
+];
+
+/**
  * Determina la zona geográfica basada en palabras clave en la dirección.
  * @param {string} direccion La dirección completa de la factura.
- * @returns {string} El ID de la zona ('capital', 'local_bani', 'cibao', 'sur').
+ * @returns {string} El ID de la zona ('capital', 'local_bani', 'cibao', 'sur', 'este').
  */
 const determinarZonaPorDireccion = (direccion) => {
   if (!direccion) return 'capital'; // Por defecto
 
   const dir = direccion.toLowerCase();
 
-  // 1. Local (Baní)
+  // 1. Local (Baní) - Prioridad alta por ser más específico
   if (dir.includes('bani') || dir.includes('baní')) {
     return 'local_bani';
   }
 
-  // 2. Cibao
+  // 2. Este (Nueva zona)
+  if (dir.includes('san pedro') || 
+      dir.includes('la romana') || 
+      dir.includes('higuey') || 
+      dir.includes('higüey') ||
+      dir.includes('punta cana') || 
+      dir.includes('bávaro') ||
+      dir.includes('bavaro') ||
+      dir.includes('juan dolio') ||
+      dir.includes('el seibo') ||
+      dir.includes('hato mayor')) {
+    return 'este';
+  }
+
+  // 3. Cibao (Ampliado)
   if (dir.includes('santiago') || 
       dir.includes('cibao') || 
       dir.includes('la vega') || 
+      dir.includes('san francisco de macoris') ||
       dir.includes('san francisco') || 
-      dir.includes('moca')) {
+      dir.includes('moca') ||
+      dir.includes('salcedo') ||
+      dir.includes('mao') ||
+      dir.includes('puerto plata') ||
+      dir.includes('sosúa') ||
+      dir.includes('sosua') ||
+      dir.includes('cabarete') ||
+      dir.includes('espaillat') ||
+      dir.includes('valverde')) {
     return 'cibao';
   }
 
-  // 3. Sur
+  // 4. Sur (Ampliado)
   if (dir.includes('azua') || 
       dir.includes('barahona') || 
       dir.includes('san juan') || 
-      dir.includes('san cristobal')) {
+      dir.includes('san cristobal') ||
+      dir.includes('san cristóbal') ||
+      dir.includes('peravia') ||
+      dir.includes('ocoa') ||
+      dir.includes('pedernales') ||
+      dir.includes('independencia') ||
+      dir.includes('bahoruco')) {
     return 'sur';
   }
 
-  // 4. Capital (Default)
+  // 5. Capital (Default) - Incluye Santo Domingo y DN
+  // Si contiene indicadores de Santo Domingo o si no coincide con ninguna zona
+  if (dir.includes('santo domingo') || 
+      dir.includes('distrito nacional') ||
+      dir.includes('dn') ||
+      dir.includes('gazcue') ||
+      dir.includes('piantini') ||
+      dir.includes('naco')) {
+    return 'capital';
+  }
+
+  // Default final
   return 'capital';
+};
+
+/**
+ * Determina el sector específico basado en palabras clave en la dirección.
+ * @param {string} direccion La dirección completa de la factura.
+ * @returns {string} El nombre del sector encontrado o cadena vacía.
+ */
+const determinarSectorPorDireccion = (direccion) => {
+  if (!direccion) return '';
+
+  const dir = direccion.toLowerCase();
+
+  // Buscar coincidencias de sectores conocidos
+  for (const sector of sectoresConocidos) {
+    // Usar regex para buscar palabras completas (evitar coincidencias parciales)
+    const regex = new RegExp(`\\b${sector.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (regex.test(dir)) {
+      // Capitalizar la primera letra de cada palabra del sector
+      return sector
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+  }
+
+  return '';
 };
 
 // Crear embarque
@@ -241,21 +339,26 @@ export const importFacturas = async (req, res) => {
     for (const factura of facturas) {
       const facturaRef = db.collection('facturas').doc();
       
-      // CORRECCIÓN 1: Obtener dirección y determinar zona
+      // Obtener dirección
       const direccion = factura.direccion || '';
+      
+      // Determinar zona automáticamente (o usar la proporcionada)
       const zonaDeterminada = factura.zona || determinarZonaPorDireccion(direccion);
+      
+      // Determinar sector automáticamente (o usar el proporcionado)
+      const sectorDeterminado = factura.sector || determinarSectorPorDireccion(direccion);
 
       batch.set(facturaRef, {
         embarqueId,
         companyId: embarqueData.companyId,
         numeroFactura: factura.numeroFactura,
         cliente: factura.cliente,
-        direccion: direccion, // CORRECCIÓN 2: Usar la dirección limpia
+        direccion: direccion,
         telefono: factura.telefono || '',
         monto: factura.monto || 0,
         observaciones: factura.observaciones || '',
-        sector: factura.sector || '',
-        zona: zonaDeterminada, // CORRECCIÓN 3: Usar la zona determinada
+        sector: sectorDeterminado,
+        zona: zonaDeterminada,
         estado: 'sin_confirmar',
         estadoPago: 'pago_recibir',
         createdAt: new Date().toISOString(),
