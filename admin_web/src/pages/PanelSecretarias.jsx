@@ -1,4 +1,5 @@
 // admin_web/src/pages/PanelSecretarias.jsx
+// ✅ CORRECCIÓN APLICADA: numeroContenedor → contenedor
 import { useState, useEffect } from 'react';
 import { db } from '../services/firebase';
 import { collection, query, where, getDocs, doc, updateDoc, Timestamp, onSnapshot, orderBy } from 'firebase/firestore';
@@ -36,12 +37,10 @@ const PanelSecretarias = () => {
     }
   }, [selectedEmbarque, selectedContenedor]);
 
-  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchEmbarques = async () => {
     try {
       const response = await api.get('/embarques');
       
-      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
       if (response.data.success) {
         const embarquesActivos = (response.data.data || []).filter(e => e.estado === 'activo');
         setEmbarques(embarquesActivos);
@@ -56,12 +55,10 @@ const PanelSecretarias = () => {
     }
   };
 
-  // ✅ CORREGIDO: Aplicando la Regla de Oro
   const fetchContenedores = async () => {
     try {
       const response = await api.get('/contenedores');
       
-      // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
       if (response.data.success) {
         setContenedores(response.data.data || []);
       } else {
@@ -84,12 +81,13 @@ const PanelSecretarias = () => {
         orderBy('numeroFactura', 'asc')
       );
       
-      // Si hay contenedor seleccionado, filtrar por él también
+      // ✅ CORRECCIÓN CRÍTICA: Cambiar 'numeroContenedor' a 'contenedor'
+      // Este es el cambio que soluciona el error de índice
       if (selectedContenedor) {
         q = query(
           facturasRef,
           where('embarqueId', '==', selectedEmbarque),
-          where('numeroContenedor', '==', selectedContenedor),
+          where('contenedor', '==', selectedContenedor),  // ← LÍNEA CORREGIDA
           orderBy('numeroFactura', 'asc')
         );
       }
@@ -246,7 +244,7 @@ const PanelSecretarias = () => {
             value={selectedEmbarque}
             onChange={(e) => {
               setSelectedEmbarque(e.target.value);
-              setSelectedContenedor(''); // Reset contenedor
+              setSelectedContenedor('');
             }}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -306,7 +304,6 @@ const PanelSecretarias = () => {
         </div>
       ) : (
         <>
-          {/* Tabs con Contadores */}
           <div className="flex gap-4 mb-6 border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveTab('sin_confirmar')}
@@ -373,7 +370,6 @@ const PanelSecretarias = () => {
             </button>
           </div>
 
-          {/* Lista de Facturas */}
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
@@ -401,9 +397,10 @@ const PanelSecretarias = () => {
                         <span className="text-lg font-bold text-gray-900 dark:text-white">
                           #{factura.numeroFactura}
                         </span>
-                        {factura.numeroContenedor && (
+                        {/* ✅ CORRECCIÓN: Cambiar numeroContenedor a contenedor */}
+                        {factura.contenedor && (
                           <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs font-medium rounded">
-                            📦 {factura.numeroContenedor}
+                            📦 {factura.contenedor}
                           </span>
                         )}
                         {factura.zona && (
@@ -490,7 +487,6 @@ const PanelSecretarias = () => {
         </>
       )}
 
-      {/* Modal de Confirmación */}
       {showConfirmModal && selectedFactura && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -502,10 +498,11 @@ const PanelSecretarias = () => {
               <div className="mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Factura</p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">#{selectedFactura.numeroFactura}</p>
-                {selectedFactura.numeroContenedor && (
+                {/* ✅ CORRECCIÓN: Cambiar numeroContenedor a contenedor */}
+                {selectedFactura.contenedor && (
                   <>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Contenedor</p>
-                    <p className="font-medium text-gray-900 dark:text-white">📦 {selectedFactura.numeroContenedor}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">📦 {selectedFactura.contenedor}</p>
                   </>
                 )}
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Cliente</p>
