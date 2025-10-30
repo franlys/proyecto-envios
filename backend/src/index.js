@@ -11,8 +11,8 @@ import reportesRoutes from './routes/reportes.js';
 import embarquesRoutes from './routes/embarques.js';
 import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
-import facturasRoutes from './routes/facturas.js';
-import recoleccionesRoutes from './routes/recolecciones.js';
+// import facturasRoutes from './routes/facturas.js'; // ⛔ ELIMINADO - Ya no se usa
+import recoleccionesRoutes from './routes/recolecciones.js'; // ✅ MANTENIDO
 import contenedoresRoutes from './routes/contenedores.js';
 import dashboardRoutes from './routes/dashboard.js';
 
@@ -105,8 +105,8 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/embarques', embarquesRoutes);
 app.use('/api/rutas', rutasRoutes);
 app.use('/api/tickets', ticketsRoutes);
-app.use('/api/facturas', facturasRoutes);
-app.use('/api/recolecciones', recoleccionesRoutes);
+// app.use('/api/facturas', facturasRoutes); // ⛔ ELIMINADO - Sistema antiguo descontinuado
+app.use('/api/recolecciones', recoleccionesRoutes); // ✅ SISTEMA NUEVO
 app.use('/api/contenedores', contenedoresRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
@@ -129,8 +129,7 @@ app.get('/', (req, res) => {
       embarques: '/api/embarques',
       rutas: '/api/rutas',
       tickets: '/api/tickets',
-      facturas: '/api/facturas',
-      recolecciones: '/api/recolecciones',
+      recolecciones: '/api/recolecciones', // ✅ NUEVO
       contenedores: '/api/contenedores',
       dashboard: '/api/dashboard'
     }
@@ -183,27 +182,14 @@ app.use('*', (req, res) => {
       'GET    /api/rutas/activas',
       'GET    /api/rutas/:id',
       'POST   /api/rutas',
-      'GET    /api/facturas/stats-secretaria',
-      'GET    /api/facturas/no-entregadas',
-      'POST   /api/facturas/reasignar',
-      'GET    /api/facturas/:id/historial',
-      'GET    /api/facturas/buscar',
-      'GET    /api/facturas/estadisticas',
       'POST   /api/tickets',
       'GET    /api/tickets/my-tickets',
       'GET    /api/tickets/all',
       'PATCH  /api/tickets/:id/respond',
       'PATCH  /api/tickets/:id/close',
-      'GET    /api/recolecciones',
-      'GET    /api/recolecciones/stats',
-      'GET    /api/recolecciones/buscar/:termino',
-      'GET    /api/recolecciones/estadisticas/:recolector_id',
-      'GET    /api/recolecciones/recolector/:recolectorId',
-      'GET    /api/recolecciones/:trackingNumero',
-      'POST   /api/recolecciones',
-      'PATCH  /api/recolecciones/:trackingNumero/estado',
-      'PATCH  /api/recolecciones/:trackingNumero/status',
-      'POST   /api/recolecciones/:trackingNumero/fotos',
+      '✅ POST   /api/recolecciones              (Crear recolección)',
+      '✅ GET    /api/recolecciones              (Listar recolecciones)',
+      '✅ GET    /api/recolecciones/:id          (Detalle recolección)',
       'POST   /api/contenedores/upload-from-drive',
       'GET    /api/contenedores',
       'GET    /api/contenedores/:numeroContenedor',
@@ -270,21 +256,17 @@ app.listen(PORT, () => {
   console.log('   ✅ GET    /api/embarques/stats-almacen');
   console.log('   ✅ GET    /api/rutas');
   console.log('   ✅ GET    /api/rutas/stats-repartidor');
-  console.log('   ✅ GET    /api/facturas/stats-secretaria');
-  console.log('   ✅ GET    /api/facturas/no-entregadas');
-  console.log('   ✅ POST   /api/facturas/reasignar');
   console.log('   ✅ POST   /api/tickets');
   console.log('   ✅ GET    /api/tickets/my-tickets');
   console.log('   ✅ GET    /api/tickets/all');
   console.log('   ✅ PATCH  /api/tickets/:id/respond');
   console.log('   ✅ PATCH  /api/tickets/:id/close');
-  console.log('   ✅ POST   /api/recolecciones');
-  console.log('   ✅ GET    /api/recolecciones/stats');
-  console.log('   ✅ GET    /api/recolecciones/:tracking');
-  console.log('   ✅ POST   /api/recolecciones/:tracking/fotos');
+  console.log('   🆕 POST   /api/recolecciones           (Crear recolección)');
+  console.log('   🆕 GET    /api/recolecciones           (Listar recolecciones)');
+  console.log('   🆕 GET    /api/recolecciones/:id       (Detalle recolección)');
   console.log('   ✅ POST   /api/contenedores/upload-from-drive');
   console.log('   ✅ GET    /api/contenedores');
-  console.log('   ✅ GET    /api/contenedores/:id');
+  console.log('   ✅ GET    /api/contenedores/:numeroContenedor');
   console.log('   ✅ GET    /api/dashboard/stats');
   console.log('   ✅ GET    /api/dashboard/stats-super-admin');
   console.log('   ✅ GET    /api/dashboard/stats-admin-general');

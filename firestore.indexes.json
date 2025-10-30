@@ -1,87 +1,51 @@
 {
   "indexes": [
     {
-      "collectionGroup": "facturas",
-      "queryScope": "COLLECTION_GROUP",
+      "collectionGroup": "recolecciones",
+      "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "facturas",
+      "collectionGroup": "recolecciones",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "estado",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fechaIntento",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fechaIntento", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "recolecciones",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "embarqueId", "order": "ASCENDING" },
+        { "fieldPath": "numeroFactura", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "gastos",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "rutaId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fecha",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "rutaId", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
       ]
     },
     {
       "collectionGroup": "rutas",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "createdAt",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "empleadoId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "usuario1",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "rol",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAy",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "createdAt", "order": "ASCENDING" },
+        { "fieldPath": "empleadoId", "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "usuarios",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "rol",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
+        { "fieldPath": "rol", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],

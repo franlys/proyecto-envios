@@ -13,7 +13,8 @@ import {
   HelpCircle,
   MessageSquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  PackagePlus // ✅ NUEVO: Icono para Nueva Recolección
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -35,6 +36,13 @@ const Sidebar = () => {
       path: '/companies',
       icon: Building2,
       roles: ['super_admin']
+    },
+    {
+      name: 'Nueva Recolección', // ✅ NUEVO: Enlace para crear recolección
+      path: '/recolecciones/nueva',
+      icon: PackagePlus,
+      roles: ['admin', 'recolector', 'almacen_eeuu'],
+      badge: 'Nuevo'
     },
     {
       name: 'Embarques',
