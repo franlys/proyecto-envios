@@ -8,26 +8,59 @@ import { db } from '../config/firebase.js';
  */
 export const verifyToken = async (req, res, next) => {
   try {
-    // Obtener token del header Authorization
+    // ✅ CORRECCIÓN CRÍTICA: Obtener token del header Authorization
     const authHeader = req.headers.authorization;
     
+    // ✅ Validar que existe el header y tiene el formato correcto
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ 
         error: 'Token no proporcionado',
-        hint: 'Envía el header Authorization: Bearer <token>'
+        hint: 'Envía el header Authorization: Bearer <token>',
+        receivedHeaders: {
+          authorization: authHeader || 'undefined',
+          'content-type': req.headers['content-type']
+        }
       });
     }
 
+    // ✅ Extraer el token después de "Bearer "
     const token = authHeader.split('Bearer ')[1];
     
-    if (!token) {
-      return res.status(401).json({ error: 'Token inválido' });
+    if (!token || token.trim() === '') {
+      return res.status(401).json({ 
+        error: 'Token inválido',
+        hint: 'El token está vacío'
+      });
     }
 
-    // ✅ CORRECCIÓN: Verificar el token con Firebase Admin
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    // ✅ Verificar el token con Firebase Admin
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    } catch (verifyError) {
+      console.error('❌ Error verificando token:', verifyError.message);
+      
+      if (verifyError.code === 'auth/id-token-expired') {
+        return res.status(401).json({ 
+          error: 'Token expirado',
+          hint: 'Por favor, vuelve a iniciar sesión para obtener un nuevo token'
+        });
+      }
+      
+      if (verifyError.code === 'auth/argument-error') {
+        return res.status(401).json({ 
+          error: 'Token con formato inválido',
+          hint: 'El token proporcionado no es válido'
+        });
+      }
+
+      return res.status(401).json({ 
+        error: 'Token inválido',
+        details: verifyError.message 
+      });
+    }
     
-    // ✅ CORRECCIÓN: Verificar expiración del token
+    // ✅ Verificar expiración del token
     const now = Math.floor(Date.now() / 1000);
     if (decodedToken.exp < now) {
       return res.status(401).json({ 
@@ -38,18 +71,19 @@ export const verifyToken = async (req, res, next) => {
 
     req.user = decodedToken;
     
-    // Obtener datos adicionales del usuario desde Firestore
+    // ✅ Obtener datos adicionales del usuario desde Firestore
     const userDoc = await db.collection('usuarios').doc(decodedToken.uid).get();
     
     if (!userDoc.exists) {
       return res.status(404).json({ 
-        error: 'Usuario no encontrado en la base de datos' 
+        error: 'Usuario no encontrado en la base de datos',
+        hint: 'El usuario existe en Auth pero no en Firestore'
       });
     }
 
     const userData = userDoc.data();
 
-    // Verificar que el usuario esté activo
+    // ✅ Verificar que el usuario esté activo
     if (userData.activo === false) {
       return res.status(403).json({ 
         error: 'Usuario inactivo',
@@ -57,41 +91,29 @@ export const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Normalizar rol para compatibilidad
+    // ✅ Normalizar rol para compatibilidad
     const rolNormalizado = userData.rol === 'admin' ? 'admin_general' : userData.rol;
 
-    // Agregar datos del usuario a la request
+    // ✅ Agregar datos del usuario a la request
     req.userData = {
       uid: decodedToken.uid,
       email: userData.email,
       nombre: userData.nombre,
       rol: rolNormalizado,
       companyId: userData.companyId,
+      sucursalId: userData.sucursalId || null,
       activo: userData.activo
     };
 
+    console.log(`✅ Token verificado para: ${userData.email} (${rolNormalizado})`);
     next();
 
   } catch (error) {
-    console.error('❌ Error verificando token:', error);
+    console.error('❌ Error en middleware de autenticación:', error);
     
-    if (error.code === 'auth/id-token-expired') {
-      return res.status(401).json({ 
-        error: 'Token expirado',
-        hint: 'Por favor, vuelve a iniciar sesión'
-      });
-    }
-    
-    if (error.code === 'auth/argument-error') {
-      return res.status(401).json({ 
-        error: 'Token inválido',
-        hint: 'El token proporcionado no es válido'
-      });
-    }
-    
-    return res.status(401).json({ 
-      error: 'Token inválido o expirado',
-      details: error.message 
+    return res.status(500).json({ 
+      error: 'Error interno del servidor al verificar autenticación',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -109,11 +131,14 @@ export const checkRole = (...allowedRoles) => {
       });
     }
 
-    if (!allowedRoles.includes(req.userData.rol)) {
+    const userRole = req.userData.rol;
+    const hasPermission = allowedRoles.includes(userRole);
+
+    if (!hasPermission) {
       return res.status(403).json({ 
         error: 'No tienes permisos para realizar esta acción',
         requiredRoles: allowedRoles,
-        yourRole: req.userData.rol
+        yourRole: userRole
       });
     }
 
@@ -132,4 +157,24 @@ export const requireCompany = (req, res, next) => {
     });
   }
   next();
+};
+
+/**
+ * Middleware para verificar que el usuario es super_admin
+ */
+export const requireSuperAdmin = (req, res, next) => {
+  if (!req.userData || req.userData.rol !== 'super_admin') {
+    return res.status(403).json({ 
+      error: 'Acceso denegado',
+      hint: 'Solo super_admin puede realizar esta acción'
+    });
+  }
+  next();
+};
+
+export default {
+  verifyToken,
+  checkRole,
+  requireCompany,
+  requireSuperAdmin
 };

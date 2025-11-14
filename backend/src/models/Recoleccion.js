@@ -1,425 +1,450 @@
 // backend/src/models/Recoleccion.js
-import { db, admin } from '../config/firebase.js';
-import TrackingGenerator from './TrackingGenerator.js';
+import { db, storage } from '../config/firebase.js';
+import { v4 as uuidv4 } from 'uuid';
 
-class Recoleccion {
-  
-  /**
-   * Crear nueva recolección
-   * @param {Object} data Datos de la recolección
-   * @returns {Promise<Object>} Recolección creada
-   */
-  static async create(data) {
-    try {
-      // Generar tracking único
-      const trackingNumero = await TrackingGenerator.generate();
-      
-      const recoleccion = {
-        tracking_numero: trackingNumero,
-        fecha_recoleccion: data.fecha_recoleccion || new Date().toISOString(),
-        recolector_id: data.recolector_id,
-        recolector_nombre: data.recolector_nombre,
-        
-        // Ubicación GPS
-        ubicacion: data.ubicacion || null,
-        
-        // Paquete
-        paquete: {
-          fotos: data.fotos || [],
-          descripcion: data.descripcion || '',
-          peso: data.peso || null,
-          peso_unidad: data.peso_unidad || 'lb',
-          valor_declarado: data.valor_declarado || 0,
-          rfid_tag: null // Para implementación futura
-        },
-        
-        // Remitente
-        remitente: {
-          nombre: data.remitente.nombre,
-          direccion: data.remitente.direccion,
-          ciudad: data.remitente.ciudad || '',
-          estado: data.remitente.estado || '',
-          zip: data.remitente.zip || '',
-          telefono: data.remitente.telefono,
-          email: data.remitente.email || null
-        },
-        
-        // Destinatario
-        destinatario: {
-          nombre: data.destinatario.nombre,
-          ciudad: data.destinatario.ciudad,
-          sector: data.destinatario.sector || '',
-          telefono: data.destinatario.telefono,
-          telefono_alt: data.destinatario.telefono_alt || null,
-          direccion_completa: data.destinatario.direccion_completa,
-          coordenadas: data.destinatario.coordenadas || null
-        },
-        
-        // Pago
-        pago: {
-          status: data.pago.status,
-          momento_pago: data.pago.momento_pago,
-          metodo: data.pago.metodo || null,
-          monto: data.pago.monto || 0,
-          moneda: data.pago.moneda || 'USD',
-          comprobante_foto: data.pago.comprobante_foto || null
-        },
-        
-        // Estado
-        status: 'Recolectado',
-        contenedor_id: null,
-        factura_id: null,
-        ruta_id: null,
-        
-        // Trazabilidad
-        historial: [
-          {
-            fecha: new Date().toISOString(),
-            accion: 'Recolectado',
-            usuario: data.recolector_nombre,
-            ubicacion: data.ubicacion || null
-          }
-        ],
-        
-        // Metadatos
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Guardar en Firestore
-      const docRef = db.collection('recolecciones').doc(trackingNumero);
-      await docRef.set(recoleccion);
-      
-      return {
-        id: trackingNumero,
-        ...recoleccion
-      };
-      
-    } catch (error) {
-      console.error('Error creando recolección:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Obtener recolección por tracking
-   */
-  static async getByTracking(trackingNumero) {
-    try {
-      const doc = await db.collection('recolecciones').doc(trackingNumero).get();
-      
-      if (!doc.exists) {
-        return null;
-      }
-      
-      return {
-        id: doc.id,
-        ...doc.data()
-      };
-    } catch (error) {
-      console.error('Error obteniendo recolección:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Listar recolecciones de un recolector
-   */
-  static async listByRecolector(recolectorId, filters = {}) {
-    try {
-      let query = db.collection('recolecciones')
-        .where('recolector_id', '==', recolectorId);
-      
-      if (filters.status) {
-        query = query.where('status', '==', filters.status);
-      }
-      
-      if (filters.fecha_desde) {
-        query = query.where('fecha_recoleccion', '>=', filters.fecha_desde);
-      }
-      
-      query = query.orderBy('fecha_recoleccion', 'desc');
-      
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-      
-      const snapshot = await query.get();
-      
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-    } catch (error) {
-      console.error('Error listando recolecciones:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Actualizar status de recolección
-   */
-  static async updateStatus(trackingNumero, nuevoStatus, data = {}) {
-    try {
-      const docRef = db.collection('recolecciones').doc(trackingNumero);
-      
-      const updateData = {
-        status: nuevoStatus,
-        updatedAt: new Date().toISOString(),
-        historial: admin.firestore.FieldValue.arrayUnion({
-          fecha: new Date().toISOString(),
-          accion: nuevoStatus,
-          usuario: data.usuario || 'Sistema',
-          notas: data.notas || null
-        })
-      };
-      
-      if (nuevoStatus === 'En almacén EE.UU.') {
-        updateData.fecha_llegada_almacen = new Date().toISOString();
-      }
-      
-      if (nuevoStatus === 'En contenedor') {
-        updateData.contenedor_id = data.contenedor_id;
-      }
-      
-      await docRef.update(updateData);
-      
-    } catch (error) {
-      console.error('Error actualizando status:', error);
-      throw error;
-    }
-  }
+/**
+ * MODELO DE RECOLECCIÓN - FASE 1
+ * Estructura completa con items, fotos y zonas
+ */
 
-  /**
-   * ✅ CORREGIDO: Obtener recolecciones con filtros avanzados
-   * Eliminado .offset() que no existe en Firestore
-   */
-  static async obtenerConFiltros(filtros = {}, limit = 100, lastDoc = null) {
-    try {
-      let query = db.collection('recolecciones');
-      
-      // Aplicar filtros
-      if (filtros.status) {
-        query = query.where('status', '==', filtros.status);
-      }
-      
-      if (filtros.recolector_id) {
-        query = query.where('recolector_id', '==', filtros.recolector_id);
-      }
-      
-      if (filtros.tracking_numero) {
-        query = query.where('tracking_numero', '==', filtros.tracking_numero);
-      }
-      
-      if (filtros.contenedor_id) {
-        query = query.where('contenedor_id', '==', filtros.contenedor_id);
-      }
-      
-      // Filtro por rango de fechas
-      if (filtros.fecha_recoleccion) {
-        if (filtros.fecha_recoleccion.$gte) {
-          query = query.where('fecha_recoleccion', '>=', filtros.fecha_recoleccion.$gte.toISOString());
-        }
-        if (filtros.fecha_recoleccion.$lte) {
-          query = query.where('fecha_recoleccion', '<=', filtros.fecha_recoleccion.$lte.toISOString());
-        }
-      }
-      
-      // Ordenar
-      query = query.orderBy('fecha_recoleccion', 'desc');
-      
-      // ✅ Paginación con cursor (en lugar de .offset())
-      if (lastDoc) {
-        query = query.startAfter(lastDoc);
-      }
-      
-      query = query.limit(limit);
-      
-      const snapshot = await query.get();
-      
-      const recolecciones = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Retornar también el último documento para paginación
-      const ultimoDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-      
-      return {
-        data: recolecciones,
-        lastDoc: ultimoDoc,
-        hasMore: snapshot.docs.length === limit
-      };
-      
-    } catch (error) {
-      console.error('Error obteniendo recolecciones con filtros:', error);
-      throw error;
+// ========================================
+// CONSTANTES Y ENUMS
+// ========================================
+
+export const ESTADOS_RECOLECCION = {
+  PENDIENTE_RECOLECCION: 'pendiente_recoleccion',
+  RECOLECTADA: 'recolectada',
+  EN_CONTENEDOR_USA: 'en_contenedor_usa',
+  INCOMPLETA_USA: 'incompleta_usa',
+  EN_TRANSITO_RD: 'en_transito_rd',
+  RECIBIDA_RD: 'recibida_rd',
+  PENDIENTE_CONFIRMACION: 'pendiente_confirmacion',
+  CONFIRMADA: 'confirmada',
+  EN_RUTA: 'en_ruta',
+  LISTA_PARA_ENTREGAR: 'lista_para_entregar',
+  ENTREGADA: 'entregada',
+  NO_ENTREGADA: 'no_entregada'
+};
+
+export const ESTADOS_ITEM = {
+  RECOLECTADO: 'recolectado',
+  EN_CONTENEDOR_USA: 'en_contenedor_usa',
+  RECIBIDO_RD: 'recibido_rd',
+  CARGADO_CAMION: 'cargado_camion',
+  ENTREGADO: 'entregado'
+};
+
+export const ZONAS = {
+  CAPITAL: 'Capital',
+  SUR: 'Sur',
+  LOCAL: 'Local', // Baní
+  CIBAO: 'Cibao',
+  ESTE: 'Este'
+};
+
+// ========================================
+// SECTORES POR ZONA (para autodetección)
+// ========================================
+
+const SECTORES_CONOCIDOS = {
+  capital: [
+    'gazcue', 'piantini', 'naco', 'bella vista', 'serrallés', 'mirador sur',
+    'los cacicazgos', 'paraíso', 'renacimiento', 'los prados', 'arroyo hondo',
+    'los rios', 'la esperilla', 'la julia', 'los restauradores', 'ensanche ozama',
+    'villa juana', 'centro de los heroes', 'villa francisca', 'san carlos',
+    'ciudad nueva', 'zona colonial', 'zona universitaria', 'los mina',
+    'villa mella', 'sabana perdida', 'herrera', 'los alcarrizos'
+  ],
+  cibao: [
+    'santiago', 'bella vista', 'cerros de gurabo', 'los jardines', 
+    'jardines metropolitanos', 'los salados', 'cienfuegos', 'pueblo nuevo', 
+    'ensanche libertad', 'la otra banda', 'gurabo', 'hato mayor', 'tamboril',
+    'la vega', 'moca', 'san francisco de macoris', 'salcedo', 'tenares'
+  ],
+  sur: [
+    'azua centro', 'barahona centro', 'san juan centro', 'san cristobal centro',
+    'azua', 'barahona', 'san juan', 'san cristóbal', 'peravia', 'ocoa'
+  ],
+  este: [
+    'san pedro centro', 'la romana centro', 'higuey', 'higüey', 'bávaro', 
+    'bavaro', 'punta cana', 'juan dolio', 'guayacanes', 'el seibo', 'hato mayor'
+  ],
+  local: [
+    'bani', 'baní', 'pueblo', 'el centro', 'los robles', 'las americas', 
+    'villa fundacion'
+  ]
+};
+
+// ========================================
+// FUNCIONES DE DETECCIÓN AUTOMÁTICA
+// ========================================
+
+/**
+ * Detecta automáticamente la zona basándose en la dirección
+ */
+export const detectarZona = (direccion) => {
+  if (!direccion) return null;
+  
+  const dir = direccion.toLowerCase();
+  
+  // 1. Local (Baní) - Prioridad alta
+  if (dir.includes('bani') || dir.includes('baní')) {
+    return ZONAS.LOCAL;
+  }
+  
+  // 2. Este
+  if (dir.includes('san pedro') || dir.includes('la romana') || 
+      dir.includes('higuey') || dir.includes('higüey') ||
+      dir.includes('punta cana') || dir.includes('bávaro') || 
+      dir.includes('bavaro') || dir.includes('juan dolio')) {
+    return ZONAS.ESTE;
+  }
+  
+  // 3. Cibao
+  if (dir.includes('santiago') || dir.includes('cibao') || 
+      dir.includes('la vega') || dir.includes('moca') ||
+      dir.includes('san francisco de macoris')) {
+    return ZONAS.CIBAO;
+  }
+  
+  // 4. Sur
+  if (dir.includes('azua') || dir.includes('barahona') || 
+      dir.includes('san juan') || dir.includes('san cristobal') ||
+      dir.includes('san cristóbal')) {
+    return ZONAS.SUR;
+  }
+  
+  // 5. Capital (por defecto)
+  return ZONAS.CAPITAL;
+};
+
+/**
+ * Detecta el sector específico basándose en la dirección
+ */
+export const detectarSector = (direccion, zona) => {
+  if (!direccion || !zona) return '';
+  
+  const dir = direccion.toLowerCase();
+  const zonaKey = zona.toLowerCase();
+  const sectoresZona = SECTORES_CONOCIDOS[zonaKey] || [];
+  
+  for (const sector of sectoresZona) {
+    const regex = new RegExp(`\\b${sector.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    if (regex.test(dir)) {
+      // Capitalizar primera letra de cada palabra
+      return sector
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
     }
   }
   
-  /**
-   * Búsqueda rápida por término (tracking o nombre)
-   */
-  static async buscarPorTermino(termino) {
-    try {
-      const resultados = [];
-      
-      // Buscar por tracking exacto
-      const trackingDoc = await db.collection('recolecciones').doc(termino).get();
-      if (trackingDoc.exists) {
-        resultados.push({
-          id: trackingDoc.id,
-          ...trackingDoc.data()
-        });
-        return resultados;
+  return '';
+};
+
+// ========================================
+// GENERADOR DE CÓDIGO DE TRACKING
+// ========================================
+
+/**
+ * Genera un código de tracking único
+ * Formato: RC-YYYYMMDD-XXXX
+ * RC = Recolección
+ * ✅ CORREGIDO: Sin orderBy para evitar necesidad de índice
+ */
+export const generarCodigoTracking = async (companyId) => {
+  const fecha = new Date();
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, '0');
+  const day = String(fecha.getDate()).padStart(2, '0');
+  const datePrefix = `${year}${month}${day}`;
+  
+  // Obtener el último número del día
+  const startOfDay = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  const endOfDay = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1);
+  
+  // ✅ CORRECCIÓN: Sin orderBy
+  const snapshot = await db.collection('recolecciones')
+    .where('companyId', '==', companyId)
+    .where('createdAt', '>=', startOfDay.toISOString())
+    .where('createdAt', '<', endOfDay.toISOString())
+    .limit(100) // Obtener hasta 100 para encontrar el máximo
+    .get();
+  
+  let nextNumber = 1;
+  
+  if (!snapshot.empty) {
+    // Ordenar en JavaScript y encontrar el número más alto
+    const codigos = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const code = data.codigoTracking;
+      if (code) {
+        const parts = code.split('-');
+        return parseInt(parts[2]) || 0;
       }
-      
-      // Buscar por nombre de destinatario (parcial)
-      const snapshot = await db.collection('recolecciones')
-        .orderBy('destinatario.nombre')
-        .startAt(termino)
-        .endAt(termino + '\uf8ff')
-        .limit(10)
-        .get();
-      
-      snapshot.docs.forEach(doc => {
-        resultados.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
-      
-      return resultados;
-      
-    } catch (error) {
-      console.error('Error en búsqueda:', error);
-      throw error;
-    }
+      return 0;
+    });
+    
+    const maxNumber = Math.max(...codigos);
+    nextNumber = maxNumber + 1;
+  }
+  
+  const numberPart = String(nextNumber).padStart(4, '0');
+  return `RC-${datePrefix}-${numberPart}`;
+};
+
+// ========================================
+// SUBIDA DE FOTOS A FIREBASE STORAGE
+// ========================================
+
+/**
+ * Sube múltiples fotos a Firebase Storage
+ * @param {Array} files - Array de archivos de Multer
+ * @param {string} recoleccionId - ID de la recolección
+ * @returns {Promise<Array>} URLs de las fotos subidas
+ */
+export const subirFotosRecoleccion = async (files, recoleccionId, companyId) => {
+  if (!files || files.length === 0) return [];
+  
+  const bucket = storage.bucket();
+  const urls = [];
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const fileName = `recolecciones/${companyId}/${recoleccionId}/foto_${i + 1}_${Date.now()}.jpg`;
+    const fileUpload = bucket.file(fileName);
+    
+    await fileUpload.save(file.buffer, {
+      metadata: {
+        contentType: file.mimetype,
+      },
+      public: true
+    });
+    
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    urls.push(publicUrl);
+  }
+  
+  return urls;
+};
+
+// ========================================
+// CLASE MODELO DE RECOLECCIÓN
+// ========================================
+
+export class Recoleccion {
+  constructor(data) {
+    // Información básica del destinatario
+    this.cliente = data.cliente || '';
+    this.telefono = data.telefono || '';
+    this.email = data.email || '';
+    this.direccion = data.direccion || '';
+    
+    // Ubicación
+    this.zona = data.zona || null;
+    this.sector = data.sector || '';
+    
+    // Items de la recolección
+    this.items = data.items || [];
+    
+    // Fotos
+    this.fotosRecoleccion = data.fotosRecoleccion || [];
+    this.fotosEntrega = data.fotosEntrega || [];
+    
+    // Contenedor
+    this.contenedorId = data.contenedorId || null;
+    this.itemsCompletos = data.itemsCompletos !== undefined ? data.itemsCompletos : true;
+    
+    // Estados
+    this.estadoGeneral = data.estadoGeneral || ESTADOS_RECOLECCION.RECOLECTADA;
+    
+    // Tracking
+    this.codigoTracking = data.codigoTracking || null;
+    
+    // Notas
+    this.notas = data.notas || '';
+    
+    // Metadata
+    this.companyId = data.companyId || null;
+    this.recolectorId = data.recolectorId || null;
+    this.createdAt = data.createdAt || new Date().toISOString();
+    this.updatedAt = data.updatedAt || new Date().toISOString();
   }
   
   /**
-   * Obtener estadísticas de un recolector
+   * Convierte el objeto a formato JSON para Firestore
    */
-  static async obtenerEstadisticasRecolector(recolectorId) {
-    try {
-      const snapshot = await db.collection('recolecciones')
-        .where('recolector_id', '==', recolectorId)
-        .get();
-      
-      const recolecciones = snapshot.docs.map(doc => doc.data());
-      
-      // Contar por estado
-      const porEstado = {};
-      recolecciones.forEach(rec => {
-        porEstado[rec.status] = (porEstado[rec.status] || 0) + 1;
-      });
-      
-      // Calcular totales
-      const total = recolecciones.length;
-      const enProceso = recolecciones.filter(r => 
-        !['Entregado', 'Cancelado'].includes(r.status)
-      ).length;
-      
-      const valorTotal = recolecciones.reduce((sum, r) => 
-        sum + (r.paquete.valor_declarado || 0), 0
-      );
-      
-      const pesoTotal = recolecciones.reduce((sum, r) => 
-        sum + (r.paquete.peso || 0), 0
-      );
-      
-      return {
-        recolector_id: recolectorId,
-        total_recolecciones: total,
-        en_proceso: enProceso,
-        entregadas: porEstado['Entregado'] || 0,
-        por_estado: porEstado,
-        valor_total: valorTotal,
-        peso_total: pesoTotal,
-        ultima_recoleccion: recolecciones[0]?.fecha_recoleccion || null
-      };
-      
-    } catch (error) {
-      console.error('Error obteniendo estadísticas:', error);
-      throw error;
-    }
+  toFirestore() {
+    return {
+      cliente: this.cliente,
+      telefono: this.telefono,
+      email: this.email,
+      direccion: this.direccion,
+      zona: this.zona,
+      sector: this.sector,
+      items: this.items,
+      fotosRecoleccion: this.fotosRecoleccion,
+      fotosEntrega: this.fotosEntrega,
+      contenedorId: this.contenedorId,
+      itemsCompletos: this.itemsCompletos,
+      estadoGeneral: this.estadoGeneral,
+      codigoTracking: this.codigoTracking,
+      notas: this.notas,
+      companyId: this.companyId,
+      recolectorId: this.recolectorId,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
+    };
   }
   
   /**
-   * Cambiar estado de recolección con historial
+   * Valida que todos los campos obligatorios estén presentes
    */
-  static async cambiarEstado(trackingNumero, nuevoEstado, usuario, notas = null) {
-    try {
-      const docRef = db.collection('recolecciones').doc(trackingNumero);
-      const doc = await docRef.get();
-      
-      if (!doc.exists) {
-        return null;
-      }
-      
-      const updateData = {
-        status: nuevoEstado,
-        updatedAt: new Date().toISOString(),
-        historial: admin.firestore.FieldValue.arrayUnion({
-          fecha: new Date().toISOString(),
-          accion: `Cambio de estado a: ${nuevoEstado}`,
-          usuario: usuario || 'Sistema',
-          notas: notas || null
-        })
-      };
-      
-      // Agregar campos específicos según el estado
-      if (nuevoEstado === 'En almacén EE.UU.') {
-        updateData.fecha_llegada_almacen_eeuu = new Date().toISOString();
-      }
-      
-      if (nuevoEstado === 'En almacén RD') {
-        updateData.fecha_llegada_almacen_rd = new Date().toISOString();
-      }
-      
-      if (nuevoEstado === 'Entregado') {
-        updateData.fecha_entrega = new Date().toISOString();
-      }
-      
-      await docRef.update(updateData);
-      
-      return {
-        id: trackingNumero,
-        ...doc.data(),
-        ...updateData
-      };
-      
-    } catch (error) {
-      console.error('Error cambiando estado:', error);
-      throw error;
+  validar() {
+    const errores = [];
+    
+    if (!this.cliente || this.cliente.trim() === '') {
+      errores.push('El nombre del cliente es obligatorio');
     }
-  }
-  
-  /**
-   * Agregar fotos a una recolección
-   */
-  static async agregarFotos(trackingNumero, urls) {
-    try {
-      const docRef = db.collection('recolecciones').doc(trackingNumero);
-      const doc = await docRef.get();
-      
-      if (!doc.exists) {
-        return null;
-      }
-      
-      await docRef.update({
-        'paquete.fotos': admin.firestore.FieldValue.arrayUnion(...urls),
-        updatedAt: new Date().toISOString()
-      });
-      
-      return true;
-      
-    } catch (error) {
-      console.error('Error agregando fotos:', error);
-      throw error;
+    
+    if (!this.telefono || this.telefono.trim() === '') {
+      errores.push('El teléfono es obligatorio');
     }
+    
+    if (!this.direccion || this.direccion.trim() === '') {
+      errores.push('La dirección es obligatoria');
+    }
+    
+    if (!this.zona) {
+      errores.push('La zona es obligatoria');
+    }
+    
+    if (!this.items || this.items.length === 0) {
+      errores.push('Debe agregar al menos un item');
+    }
+    
+    // Validar que cada item tenga descripción
+    this.items.forEach((item, index) => {
+      if (!item.descripcion || item.descripcion.trim() === '') {
+        errores.push(`El item ${index + 1} debe tener una descripción`);
+      }
+    });
+    
+    if (!this.fotosRecoleccion || this.fotosRecoleccion.length === 0) {
+      errores.push('Debe subir al menos una foto de la recolección');
+    }
+    
+    return errores;
   }
 }
 
-export default Recoleccion;
+// ========================================
+// FUNCIONES DEL MODELO
+// ========================================
+
+/**
+ * Crea una nueva recolección en Firestore
+ */
+export const crearRecoleccion = async (recoleccionData) => {
+  const recoleccion = new Recoleccion(recoleccionData);
+  
+  // Validar
+  const errores = recoleccion.validar();
+  if (errores.length > 0) {
+    throw new Error(`Validación fallida: ${errores.join(', ')}`);
+  }
+  
+  // Generar código de tracking
+  if (!recoleccion.codigoTracking) {
+    recoleccion.codigoTracking = await generarCodigoTracking(recoleccion.companyId);
+  }
+  
+  // Guardar en Firestore
+  const docRef = await db.collection('recolecciones').add(recoleccion.toFirestore());
+  
+  return {
+    id: docRef.id,
+    ...recoleccion.toFirestore()
+  };
+};
+
+/**
+ * Obtiene todas las recolecciones de una compañía
+ * ✅ CORREGIDO: Sin orderBy para evitar necesidad de índice compuesto
+ */
+export const obtenerRecolecciones = async (companyId, filtros = {}) => {
+  let query = db.collection('recolecciones').where('companyId', '==', companyId);
+  
+  // Aplicar filtros opcionales
+  if (filtros.estadoGeneral) {
+    query = query.where('estadoGeneral', '==', filtros.estadoGeneral);
+  }
+  
+  if (filtros.zona) {
+    query = query.where('zona', '==', filtros.zona);
+  }
+  
+  if (filtros.contenedorId) {
+    query = query.where('contenedorId', '==', filtros.contenedorId);
+  }
+  
+  // ✅ CORRECCIÓN: Sin orderBy para evitar necesidad de índice compuesto
+  const snapshot = await query.get();
+  
+  // Obtener documentos
+  const recolecciones = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+  
+  // ✅ Ordenar en JavaScript por createdAt descendente
+  recolecciones.sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA; // Descendente (más nuevo primero)
+  });
+  
+  return recolecciones;
+};
+
+/**
+ * Obtiene una recolección por ID
+ */
+export const obtenerRecoleccionPorId = async (id) => {
+  const doc = await db.collection('recolecciones').doc(id).get();
+  
+  if (!doc.exists) {
+    throw new Error('Recolección no encontrada');
+  }
+  
+  return {
+    id: doc.id,
+    ...doc.data()
+  };
+};
+
+/**
+ * Actualiza una recolección
+ */
+export const actualizarRecoleccion = async (id, updates) => {
+  updates.updatedAt = new Date().toISOString();
+  
+  await db.collection('recolecciones').doc(id).update(updates);
+  
+  return obtenerRecoleccionPorId(id);
+};
+
+export default {
+  Recoleccion,
+  ESTADOS_RECOLECCION,
+  ESTADOS_ITEM,
+  ZONAS,
+  detectarZona,
+  detectarSector,
+  generarCodigoTracking,
+  subirFotosRecoleccion,
+  crearRecoleccion,
+  obtenerRecolecciones,
+  obtenerRecoleccionPorId,
+  actualizarRecoleccion
+};

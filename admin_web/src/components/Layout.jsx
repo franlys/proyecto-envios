@@ -1,4 +1,6 @@
 ﻿// admin_web/src/components/Layout.jsx
+// ✅ ACTUALIZADO: Links de Cargadores + Repartidores + Almacén RD
+
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, Bell } from 'lucide-react';
@@ -15,7 +17,6 @@ try {
   ModalDetalleFactura = require('./modals/ModalDetalleFactura').default;
   useNotifications = require('../hooks/useNotifications').useNotifications;
 } catch (error) {
-  // Si no existen los componentes de notificaciones, usar versiones dummy
   console.log('Componentes de notificaciones no encontrados, usando versiones básicas');
 }
 
@@ -90,9 +91,14 @@ const Layout = ({ children }) => {
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/recolecciones', label: 'Recolecciones', icon: '📦' },
         { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/almacen-usa', label: 'Almacén USA', icon: '🏭' },
+        { path: '/almacen-rd', label: 'Almacén RD', icon: '🚚' },
         { path: '/secretarias', label: 'Panel Secretarías', icon: '📋' },
+        { path: '/cargadores', label: 'Panel Cargadores', icon: '📦' }, // ✅ NUEVO
+        { path: '/repartidores', label: 'Panel Repartidores', icon: '🚗' }, // ✅ NUEVO
         { path: '/rutas', label: 'Rutas', icon: '🗺️' },
         { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
+        { path: '/facturas-pendientes-pago', label: 'Facturas Pendientes', icon: '💰' },
         { path: '/empleados', label: 'Empleados', icon: '👥' },
         { path: '/reportes', label: 'Reportes', icon: '📈' },
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
@@ -101,6 +107,7 @@ const Layout = ({ children }) => {
       recolector: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/recolecciones', label: 'Mis Recolecciones', icon: '📦' },
+        { path: '/recolecciones/nueva', label: 'Nueva Recolección', icon: '➕' }, // ✅ DIRECTO
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
@@ -108,6 +115,7 @@ const Layout = ({ children }) => {
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/secretarias', label: 'Confirmar Facturas', icon: '📋' },
         { path: '/embarques', label: 'Ver Embarques', icon: '🚢' },
+        { path: '/facturas-pendientes-pago', label: 'Facturas Pendientes', icon: '💰' },
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
@@ -121,22 +129,34 @@ const Layout = ({ children }) => {
       ],
       almacen_rd: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/almacen-rd', label: 'Almacén RD', icon: '🚚' },
         { path: '/embarques', label: 'Embarques', icon: '🚢' },
         { path: '/rutas', label: 'Crear Rutas', icon: '🗺️' },
         { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
+        { path: '/reportes', label: 'Reportes', icon: '📈' },
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
       almacen_eeuu: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/recolecciones', label: 'Recolecciones', icon: '📦' },
+        { path: '/recolecciones/nueva', label: 'Nueva Recolección', icon: '➕' }, // ✅ DIRECTO
+        { path: '/almacen-usa', label: 'Almacén USA', icon: '🏭' },
         { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
+      cargador: [ // ✅ NUEVO ROL
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/cargadores', label: 'Mis Rutas', icon: '📦' },
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
       repartidor: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-        { path: '/rutas', label: 'Mis Rutas', icon: '🗺️' },
+        { path: '/repartidores', label: 'Mis Entregas', icon: '🚗' }, // ✅ ACTUALIZADO
+        { path: '/rutas', label: 'Ver Rutas', icon: '🗺️' },
+        { path: '/facturas-pendientes-pago', label: 'Facturas Pendientes', icon: '💰' },
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ]
@@ -153,6 +173,7 @@ const Layout = ({ children }) => {
       admin_general: 'Administrador',
       recolector: 'Recolector',
       secretaria: 'Secretaría',
+      cargador: 'Cargador', // ✅ NUEVO
       almacen: 'Almacén RD',
       almacen_rd: 'Almacén RD',
       almacen_eeuu: 'Almacén EE.UU.',
@@ -162,7 +183,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Listener de notificaciones (si existe) */}
       {NotificationListener && (
         <NotificationListener 
@@ -197,12 +218,12 @@ const Layout = ({ children }) => {
       )}
 
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo y título */}
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Sistema de Envíos</h1>
+              <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Sistema de Envíos</h1>
             </div>
 
             {/* Usuario y notificaciones */}
@@ -211,7 +232,7 @@ const Layout = ({ children }) => {
               {useNotifications && (
                 <button 
                   onClick={togglePanel}
-                  className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                  className="relative p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                 >
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
@@ -226,11 +247,11 @@ const Layout = ({ children }) => {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition"
+                  className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                 >
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-800">{userData?.nombre || 'Usuario'}</p>
-                    <p className="text-xs text-gray-500">{getRolName()}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-white">{userData?.nombre || 'Usuario'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{getRolName()}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
                     {userData?.nombre?.charAt(0).toUpperCase() || 'U'}
@@ -238,23 +259,23 @@ const Layout = ({ children }) => {
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-800">{userData?.nombre}</p>
-                      <p className="text-xs text-gray-500 mt-1">{userData?.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl py-2 z-50 border border-gray-100 dark:border-gray-700">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-800 dark:text-white">{userData?.nombre}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{userData?.email}</p>
                     </div>
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
                         navigate('/configuracion');
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                     >
                       ⚙️ Configuración
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" />
                       Cerrar Sesión
@@ -269,7 +290,7 @@ const Layout = ({ children }) => {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-md min-h-[calc(100vh-64px)] sticky top-16">
+        <aside className="w-64 bg-white dark:bg-gray-800 shadow-md min-h-[calc(100vh-64px)] sticky top-16">
           <nav className="p-4">
             {menuItems.map((item) => (
               <Link
@@ -278,7 +299,7 @@ const Layout = ({ children }) => {
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
                   location.pathname === item.path
                     ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 <span className="text-xl">{item.icon}</span>
@@ -289,7 +310,7 @@ const Layout = ({ children }) => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-[calc(100vh-64px)]">
+        <main className="flex-1 min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-gray-900">
           {children}
         </main>
       </div>

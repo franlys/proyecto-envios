@@ -30,6 +30,9 @@ const Dashboard = () => {
       } else if (rol === 'almacen_rd') {
         navigate('/embarques');
         return;
+      } else if (rol === 'almacen_eeuu') {
+        navigate('/almacen-usa');
+        return;
       }
       
       // Solo admin_general y super_admin ven este dashboard
@@ -38,7 +41,7 @@ const Dashboard = () => {
         return;
       }
     }
-  }, [userData, authLoading, navigate]);
+  }, [userData, authLoading]); // ✅ CORREGIDO: Removido navigate de dependencias
 
   // ✅ CORRECCIÓN: Cargar estadísticas adaptado al formato real del backend
   useEffect(() => {
@@ -106,7 +109,7 @@ const Dashboard = () => {
     if (!authLoading && userData) {
       fetchStats();
     }
-  }, [userData, authLoading, navigate]);
+  }, [userData, authLoading]); // ✅ CORREGIDO: Removido navigate de dependencias
 
   if (authLoading) {
     return (

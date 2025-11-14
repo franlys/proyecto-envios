@@ -1,9 +1,18 @@
 // admin_web/src/pages/Recolecciones.jsx
+// ✅ VERSIÓN CORREGIDA - Usa helpers para mostrar datos correctamente
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Package, Calendar, MapPin, User, Phone, DollarSign, Camera } from 'lucide-react';
+import { Plus, Search, Eye, Package, Calendar, MapPin, User, Phone, Camera, X, Home, Mail } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { 
+  getDestinatario, 
+  getRemitente, 
+  getNombreCliente, 
+  getTelefonoCliente, 
+  getDireccionCliente 
+} from '../utils/recoleccionHelpers';
 
 const Recolecciones = () => {
   const { userData } = useAuth();
@@ -12,32 +21,21 @@ const Recolecciones = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todas');
+  const [filtroZona, setFiltroZona] = useState('todas');
   const [showModal, setShowModal] = useState(false);
   const [recoleccionSeleccionada, setRecoleccionSeleccionada] = useState(null);
 
   useEffect(() => {
     loadRecolecciones();
-  }, [filtroEstado]);
+  }, []);
 
   const loadRecolecciones = async () => {
     try {
       setLoading(true);
-      let url = '/recolecciones';
       
-      // Si es recolector, filtrar por su ID
-      if (userData?.rol === 'recolector') {
-        url += `?recolectorId=${userData.uid}`;
-      }
+      const response = await api.get('/recolecciones');
+      console.log('📦 Respuesta del servidor:', response.data);
       
-      // Agregar filtro de estado si no es "todas"
-      if (filtroEstado !== 'todas') {
-        url += `${url.includes('?') ? '&' : '?'}estado=${filtroEstado}`;
-      }
-
-      const response = await api.get(url);
-      console.log('📦 Recolecciones cargadas:', response.data);
-      
-      // ✅ CORRECCIÓN: Aplicar la Regla de Oro
       if (response.data.success) {
         setRecolecciones(response.data.data || []);
       } else {
@@ -46,13 +44,14 @@ const Recolecciones = () => {
     } catch (error) {
       console.error('❌ Error cargando recolecciones:', error);
       setRecolecciones([]);
-      alert('Error al cargar recolecciones: ' + error.message);
+      alert('Error al cargar recolecciones: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerDetalle = (recoleccion) => {
+    console.log('🔍 Ver detalle de recolección:', recoleccion);
     setRecoleccionSeleccionada(recoleccion);
     setShowModal(true);
   };
@@ -66,37 +65,79 @@ const Recolecciones = () => {
     navigate('/recolecciones/nueva');
   };
 
+  // ✅ Usar helpers para búsqueda
   const recoleccionesFiltradas = recolecciones.filter(rec => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      rec.codigoTracking?.toLowerCase().includes(search) ||
-      rec.remitente?.nombre?.toLowerCase().includes(search) ||
-      rec.destinatario?.nombre?.toLowerCase().includes(search) ||
-      rec.descripcion?.toLowerCase().includes(search)
-    );
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const nombreCliente = getNombreCliente(rec).toLowerCase();
+      const telefonoCliente = getTelefonoCliente(rec).toLowerCase();
+      
+      const matchSearch = 
+        rec.codigoTracking?.toLowerCase().includes(search) ||
+        rec.zona?.toLowerCase().includes(search) ||
+        rec.sector?.toLowerCase().includes(search) ||
+        nombreCliente.includes(search) ||
+        telefonoCliente.includes(search) ||
+        rec.items?.some(item => 
+          item.descripcion?.toLowerCase().includes(search)
+        );
+      if (!matchSearch) return false;
+    }
+
+    if (filtroEstado !== 'todas' && rec.estadoGeneral !== filtroEstado) {
+      return false;
+    }
+
+    if (filtroZona !== 'todas' && rec.zona !== filtroZona) {
+      return false;
+    }
+
+    return true;
   });
 
   const getEstadoBadge = (estado) => {
     const badges = {
-      pendiente: 'bg-yellow-100 text-yellow-800',
-      confirmada: 'bg-blue-100 text-blue-800',
+      sin_confirmar: 'bg-yellow-100 text-yellow-800',
+      pendiente_recoleccion: 'bg-yellow-100 text-yellow-800',
       recolectada: 'bg-green-100 text-green-800',
-      en_almacen: 'bg-purple-100 text-purple-800',
-      cancelada: 'bg-red-100 text-red-800'
+      en_contenedor_usa: 'bg-purple-100 text-purple-800',
+      incompleta_usa: 'bg-orange-100 text-orange-800',
+      en_transito_rd: 'bg-indigo-100 text-indigo-800',
+      recibida_rd: 'bg-blue-100 text-blue-800',
+      pendiente_confirmacion: 'bg-yellow-100 text-yellow-800',
+      confirmada: 'bg-blue-100 text-blue-800',
+      en_ruta: 'bg-purple-100 text-purple-800',
+      lista_para_entregar: 'bg-teal-100 text-teal-800',
+      entregada: 'bg-green-100 text-green-800',
+      no_entregada: 'bg-red-100 text-red-800'
     };
     return badges[estado] || 'bg-gray-100 text-gray-800';
   };
 
   const getEstadoTexto = (estado) => {
     const textos = {
-      pendiente: 'Pendiente',
-      confirmada: 'Confirmada',
+      sin_confirmar: 'Sin Confirmar',
+      pendiente_recoleccion: 'Pendiente Recolección',
       recolectada: 'Recolectada',
-      en_almacen: 'En Almacén',
-      cancelada: 'Cancelada'
+      en_contenedor_usa: 'En Contenedor USA',
+      incompleta_usa: 'Incompleta USA',
+      en_transito_rd: 'En Tránsito RD',
+      recibida_rd: 'Recibida RD',
+      pendiente_confirmacion: 'Pendiente Confirmación',
+      confirmada: 'Confirmada',
+      en_ruta: 'En Ruta',
+      lista_para_entregar: 'Lista para Entregar',
+      entregada: 'Entregada',
+      no_entregada: 'No Entregada'
     };
     return textos[estado] || estado;
+  };
+
+  const stats = {
+    total: recolecciones.length,
+    pendientes: recolecciones.filter(r => r.estadoGeneral === 'pendiente_recoleccion' || r.estadoGeneral === 'sin_confirmar').length,
+    recolectadas: recolecciones.filter(r => r.estadoGeneral === 'recolectada').length,
+    enAlmacen: recolecciones.filter(r => r.estadoGeneral === 'en_contenedor_usa').length
   };
 
   if (loading) {
@@ -114,13 +155,13 @@ const Recolecciones = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Recolecciones</h1>
           <p className="text-gray-600 mt-1">
-            {userData?.rol === 'recolector' 
-              ? 'Gestiona tus recolecciones asignadas' 
-              : 'Gestiona todas las recolecciones del sistema'}
+            Gestiona todas las recolecciones del sistema
           </p>
         </div>
         
-        {(userData?.rol === 'recolector' || userData?.rol === 'admin_general' || userData?.rol === 'almacen_eeuu') && (
+        {(userData?.rol === 'recolector' || 
+          userData?.rol === 'admin_general' || 
+          userData?.rol === 'super_admin') && (
           <button
             onClick={handleNuevaRecoleccion}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
@@ -133,12 +174,12 @@ const Recolecciones = () => {
 
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Buscar por código, remitente, destinatario..."
+              placeholder="Buscar por código, zona, nombre..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -152,23 +193,45 @@ const Recolecciones = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="todas">Todos los estados</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="confirmada">Confirmadas</option>
-              <option value="recolectada">Recolectadas</option>
-              <option value="en_almacen">En Almacén</option>
-              <option value="cancelada">Canceladas</option>
+              <option value="sin_confirmar">Sin Confirmar</option>
+              <option value="pendiente_recoleccion">Pendiente Recolección</option>
+              <option value="recolectada">Recolectada</option>
+              <option value="en_contenedor_usa">En Contenedor USA</option>
+              <option value="incompleta_usa">Incompleta USA</option>
+              <option value="en_transito_rd">En Tránsito RD</option>
+              <option value="recibida_rd">Recibida RD</option>
+              <option value="pendiente_confirmacion">Pendiente Confirmación</option>
+              <option value="confirmada">Confirmada</option>
+              <option value="en_ruta">En Ruta</option>
+              <option value="entregada">Entregada</option>
+              <option value="no_entregada">No Entregada</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={filtroZona}
+              onChange={(e) => setFiltroZona(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="todas">Todas las zonas</option>
+              <option value="Capital">Capital</option>
+              <option value="Sur">Sur</option>
+              <option value="Local">Local (Baní)</option>
+              <option value="Cibao">Cibao</option>
+              <option value="Este">Este</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Estadísticas rápidas */}
+      {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{recolecciones.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             <Package className="text-blue-600" size={32} />
           </div>
@@ -178,9 +241,7 @@ const Recolecciones = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Pendientes</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {recolecciones.filter(r => r.estado === 'pendiente').length}
-              </p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.pendientes}</p>
             </div>
             <Calendar className="text-yellow-600" size={32} />
           </div>
@@ -190,9 +251,7 @@ const Recolecciones = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Recolectadas</p>
-              <p className="text-2xl font-bold text-green-600">
-                {recolecciones.filter(r => r.estado === 'recolectada').length}
-              </p>
+              <p className="text-2xl font-bold text-green-600">{stats.recolectadas}</p>
             </div>
             <MapPin className="text-green-600" size={32} />
           </div>
@@ -202,9 +261,7 @@ const Recolecciones = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">En Almacén</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {recolecciones.filter(r => r.estado === 'en_almacen').length}
-              </p>
+              <p className="text-2xl font-bold text-purple-600">{stats.enAlmacen}</p>
             </div>
             <Package className="text-purple-600" size={32} />
           </div>
@@ -219,213 +276,272 @@ const Recolecciones = () => {
             No hay recolecciones
           </h3>
           <p className="text-gray-600">
-            {searchTerm 
-              ? 'No se encontraron recolecciones con ese criterio de búsqueda'
+            {searchTerm || filtroEstado !== 'todas' || filtroZona !== 'todas'
+              ? 'No se encontraron recolecciones con esos filtros'
               : 'Aún no hay recolecciones registradas'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {recoleccionesFiltradas.map((recoleccion) => (
-            <div
-              key={recoleccion._id || recoleccion.id}
-              className="bg-white rounded-lg shadow hover:shadow-lg transition p-6"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {recoleccion.codigoTracking}
-                    </h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoBadge(recoleccion.estado)}`}>
-                      {getEstadoTexto(recoleccion.estado)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {new Date(recoleccion.fecha_recoleccion).toLocaleDateString('es-DO', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-                
-                <button
-                  onClick={() => handleVerDetalle(recoleccion)}
-                  className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
-                >
-                  <Eye size={18} />
-                  Ver Detalle
-                </button>
-              </div>
+          {recoleccionesFiltradas.map((recoleccion) => {
+            // ✅ Usar helpers para obtener datos
+            const nombreCliente = getNombreCliente(recoleccion);
+            const telefonoCliente = getTelefonoCliente(recoleccion);
+            const direccionCliente = getDireccionCliente(recoleccion);
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-start gap-2">
-                  <Package className="text-gray-400 flex-shrink-0 mt-1" size={18} />
+            return (
+              <div
+                key={recoleccion.id}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition p-6"
+              >
+                <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-xs text-gray-500">Descripción</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {recoleccion.descripcion || 'Sin descripción'}
-                    </p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {recoleccion.codigoTracking}
+                      </h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoBadge(recoleccion.estadoGeneral)}`}>
+                        {getEstadoTexto(recoleccion.estadoGeneral)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} />
+                        {new Date(recoleccion.fechaCreacion?.seconds * 1000 || recoleccion.createdAt || Date.now()).toLocaleDateString('es-DO')}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin size={14} />
+                        {recoleccion.zona || recoleccion.destinatario?.zona || 'N/A'} 
+                        {(recoleccion.sector || recoleccion.destinatario?.sector) && ` - ${recoleccion.sector || recoleccion.destinatario?.sector}`}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Package size={14} />
+                        {recoleccion.items?.length || 0} item(s)
+                      </span>
+                    </div>
                   </div>
+                  
+                  <button
+                    onClick={() => handleVerDetalle(recoleccion)}
+                    className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
+                  >
+                    <Eye size={18} />
+                    Ver Detalle
+                  </button>
                 </div>
 
-                <div className="flex items-start gap-2">
-                  <User className="text-gray-400 flex-shrink-0 mt-1" size={18} />
-                  <div>
-                    <p className="text-xs text-gray-500">Remitente</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {recoleccion.remitente?.nombre || 'N/A'}
-                    </p>
+                {/* ✅ Información del cliente con helpers */}
+                <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <User size={14} className="text-gray-600" />
+                    <span className="font-medium text-gray-900">{nombreCliente}</span>
+                    <span className="text-gray-400">•</span>
+                    <Phone size={14} className="text-gray-600" />
+                    <span className="text-gray-700">{telefonoCliente}</span>
                   </div>
+                  <p className="text-xs text-gray-600 mt-1 ml-5">{direccionCliente}</p>
                 </div>
 
-                <div className="flex items-start gap-2">
-                  <User className="text-gray-400 flex-shrink-0 mt-1" size={18} />
-                  <div>
-                    <p className="text-xs text-gray-500">Destinatario</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {recoleccion.destinatario?.nombre || 'N/A'}
+                {/* Items Preview */}
+                <div className="space-y-2">
+                  {(recoleccion.items || []).slice(0, 2).map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                      <Package className="text-gray-400" size={16} />
+                      <div className="flex-1">
+                        <p className="font-medium">{item.descripcion}</p>
+                        <div className="flex gap-4 text-xs text-gray-600 mt-1">
+                          <span>Cantidad: {item.cantidad}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {recoleccion.items?.length > 2 && (
+                    <p className="text-xs text-gray-500 text-center">
+                      Y {recoleccion.items.length - 2} item(s) más...
                     </p>
-                  </div>
+                  )}
                 </div>
+
+                {/* Fotos Badge */}
+                {recoleccion.fotos && recoleccion.fotos.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Camera size={16} />
+                      <span>{recoleccion.fotos.length} foto(s) adjunta(s)</span>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2">
-                  <MapPin className="text-gray-400" size={16} />
-                  <p className="text-xs text-gray-600">
-                    {recoleccion.direccion_recoleccion || 'Sin dirección'}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Phone className="text-gray-400" size={16} />
-                  <p className="text-xs text-gray-600">
-                    {recoleccion.remitente?.telefono || 'Sin teléfono'}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <DollarSign className="text-gray-400" size={16} />
-                  <p className="text-xs text-gray-600">
-                    ${recoleccion.valor_declarado || '0.00'}
-                  </p>
-                </div>
-              </div>
-
-              {recoleccion.fotos && recoleccion.fotos.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Camera className="text-gray-400" size={16} />
-                    <p className="text-xs text-gray-600">
-                      {recoleccion.fotos.length} foto(s) adjunta(s)
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Modal de Detalle */}
-      {showModal && recoleccionSeleccionada && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    {recoleccionSeleccionada.codigoTracking}
-                  </h2>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoBadge(recoleccionSeleccionada.estado)}`}>
-                    {getEstadoTexto(recoleccionSeleccionada.estado)}
-                  </span>
-                </div>
-                <button
-                  onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-gray-600 transition"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+      {/* ✅ Modal de Detalle Mejorado */}
+      {showModal && recoleccionSeleccionada && (() => {
+        const destinatario = getDestinatario(recoleccionSeleccionada);
+        const remitente = getRemitente(recoleccionSeleccionada);
 
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Información del Paquete</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-gray-600">Descripción</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.descripcion || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Peso</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.peso || 'N/A'} lbs</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Dimensiones</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.dimensiones || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Valor Declarado</label>
-                      <p className="text-gray-900 font-medium">${recoleccionSeleccionada.valor_declarado || '0.00'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Remitente</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-gray-600">Nombre</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.remitente?.nombre || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Teléfono</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.remitente?.telefono || 'N/A'}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-sm text-gray-600">Dirección</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.direccion_recoleccion || 'N/A'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Destinatario</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-gray-600">Nombre</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.destinatario?.nombre || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Teléfono</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.destinatario?.telefono || 'N/A'}</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-sm text-gray-600">Dirección</label>
-                      <p className="text-gray-900 font-medium">{recoleccionSeleccionada.destinatario?.direccion || 'N/A'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {recoleccionSeleccionada.fotos && recoleccionSeleccionada.fotos.length > 0 && (
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                {/* Header del Modal */}
+                <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Fotos del Paquete</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      {recoleccionSeleccionada.codigoTracking}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoBadge(recoleccionSeleccionada.estadoGeneral)}`}>
+                        {getEstadoTexto(recoleccionSeleccionada.estadoGeneral)}
+                      </span>
+                      <span className="text-sm text-gray-600 flex items-center gap-1">
+                        <MapPin size={14} />
+                        {recoleccionSeleccionada.zona || recoleccionSeleccionada.destinatario?.zona}
+                        {(recoleccionSeleccionada.sector || recoleccionSeleccionada.destinatario?.sector) && 
+                          ` - ${recoleccionSeleccionada.sector || recoleccionSeleccionada.destinatario?.sector}`}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCloseModal}
+                    className="text-gray-400 hover:text-gray-600 transition"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                {/* ✅ Información del Remitente */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Package className="text-green-600" size={20} />
+                    Información del Remitente (Quien Envía)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-green-50 p-4 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <User size={18} className="text-gray-500 mt-1" />
+                      <div>
+                        <label className="text-sm text-gray-600">Nombre</label>
+                        <p className="text-gray-900 font-medium">{remitente.nombre}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Phone size={18} className="text-gray-500 mt-1" />
+                      <div>
+                        <label className="text-sm text-gray-600">Teléfono</label>
+                        <p className="text-gray-900 font-medium">{remitente.telefono}</p>
+                      </div>
+                    </div>
+                    {remitente.email && remitente.email !== 'N/A' && remitente.email !== '' && (
+                      <div className="flex items-start gap-2">
+                        <Mail size={18} className="text-gray-500 mt-1" />
+                        <div>
+                          <label className="text-sm text-gray-600">Email</label>
+                          <p className="text-gray-900 font-medium">{remitente.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2 md:col-span-2">
+                      <Home size={18} className="text-gray-500 mt-1" />
+                      <div>
+                        <label className="text-sm text-gray-600">Dirección de Recogida</label>
+                        <p className="text-gray-900 font-medium">{remitente.direccion}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ✅ Información del Destinatario */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <MapPin className="text-blue-600" size={20} />
+                    Información del Destinatario (Quien Recibe)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <User size={18} className="text-gray-500 mt-1" />
+                      <div>
+                        <label className="text-sm text-gray-600">Cliente</label>
+                        <p className="text-gray-900 font-medium">{destinatario.nombre}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Phone size={18} className="text-gray-500 mt-1" />
+                      <div>
+                        <label className="text-sm text-gray-600">Teléfono</label>
+                        <p className="text-gray-900 font-medium">{destinatario.telefono}</p>
+                      </div>
+                    </div>
+                    {destinatario.email && destinatario.email !== 'N/A' && destinatario.email !== '' && (
+                      <div className="flex items-start gap-2">
+                        <Mail size={18} className="text-gray-500 mt-1" />
+                        <div>
+                          <label className="text-sm text-gray-600">Email</label>
+                          <p className="text-gray-900 font-medium">{destinatario.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2 md:col-span-2">
+                      <Home size={18} className="text-gray-500 mt-1" />
+                      <div>
+                        <label className="text-sm text-gray-600">Dirección de Entrega</label>
+                        <p className="text-gray-900 font-medium">{destinatario.direccion}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Items ({recoleccionSeleccionada.items?.length || 0})
+                  </h3>
+                  <div className="space-y-3">
+                    {(recoleccionSeleccionada.items || []).map((item, index) => (
+                      <div key={item.id || index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Package className="text-purple-600" size={20} />
+                          <h4 className="font-semibold text-gray-900">Item #{index + 1}</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="md:col-span-2">
+                            <label className="text-sm text-gray-600">Descripción</label>
+                            <p className="text-gray-900">{item.descripcion}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Cantidad</label>
+                            <p className="text-gray-900">{item.cantidad}</p>
+                          </div>
+                          {item.precio && (
+                            <div>
+                              <label className="text-sm text-gray-600">Precio</label>
+                              <p className="text-gray-900">${item.precio}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Fotos */}
+                {recoleccionSeleccionada.fotos && recoleccionSeleccionada.fotos.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Fotos de la Recolección ({recoleccionSeleccionada.fotos.length})
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {recoleccionSeleccionada.fotos.map((foto, index) => (
                         <a
                           key={index}
-                          href={foto}
+                          href={foto.url || foto}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="relative group"
                         >
                           <img
-                            src={foto}
+                            src={foto.url || foto}
                             alt={`Foto ${index + 1}`}
                             className="w-full h-32 object-cover rounded-lg border border-gray-200 group-hover:opacity-75 transition"
                           />
@@ -438,43 +554,30 @@ const Recolecciones = () => {
                   </div>
                 )}
 
-                {recoleccionSeleccionada.historial && recoleccionSeleccionada.historial.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Historial de Estados</h3>
-                    <div className="space-y-3">
-                      {recoleccionSeleccionada.historial.map((entry, index) => (
-                        <div key={index} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {getEstadoTexto(entry.estado)}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {new Date(entry.fecha).toLocaleString('es-DO')}
-                            </p>
-                            {entry.comentario && (
-                              <p className="text-xs text-gray-600 mt-1">{entry.comentario}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                {/* Notas */}
+                {recoleccionSeleccionada.notas && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Notas</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-gray-700">{recoleccionSeleccionada.notas}</p>
                     </div>
                   </div>
                 )}
-              </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
-                <button
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                >
-                  Cerrar
-                </button>
+                {/* Botón Cerrar */}
+                <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                  >
+                    Cerrar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

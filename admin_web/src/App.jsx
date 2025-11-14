@@ -1,6 +1,9 @@
 ﻿// admin_web/src/App.jsx
+// ✅ ACTUALIZADO: Añadido <Toaster /> para notificaciones profesionales
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'sonner'; // ✅ 1. Importar Toaster
 import Layout from './components/Layout';
 import Login from './components/auth/Login';
 import Dashboard from './pages/Dashboard';
@@ -9,14 +12,19 @@ import Companies from './pages/Companies';
 import Embarques from './pages/Embarques';
 import Rutas from './pages/Rutas';
 import Recolecciones from './pages/Recolecciones';
-import NuevaRecoleccion from './pages/NuevaRecoleccion'; // ✅ NUEVO: Importar componente
+import NuevaRecoleccion from './pages/NuevaRecoleccion';
 import PanelSecretarias from './pages/PanelSecretarias';
+import PanelCargadores from './pages/PanelCargadores';
+import PanelRepartidores from './pages/PanelRepartidores';
 import FacturasNoEntregadas from './pages/FacturasNoEntregadas';
 import Empleados from './pages/Empleados';
 import Reportes from './pages/Reportes';
 import TicketsAdmin from './pages/TicketsAdmin';
 import Configuracion from './pages/Configuracion';
 import Ayuda from './pages/Ayuda';
+import PanelAlmacenUSA from './pages/PanelAlmacenUSA';
+import PanelAlmacenRD from './pages/PanelAlmacenRD';
+import FacturasPendientesPago from './pages/FacturasPendientesPago';
 
 // Componente que decide qué Dashboard mostrar según el rol
 const DashboardRouter = () => {
@@ -41,6 +49,8 @@ function AppContent() {
 
   return (
     <Layout>
+      {/* ✅ 2. Añadir el componente Toaster aquí */}
+      <Toaster richColors position="top-right" />
       <Routes>
         {/* Dashboard dinámico según rol */}
         <Route path="/dashboard" element={<DashboardRouter />} />
@@ -62,13 +72,18 @@ function AppContent() {
         {rol === 'admin_general' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
-            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} /> {/* ✅ NUEVO */}
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
             <Route path="/secretarias" element={<PanelSecretarias />} />
+            <Route path="/cargadores" element={<PanelCargadores />} />
+            <Route path="/repartidores" element={<PanelRepartidores />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
+            <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
             <Route path="/empleados" element={<Empleados />} />
             <Route path="/reportes" element={<Reportes />} />
+            <Route path="/almacen-usa" element={<PanelAlmacenUSA />} />
+            <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
           </>
         )}
 
@@ -78,7 +93,7 @@ function AppContent() {
         {rol === 'recolector' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
-            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} /> {/* ✅ NUEVO */}
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
           </>
         )}
 
@@ -88,9 +103,10 @@ function AppContent() {
         {rol === 'almacen_eeuu' && (
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
-            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} /> {/* ✅ NUEVO */}
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/reportes" element={<Reportes />} />
+            <Route path="/almacen-usa" element={<PanelAlmacenUSA />} />
           </>
         )}
 
@@ -103,6 +119,16 @@ function AppContent() {
             <Route path="/rutas" element={<Rutas />} />
             <Route path="/secretarias" element={<PanelSecretarias />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
+            <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
+          </>
+        )}
+
+        {/* ============================================ */}
+        {/* RUTAS PARA CARGADOR (NUEVO) */}
+        {/* ============================================ */}
+        {rol === 'cargador' && (
+          <>
+            <Route path="/cargadores" element={<PanelCargadores />} />
           </>
         )}
 
@@ -115,15 +141,18 @@ function AppContent() {
             <Route path="/rutas" element={<Rutas />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/reportes" element={<Reportes />} />
+            <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
           </>
         )}
 
         {/* ============================================ */}
-        {/* RUTAS PARA REPARTIDOR */}
+        {/* RUTAS PARA REPARTIDOR (ACTUALIZADO) */}
         {/* ============================================ */}
         {rol === 'repartidor' && (
           <>
             <Route path="/rutas" element={<Rutas />} />
+            <Route path="/repartidores" element={<PanelRepartidores />} />
+            <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
           </>
         )}
 

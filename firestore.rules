@@ -3,17 +3,64 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 11, 5);
+    // Regla para la nueva colección 'recolecciones'
+    match /recolecciones/{recoleccionId} {
+      // Permitir leer y escribir solo a usuarios autenticados (Ejemplo básico)
+      // TODO: Refinar permisos por rol (Recolector puede crear, Almacen puede actualizar estado, etc.)
+      allow read, write: if request.auth != null;
+
+      // Podrías necesitar reglas más específicas para subcolecciones si las usas
     }
+
+    // Regla para la nueva colección 'contenedores'
+    match /contenedores/{contenedorId} {
+      // Permitir leer y escribir solo a usuarios autenticados (Ejemplo básico)
+      // TODO: Refinar permisos (ej: AlmacenUSA puede crear/actualizar, otros solo leer)
+      allow read, write: if request.auth != null;
+    }
+
+    // Regla para usuarios (Asegúrate de que 'usuarios' sea el nombre correcto)
+    match /usuarios/{userId} {
+      // Permitir al usuario leer/actualizar su propio perfil
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Permitir a admins crear/leer (Añade tu lógica de admin)
+      allow create, read: if request.auth != null; // Simplificado, ajusta según roles
+    }
+
+    // Regla para embarques
+    match /embarques/{embarqueId} {
+       allow read, write: if request.auth != null; // Simplificado, ajusta
+    }
+
+     // Regla para rutas
+    match /rutas/{rutaId} {
+       allow read, write: if request.auth != null; // Simplificado, ajusta
+    }
+
+     // Regla para gastos
+    match /gastos/{gastoId} {
+       allow read, write: if request.auth != null; // Simplificado, ajusta
+    }
+
+     // Regla para historial_reasignaciones
+    match /historial_reasignaciones/{historialId} {
+       allow read, write: if request.auth != null; // Simplificado, ajusta
+    }
+
+     // Regla para companies
+    match /companies/{companyId} {
+       allow read, write: if request.auth != null; // Simplificado, ajusta
+    }
+
+     // Regla para tickets
+    match /tickets/{ticketId} {
+       allow read, write: if request.auth != null; // Simplificado, ajusta
+    }
+
+
+    // IMPORTANTE: Elimina o comenta la regla genérica insegura si aún existe
+    // match /{document=**} {
+    //  allow read, write: if request.time < timestamp.date(2025, 11, 5);
+    // }
   }
 }

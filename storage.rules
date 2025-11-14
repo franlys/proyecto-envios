@@ -1,10 +1,33 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+
+    // Regla para fotos de la recolección inicial (subidas por Recolector)
+    match /recolecciones/{recoleccionId}/recoleccion/{imageId} {
+      // Permitir lectura a usuarios autenticados
+      allow read: if request.auth != null;
+      // Permitir escritura (subida) solo a usuarios autenticados
+      // TODO: Podrías restringir más, ej: solo si el usuario es el creador o tiene rol 'Recolector'
+      allow write: if request.auth != null;
+    }
+
+    // Regla para fotos de la entrega (subidas por Repartidor)
+    match /recolecciones/{recoleccionId}/entrega/{imageId} {
+      // Permitir lectura a usuarios autenticados
+      allow read: if request.auth != null;
+      // Permitir escritura (subida) solo a usuarios autenticados
+      // TODO: Restringir más, ej: solo si el usuario es el repartidor asignado a la ruta
+      allow write: if request.auth != null;
+    }
+
+    // Opcional: Si tienes fotos de perfil de usuario
+    match /user_photos/{userId}/{imageId} {
+       allow read: if true; // Fotos públicas? O if request.auth != null;
+       allow write: if request.auth != null && request.auth.uid == userId; // Solo el propio usuario
+    }
+
+    // Bloquear acceso a cualquier otra ruta por defecto
     match /{allPaths=**} {
       allow read, write: if false;
     }

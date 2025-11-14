@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
           }
           
           // ✅ CORRECCIÓN CRÍTICA: Obtener datos del perfil con formato estandarizado
-          const response = await api.get('/auth/profile');
+          const response = await api.get('auth/profile');
           
           console.log('📥 Respuesta de /auth/profile:', response.data);
           
