@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/ruta.dart';
-import '../models/gasto.dart';
-import '../services/api_service.dart';
+import '../../models/ruta.dart';
+import '../../models/gasto.dart';
+import '../../services/api_service.dart';
 
 class GastosScreen extends StatefulWidget {
   final Ruta ruta;

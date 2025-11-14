@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/ruta.dart';
-import '../services/api_service.dart';
+import '../../models/ruta.dart';
+import '../../services/api_service.dart';
 import 'detalle_ruta_screen.dart';
 
 class HistorialRutasScreen extends StatefulWidget {

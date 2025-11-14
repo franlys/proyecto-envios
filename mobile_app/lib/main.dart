@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
-import 'screens/login_screen.dart';
-import 'screens/mis_rutas_screen.dart';
+import 'screens/common/login_screen.dart';
+import 'screens/repartidores/mis_rutas_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

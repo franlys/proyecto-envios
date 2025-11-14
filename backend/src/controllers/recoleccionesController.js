@@ -560,7 +560,7 @@ export const actualizarRecoleccion = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
-    console.log(`📝 Actualizando recolección ${id}...`);
+    console.log(`🔍 Actualizando recolección ${id}...`);
 
     const recoleccionRef = db.collection('recolecciones').doc(id);
     const recoleccionDoc = await recoleccionRef.get();
