@@ -14,7 +14,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import api from '../services/api';
-import { storage } from '../config/firebase';
+import { storage } from '../services/firebase.js';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
   Truck, 

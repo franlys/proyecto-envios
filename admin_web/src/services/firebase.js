@@ -1,6 +1,8 @@
-﻿import { initializeApp } from 'firebase/app';
+﻿// Ruta: admin_web/src/services/firebase.js
+import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage'; // <--- 1. IMPORTAR STORAGE
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,5 +14,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// EXPORTAR TODO
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app); // <--- 2. EXPORTAR STORAGE
+
+export default app; // Exportar app por si se necesita
