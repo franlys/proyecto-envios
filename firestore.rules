@@ -3,64 +3,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regla para la nueva colección 'recolecciones'
-    match /recolecciones/{recoleccionId} {
-      // Permitir leer y escribir solo a usuarios autenticados (Ejemplo básico)
-      // TODO: Refinar permisos por rol (Recolector puede crear, Almacen puede actualizar estado, etc.)
-      allow read, write: if request.auth != null;
-
-      // Podrías necesitar reglas más específicas para subcolecciones si las usas
+    // ==================== COLECCIÓN: empleados ====================
+    // 🔥 NUEVA - Esta es la que falta y causa el error
+    match /empleados/{empleadoId} {
+      // Permitir que cada empleado lea su propio documento
+      allow read: if request.auth != null && request.auth.uid == empleadoId;
+      
+      // Permitir que cada empleado actualice su propio perfil
+      allow update: if request.auth != null && request.auth.uid == empleadoId;
+      
+      // Admins pueden leer/escribir cualquier empleado
+      allow read, write: if request.auth != null 
+        && exists(/databases/$(database)/documents/empleados/$(request.auth.uid))
+        && get(/databases/$(database)/documents/empleados/$(request.auth.uid)).data.rol == 'admin';
     }
 
-    // Regla para la nueva colección 'contenedores'
-    match /contenedores/{contenedorId} {
-      // Permitir leer y escribir solo a usuarios autenticados (Ejemplo básico)
-      // TODO: Refinar permisos (ej: AlmacenUSA puede crear/actualizar, otros solo leer)
-      allow read, write: if request.auth != null;
-    }
-
-    // Regla para usuarios (Asegúrate de que 'usuarios' sea el nombre correcto)
+    // Regla para usuarios (mantenemos por compatibilidad)
     match /usuarios/{userId} {
-      // Permitir al usuario leer/actualizar su propio perfil
       allow read, update: if request.auth != null && request.auth.uid == userId;
-      // Permitir a admins crear/leer (Añade tu lógica de admin)
-      allow create, read: if request.auth != null; // Simplificado, ajusta según roles
+      allow create, read: if request.auth != null;
+    }
+
+    // Regla para la colección 'recolecciones'
+    match /recolecciones/{recoleccionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Regla para la colección 'contenedores'
+    match /contenedores/{contenedorId} {
+      allow read, write: if request.auth != null;
     }
 
     // Regla para embarques
     match /embarques/{embarqueId} {
-       allow read, write: if request.auth != null; // Simplificado, ajusta
+       allow read, write: if request.auth != null;
     }
 
      // Regla para rutas
     match /rutas/{rutaId} {
-       allow read, write: if request.auth != null; // Simplificado, ajusta
+       allow read, write: if request.auth != null;
     }
 
      // Regla para gastos
     match /gastos/{gastoId} {
-       allow read, write: if request.auth != null; // Simplificado, ajusta
+       allow read, write: if request.auth != null;
     }
 
      // Regla para historial_reasignaciones
     match /historial_reasignaciones/{historialId} {
-       allow read, write: if request.auth != null; // Simplificado, ajusta
+       allow read, write: if request.auth != null;
     }
 
      // Regla para companies
     match /companies/{companyId} {
-       allow read, write: if request.auth != null; // Simplificado, ajusta
+       allow read, write: if request.auth != null;
     }
 
      // Regla para tickets
     match /tickets/{ticketId} {
-       allow read, write: if request.auth != null; // Simplificado, ajusta
+       allow read, write: if request.auth != null;
     }
-
-
-    // IMPORTANTE: Elimina o comenta la regla genérica insegura si aún existe
-    // match /{document=**} {
-    //  allow read, write: if request.time < timestamp.date(2025, 11, 5);
-    // }
   }
 }
