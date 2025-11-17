@@ -40,7 +40,7 @@ export const register = async (req, res) => {
       'recolector', 
       'almacen_eeuu', 
       'almacen_rd',
-      'cargador' // <--- ROL AÑADIDO
+      'cargador' // <--- ASEGÚRATE QUE ESTÉ ASÍ (SINGULAR)
     ];
 
     if (!rolesValidos.includes(rol)) {
