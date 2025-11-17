@@ -32,7 +32,7 @@ export const register = async (req, res) => {
       });
     }
 
-    // ✅ VALIDACIÓN DE ROLES (Esta es la lista correcta)
+    // ✅ VALIDACIÓN DE ROLES
     const rolesValidos = [
       'admin_general', 
       'secretaria', 
@@ -40,7 +40,7 @@ export const register = async (req, res) => {
       'recolector', 
       'almacen_eeuu', 
       'almacen_rd',
-      'cargador' // <--- ROL CORRECTO
+      'cargador' // <--- ASEGÚRATE QUE ESTÉ ASÍ (SINGULAR)
     ];
 
     if (!rolesValidos.includes(rol)) {
@@ -53,7 +53,8 @@ export const register = async (req, res) => {
     // Obtener datos del administrador que crea
     let adminData = null;
     if (adminUid) {
-      const adminDoc = await db.collection('users').doc(adminUid).get();
+      // ✅ CORRECCIÓN: 'users' -> 'usuarios'
+      const adminDoc = await db.collection('usuarios').doc(adminUid).get();
       if (adminDoc.exists) {
         adminData = adminDoc.data();
       }
@@ -88,7 +89,8 @@ export const register = async (req, res) => {
     console.log('Usuario creado en Auth:', userRecord.uid);
 
     // 2. Crear documento de usuario en Firestore
-    const userDocRef = db.collection('users').doc(userRecord.uid);
+    // ✅ CORRECCIÓN: 'users' -> 'usuarios'
+    const userDocRef = db.collection('usuarios').doc(userRecord.uid);
     
     const newUser = {
       uid: userRecord.uid,
@@ -179,7 +181,8 @@ export const getUserData = async (req, res) => {
       });
     }
 
-    const userDoc = await db.collection('users').doc(uid).get();
+    // ✅ CORRECCIÓN: 'users' -> 'usuarios'
+    const userDoc = await db.collection('usuarios').doc(uid).get();
 
     if (!userDoc.exists) {
       return res.status(404).json({ 
