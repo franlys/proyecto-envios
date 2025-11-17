@@ -32,7 +32,7 @@ export const register = async (req, res) => {
       });
     }
 
-    // ✅ VALIDACIÓN DE ROLES
+    // ✅ VALIDACIÓN DE ROLES (Esta es la lista correcta)
     const rolesValidos = [
       'admin_general', 
       'secretaria', 
@@ -40,7 +40,7 @@ export const register = async (req, res) => {
       'recolector', 
       'almacen_eeuu', 
       'almacen_rd',
-      'cargador' // <--- ASEGÚRATE QUE ESTÉ ASÍ (SINGULAR)
+      'cargador' // <--- ROL CORRECTO
     ];
 
     if (!rolesValidos.includes(rol)) {
