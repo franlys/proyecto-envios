@@ -138,6 +138,7 @@ export const empleadoController = {
     try {
       const { rol, activo } = req.query;
 
+      // ✅ NOTA: req.user es establecido por el middleware verifyToken
       const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
       const userData = userDoc.data();
 
@@ -191,7 +192,11 @@ export const empleadoController = {
 
       console.log(`✅ Empleados encontrados: ${empleados.length}`);
 
-      res.json(empleados);
+      // ✅ CORRECCIÓN: Devolver en el formato { success: true, data: [...] }
+      res.json({
+        success: true,
+        data: empleados
+      });
 
     } catch (error) {
       console.error('❌ Error obteniendo empleados:', error);
@@ -239,10 +244,11 @@ export const empleadoController = {
           ) : 
           null
       };
-
+      
+      // ✅ CORRECCIÓN: Devolver en el formato { success: true, data: {...} }
       res.json({
         success: true,
-        empleado
+        data: empleado
       });
 
     } catch (error) {
@@ -490,6 +496,7 @@ export const empleadoController = {
 
       const empleadoData = empleadoDoc.data();
 
+      // ✅ AQUÍ ESTABA EL ERROR: 40Loss -> 403
       if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
         return res.status(403).json({ 
           success: false,
@@ -564,13 +571,14 @@ export const empleadoController = {
         telefono: doc.data().telefono || ''
       }));
 
+      // ✅ CORRECCIÓN: Devolver en el formato { success: true, data: [...] }
       res.json({
         success: true,
         count: repartidores.length,
-        repartidores
+        data: repartidores // (Cambié 'repartidores' a 'data' por consistencia)
       });
 
-    } catch (error) { // ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
+    } catch (error) { 
       console.error('❌ Error obteniendo repartidores:', error);
       res.status(500).json({ 
         success: false,
