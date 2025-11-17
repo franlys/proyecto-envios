@@ -42,9 +42,11 @@ export const empleadoController = {
       // Validar roles según quien crea
       let validRoles = [];
       if (userData.rol === 'super_admin') {
-        validRoles = ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado'];
+        // ✅ AÑADIDO 'cargador'
+        validRoles = ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
       } else if (userData.rol === 'admin') {
-        validRoles = ['secretaria', 'almacen', 'repartidor', 'empleado'];
+        // ✅ AÑADIDO 'cargador'
+        validRoles = ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
       } else {
         return res.status(403).json({ 
           success: false,
@@ -287,9 +289,10 @@ export const empleadoController = {
       if (nombre) updateData.nombre = nombre;
       if (telefono !== undefined) updateData.telefono = telefono;
       if (rol) {
+        // ✅ AÑADIDO 'cargador'
         const validRoles = userData.rol === 'super_admin' 
-          ? ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado']
-          : ['secretaria', 'almacen', 'repartidor', 'empleado'];
+          ? ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador']
+          : ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
         
         if (!validRoles.includes(rol)) {
           return res.status(400).json({ 
@@ -567,7 +570,7 @@ export const empleadoController = {
         repartidores
       });
 
-    } catch (error) {
+    } catch (error) { // ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
       console.error('❌ Error obteniendo repartidores:', error);
       res.status(500).json({ 
         success: false,

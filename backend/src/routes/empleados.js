@@ -1,8 +1,9 @@
 // backend/src/routes/empleados.js
 import express from 'express';
-import { admin } from '../config/firebase.js';
-import { db } from '../config/firebase.js';
 import { verifyToken, checkRole } from '../middleware/auth.js';
+
+// ✅ 1. IMPORTAR EL CONTROLADOR
+import { empleadoController } from '../controllers/empleadoController.js';
 
 const router = express.Router();
 
@@ -11,344 +12,81 @@ router.use(verifyToken);
 
 /**
  * ✅ CORREGIDO - GET /api/empleados
- * Obtener lista de empleados
+ * Obtener lista de empleados (usa el controlador)
  */
-router.get('/', checkRole('super_admin', 'admin_general'), async (req, res) => {
-  try {
-    const { rol, companyId, activo } = req.query;
-
-    let query = db.collection('usuarios');
-
-    // Filtrar por compañía si no es super_admin
-    if (req.userData.rol !== 'super_admin') {
-      query = query.where('companyId', '==', req.userData.companyId);
-    } else if (companyId) {
-      query = query.where('companyId', '==', companyId);
-    }
-
-    // Filtrar por rol si se especifica
-    if (rol) {
-      query = query.where('rol', '==', rol);
-    }
-
-    // Filtrar por estado activo/inactivo
-    if (activo !== undefined) {
-      query = query.where('activo', '==', activo === 'true');
-    }
-
-    const snapshot = await query.get();
-
-    const empleados = [];
-    snapshot.forEach(doc => {
-      empleados.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-
-    // ✅ FORMATO ESTANDARIZADO
-    res.json({
-      success: true,
-      data: empleados
-    });
-
-  } catch (error) {
-    console.error('❌ Error obteniendo empleados:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener empleados',
-      details: error.message
-    });
-  }
-});
+router.get('/', 
+    checkRole('super_admin', 'admin_general', 'admin'), // Roles que pueden ver lista
+    empleadoController.getEmpleados
+);
 
 /**
  * ✅ CORREGIDO - GET /api/empleados/repartidores
- * Obtener solo repartidores activos de la compañía del usuario
+ * Obtener solo repartidores activos (usa el controlador)
  */
-router.get('/repartidores', async (req, res) => {
-  try {
-    let query = db.collection('usuarios')
-      .where('rol', '==', 'repartidor')
-      .where('activo', '==', true);
-
-    // Si no es super_admin, filtrar por su compañía
-    if (req.userData.rol !== 'super_admin') {
-      query = query.where('companyId', '==', req.userData.companyId);
-    }
-
-    const snapshot = await query.get();
-
-    const repartidores = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      repartidores.push({
-        id: doc.id,
-        nombre: data.nombre,
-        email: data.email,
-        telefono: data.telefono || '',
-        vehiculo: data.vehiculo || 'No asignado',
-        zonas: data.zonas || [],
-        activo: data.activo
-      });
-    });
-
-    // ✅ FORMATO ESTANDARIZADO
-    res.json({
-      success: true,
-      data: repartidores
-    });
-
-  } catch (error) {
-    console.error('❌ Error obteniendo repartidores:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener repartidores',
-      details: error.message
-    });
-  }
-});
+router.get('/repartidores', 
+    checkRole('super_admin', 'admin_general', 'admin', 'secretaria', 'almacen_rd'), // Roles que pueden ver repartidores
+    empleadoController.getRepartidores
+);
 
 /**
  * ✅ CORREGIDO - GET /api/empleados/:id
- * Obtener un empleado específico
+ * Obtener un empleado específico (usa el controlador)
  */
-router.get('/:id', checkRole('super_admin', 'admin_general'), async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const empleadoDoc = await db.collection('usuarios').doc(id).get();
-
-    if (!empleadoDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        error: 'Empleado no encontrado'
-      });
-    }
-
-    const empleadoData = empleadoDoc.data();
-
-    // Verificar permisos: admin_general solo puede ver empleados de su compañía
-    if (req.userData.rol !== 'super_admin' && 
-        req.userData.companyId !== empleadoData.companyId) {
-      return res.status(403).json({
-        success: false,
-        error: 'No tienes permiso para ver este empleado'
-      });
-    }
-
-    // ✅ FORMATO ESTANDARIZADO
-    res.json({
-      success: true,
-      data: {
-        id: empleadoDoc.id,
-        ...empleadoData
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error obteniendo empleado:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener empleado',
-      details: error.message
-    });
-  }
-});
+router.get('/:id', 
+    checkRole('super_admin', 'admin_general', 'admin'), 
+    empleadoController.getEmpleado
+);
 
 /**
- * POST /api/empleados
- * Crear nuevo empleado
+ * ✅ CORREGIDO - POST /api/empleados
+ * Crear nuevo empleado (usa el controlador)
+ *
+ * NOTA: Esta ruta ahora choca con POST /api/auth/register.
+ * Deberías decidir cuál usar. Por ahora, la dejamos apuntando
+ * al controlador de empleados que SÍ tiene 'cargador'.
  */
-router.post('/', checkRole('super_admin', 'admin_general'), async (req, res) => {
-  try {
-    const { email, password, nombre, rol, telefono, companyId } = req.body;
-
-    // Validaciones
-    if (!email || !password || !nombre || !rol) {
-      return res.status(400).json({
-        success: false,
-        error: 'Faltan campos requeridos: email, password, nombre, rol'
-      });
-    }
-
-    // Determinar companyId
-    let finalCompanyId = companyId;
-    if (req.userData.rol !== 'super_admin') {
-      finalCompanyId = req.userData.companyId;
-    }
-
-    if (!finalCompanyId) {
-      return res.status(400).json({
-        success: false,
-        error: 'companyId es requerido'
-      });
-    }
-
-    // Crear usuario en Firebase Auth
-    const userRecord = await admin.auth().createUser({
-      email,
-      password,
-      emailVerified: false,
-      disabled: false
-    });
-
-    // Crear documento en Firestore
-    await db.collection('usuarios').doc(userRecord.uid).set({
-      email,
-      nombre,
-      rol,
-      telefono: telefono || '',
-      companyId: finalCompanyId,
-      activo: true,
-      createdAt: new Date().toISOString(),
-      createdBy: req.userData.uid
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Empleado creado exitosamente',
-      data: {
-        id: userRecord.uid,
-        email,
-        nombre,
-        rol,
-        companyId: finalCompanyId
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error creando empleado:', error);
-    
-    if (error.code === 'auth/email-already-exists') {
-      return res.status(400).json({
-        success: false,
-        error: 'El email ya está registrado'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Error al crear empleado',
-      details: error.message
-    });
-  }
-});
+router.post('/', 
+    checkRole('super_admin', 'admin_general', 'admin'), 
+    empleadoController.createEmpleado
+);
 
 /**
- * PUT /api/empleados/:id
- * Actualizar empleado
+ * ✅ CORREGIDO - PUT /api/empleados/:id
+ * Actualizar empleado (usa el controlador)
  */
-router.put('/:id', checkRole('super_admin', 'admin_general'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { nombre, telefono, rol, activo, companyId } = req.body;
-
-    const empleadoDoc = await db.collection('usuarios').doc(id).get();
-    if (!empleadoDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        error: 'Empleado no encontrado'
-      });
-    }
-
-    const empleadoData = empleadoDoc.data();
-
-    // Verificar permisos
-    if (req.userData.rol !== 'super_admin' && 
-        req.userData.companyId !== empleadoData.companyId) {
-      return res.status(403).json({
-        success: false,
-        error: 'No tienes permiso para actualizar este empleado'
-      });
-    }
-
-    const updateData = {
-      updatedAt: new Date().toISOString(),
-      updatedBy: req.userData.uid
-    };
-
-    if (nombre) updateData.nombre = nombre;
-    if (telefono !== undefined) updateData.telefono = telefono;
-    if (rol) updateData.rol = rol;
-    if (activo !== undefined) updateData.activo = activo;
-    if (companyId && req.userData.rol === 'super_admin') {
-      updateData.companyId = companyId;
-    }
-
-    await db.collection('usuarios').doc(id).update(updateData);
-
-    // Si se desactivó el usuario, también deshabilitarlo en Auth
-    if (activo === false) {
-      await admin.auth().updateUser(id, { disabled: true });
-    } else if (activo === true) {
-      await admin.auth().updateUser(id, { disabled: false });
-    }
-
-    res.json({
-      success: true,
-      message: 'Empleado actualizado exitosamente'
-    });
-
-  } catch (error) {
-    console.error('❌ Error actualizando empleado:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al actualizar empleado',
-      details: error.message
-    });
-  }
-});
+router.put('/:id', 
+    checkRole('super_admin', 'admin_general', 'admin'), 
+    empleadoController.updateEmpleado
+);
 
 /**
- * DELETE /api/empleados/:id
- * Eliminar empleado
+ * ✅ CORREGIDO - DELETE /api/empleados/:id
+ * Eliminar empleado (usa el controlador)
  */
-router.delete('/:id', checkRole('super_admin', 'admin_general'), async (req, res) => {
-  try {
-    const { id } = req.params;
+router.delete('/:id', 
+    checkRole('super_admin', 'admin_general', 'admin'), 
+    empleadoController.deleteEmpleado
+);
 
-    const empleadoDoc = await db.collection('usuarios').doc(id).get();
-    if (!empleadoDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        error: 'Empleado no encontrado'
-      });
-    }
+// --- NUEVAS RUTAS (desde el controlador) ---
 
-    const empleadoData = empleadoDoc.data();
+/**
+ * PATCH /api/empleados/:id/toggle
+ * Activar/Desactivar un empleado
+ */
+router.patch('/:id/toggle',
+    checkRole('super_admin', 'admin_general', 'admin'),
+    empleadoController.toggleEmpleado
+);
 
-    if (req.userData.rol !== 'super_admin' && 
-        req.userData.companyId !== empleadoData.companyId) {
-      return res.status(403).json({
-        success: false,
-        error: 'No tienes permiso para eliminar este empleado'
-      });
-    }
+/**
+ * POST /api/empleados/:id/change-password
+ * Cambiar la contraseña de un empleado (solo admins)
+ */
+router.post('/:id/change-password',
+    checkRole('super_admin', 'admin_general', 'admin'),
+    empleadoController.changePassword
+);
 
-    if (req.user.uid === id) {
-      return res.status(400).json({
-        success: false,
-        error: 'No puedes eliminarte a ti mismo'
-      });
-    }
-
-    await admin.auth().deleteUser(id);
-    await db.collection('usuarios').doc(id).delete();
-
-    res.json({
-      success: true,
-      message: 'Empleado eliminado exitosamente'
-    });
-
-  } catch (error) {
-    console.error('❌ Error eliminando empleado:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al eliminar empleado',
-      details: error.message
-    });
-  }
-});
 
 export default router;
