@@ -145,7 +145,8 @@ const ModuloFacturacion = ({
   };
 
   const formatCurrency = (amount) => {
-    return `RD$ ${amount.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // CAMBIADO: de 'RD$' y 'es-DO' a 'USD$' y 'en-US'
+    return `USD$ ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -188,7 +189,7 @@ const ModuloFacturacion = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">RD$</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">USD$</span> 
                 <input
                   type="number"
                   value={item.precio || ''}
@@ -290,7 +291,7 @@ const ModuloFacturacion = ({
                 Monto Pagado
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600 dark:text-gray-400">RD$</span>
+                <span className="text-gray-600 dark:text-gray-400">USD$</span>
                 <input
                   type="number"
                   value={montoPagado}

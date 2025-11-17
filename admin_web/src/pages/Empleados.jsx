@@ -33,6 +33,7 @@ export default function Empleados() {
   // Roles disponibles con nombres amigables
   const rolesDisponibles = [
     { valor: 'recolector', label: 'Recolector', descripcion: 'Recoge paquetes en origen' },
+    { valor: 'cargador', label: 'Cargador', descripcion: 'Prepara contenedores para embarque' }, // <-- LÍNEA AÑADIDA
     { valor: 'almacen_eeuu', label: 'Encargado de Almacén (EE.UU.)', descripcion: 'Gestiona almacén en Estados Unidos' },
     { valor: 'almacen_rd', label: 'Encargado de Almacén (RD)', descripcion: 'Gestiona almacén en República Dominicana' },
     { valor: 'repartidor', label: 'Repartidor', descripcion: 'Entrega paquetes a destinatarios' },

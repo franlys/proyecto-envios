@@ -1,5 +1,6 @@
 ﻿// admin_web/src/components/Layout.jsx
 // ✅ ACTUALIZADO: Links de Cargadores + Repartidores + Almacén RD
+// ✅ CORREGIDO: Scroll independiente para el contenido principal.
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -183,7 +184,9 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    // CAMBIO 1: El div principal ahora es 'h-screen' (altura de pantalla completa),
+    // 'flex flex-col' (para apilar header y contenido) y 'overflow-hidden' (para evitar el scroll de la página).
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Listener de notificaciones (si existe) */}
       {NotificationListener && (
         <NotificationListener 
@@ -217,8 +220,9 @@ const Layout = ({ children }) => {
         </>
       )}
 
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
+      {/* CAMBIO 2: El header ya no es 'sticky'. Ahora es una fila normal en la columna flex. */}
+      {/* 'flex-shrink-0' asegura que no se encoja si el contenido crece. */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm z-50 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo y título */}
@@ -226,7 +230,7 @@ const Layout = ({ children }) => {
               <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Sistema de Envíos</h1>
             </div>
 
-            {/* Usuario y notificaciones */}
+            {/* Usuario y notificaciones (Sin cambios) */}
             <div className="flex items-center gap-4">
               {/* Notificaciones (si existe el componente) */}
               {useNotifications && (
@@ -288,10 +292,18 @@ const Layout = ({ children }) => {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-gray-800 shadow-md min-h-[calc(100vh-64px)] sticky top-16">
-          <nav className="p-4">
+      {/* CAMBIO 3: Este div ahora es el contenedor principal. 'flex-1' hace que ocupe
+      // el resto de la altura, y 'overflow-hidden' evita que este div tenga scroll. */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* CAMBIO 4: El Sidebar (aside) ya no es 'sticky' ni tiene 'min-h'.
+        // Es una columna de ancho fijo y no se encoge ('flex-shrink-0').
+        // Le añadimos 'flex flex-col' para que su contenido (el nav) pueda crecer. */}
+        <aside className="w-64 bg-white dark:bg-gray-800 shadow-md flex flex-col flex-shrink-0">
+          
+          {/* CAMBIO 5: La navegación (nav) ahora es 'flex-1' (ocupa el espacio vertical)
+          // y 'overflow-y-auto' (permite scroll *sólo* en el menú si es muy largo). */}
+          <nav className="flex-1 p-4 overflow-y-auto">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
@@ -309,8 +321,11 @@ const Layout = ({ children }) => {
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 min-h-[calc(100vh-64px)] bg-gray-50 dark:bg-gray-900">
+        {/* CAMBIO 6: El 'main' (contenido principal) ahora es el único que tiene 'overflow-y-auto'.
+        // Se quitó 'min-h' que ya no es necesario. Todo el contenido de tus páginas
+        // (como Empleados.jsx) que sea más largo que la pantalla, hará que *solo* este
+        // 'main' tenga una barra de scroll. */}
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {children}
         </main>
       </div>
