@@ -3,14 +3,13 @@ import express from 'express';
 import { db, admin } from '../config/firebase.js';
 import { verifyToken } from '../middleware/auth.js';
 
-// ✅ IMPORTAR LA LÓGICA DE REGISTRO DESDE EL CONTROLADOR
+// ✅ 1. IMPORTAR LA FUNCIÓN CORRECTA DEL CONTROLADOR
 import { register } from '../controllers/authController.js';
 
 const router = express.Router();
 
 /**
  * GET /api/auth/test
- * Endpoint de prueba
  */
 router.get('/test', (req, res) => {
   res.json({ 
@@ -21,11 +20,9 @@ router.get('/test', (req, res) => {
 
 /**
  * GET /api/auth/profile
- * ✅ CORREGIDO: Ahora devuelve { success: true, data: {...} }
  */
 router.get('/profile', verifyToken, async (req, res) => {
   try {
-    // ✅ CORRECCIÓN: Envolver datos en 'data'
     res.json({
       success: true,
       data: {
@@ -49,15 +46,14 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 /**
  * POST /api/auth/register
- * ✅ CORREGIDO: Ahora usa la función centralizada de authController.js
+ * ✅ 2. USAR LA FUNCIÓN DEL CONTROLADOR
+ * (Toda la lógica antigua de este archivo fue eliminada)
  */
-router.post('/register', register); // <--- ESTE ES EL CAMBIO PRINCIPAL
+router.post('/register', register);
 
 
 /**
  * POST /api/auth/login
- * Login de usuario (Firebase maneja esto en el frontend)
- * Este endpoint es informativo
  */
 router.post('/login', async (req, res) => {
   res.json({ 
@@ -68,11 +64,9 @@ router.post('/login', async (req, res) => {
 
 /**
  * POST /api/auth/refresh-token
- * ✅ CORREGIDO: Devuelve { success: true, data: {...} }
  */
 router.post('/refresh-token', verifyToken, async (req, res) => {
   try {
-    // ✅ CORRECCIÓN: Envolver userData en 'data'
     res.json({
       success: true,
       message: 'Token válido',
@@ -88,7 +82,8 @@ router.post('/refresh-token', verifyToken, async (req, res) => {
 
 /**
  * PATCH /api/auth/update-profile
- * Actualizar perfil del usuario
+ * (Esta ruta parece ser de 'empleados.js' o 'userController.js',
+ * pero la dejamos como estaba en tu archivo original)
  */
 router.patch('/update-profile', verifyToken, async (req, res) => {
   try {
@@ -103,9 +98,9 @@ router.patch('/update-profile', verifyToken, async (req, res) => {
     if (telefono) updateData.telefono = telefono;
     if (direccion) updateData.direccion = direccion;
 
+    // NOTA: Esta lógica usa 'usuarios' que es la misma colección
     await db.collection('usuarios').doc(userId).update(updateData);
 
-    // También actualizar en Firebase Auth si cambió el nombre
     if (nombre) {
       await admin.auth().updateUser(userId, {
         displayName: nombre
@@ -128,7 +123,6 @@ router.patch('/update-profile', verifyToken, async (req, res) => {
 
 /**
  * POST /api/auth/change-password
- * Cambiar contraseña (requiere autenticación)
  */
 router.post('/change-password', verifyToken, async (req, res) => {
   try {
@@ -161,13 +155,11 @@ router.post('/change-password', verifyToken, async (req, res) => {
 
 /**
  * GET /api/auth/verify-role/:rol
- * Verificar si un rol es válido
  */
 router.get('/verify-role/:rol', (req, res) => {
   const { rol } = req.params;
   
-  // NOTA: Esta lista también debería estar centralizada,
-  // pero por ahora la dejamos para no romper la ruta.
+  // Esta lista SÍ debe incluir 'cargador'
   const rolesValidos = [
     'super_admin', 
     'admin_general', 
@@ -178,7 +170,7 @@ router.get('/verify-role/:rol', (req, res) => {
     'secretaria', 
     'almacen', 
     'repartidor',
-    'cargador' // <-- Agregado por si acaso, aunque la lógica de registro ya no usa esto
+    'cargador' // <-- AÑADIDO AQUÍ TAMBIÉN
   ];
 
   const esValido = rolesValidos.includes(rol);
