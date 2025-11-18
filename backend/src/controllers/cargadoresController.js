@@ -1,95 +1,131 @@
-// backend/src/controllers/cargadoresController.js
-/**
- * ✅ CONTROLADOR DE CARGADORES - VERSIÓN COMPLETA
- * 
- * Gestión de carga de camiones item por item
- * 
- * Funcionalidades:
- * - Ver rutas asignadas al cargador
- * - Ver facturas de la ruta con items detallados
- * - Confirmar items uno por uno al cargar
- * - Reportar items dañados durante carga (con fotos)
- * - Marcar ruta como cargada/lista para entrega
- * - Validaciones completas de permisos y estado
- */
-
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
-// ========================================
-// 📋 OBTENER RUTAS ASIGNADAS AL CARGADOR
-// ========================================
+// ==========================================================================
+// 📋 OBTENER RUTAS ASIGNADAS AL CARGADOR (Soporte Híbrido + Robusto)
+// ==========================================================================
 export const getRutasAsignadas = async (req, res) => {
   try {
-    const companyId = req.userData?.companyId;
-    const cargadorId = req.userData?.uid;
+    // Soporte dual para autenticación
+    const cargadorId = req.user?.uid || req.userData?.uid;
+    
+    // Obtener datos del usuario para validar la compañía
+    const userDoc = await db.collection('usuarios').doc(cargadorId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+    
+    const userData = userDoc.data();
+    const companyId = userData.companyId;
 
-    console.log('🚚 Cargador obteniendo rutas asignadas:', cargadorId);
+    console.log('🚚 Cargador buscando rutas:', cargadorId, 'Empresa:', companyId);
 
-    const snapshot = await db.collection('rutas')
-      .where('companyId', '==', companyId)
-      .where('cargadorId', '==', cargadorId)
-      .where('estado', 'in', ['asignada', 'en_carga'])
-      .orderBy('fechaCreacion', 'desc')
-      .get();
+    const rutasRef = db.collection('rutas');
+    let rutasDocs = [];
 
-    const rutas = snapshot.docs.map(doc => {
-      const data = doc.data();
+    // ESTRATEGIA DE BÚSQUEDA HÍBRIDA
+    // 1. Intentar búsqueda avanzada por array 'cargadoresIds'
+    try {
+      const snapshotArray = await rutasRef
+        .where('companyId', '==', companyId)
+        .where('cargadoresIds', 'array-contains', cargadorId)
+        .where('estado', 'in', ['asignada', 'en_carga'])
+        .get();
       
-      // Calcular progreso de carga
-      const totalItems = data.facturas?.reduce((sum, f) => sum + (f.items?.length || 0), 0) || 0;
-      const itemsCargados = data.facturas?.reduce((sum, f) => sum + (f.itemsCargados || 0), 0) || 0;
+      rutasDocs = [...snapshotArray.docs];
+      console.log(`✅ Búsqueda array: ${rutasDocs.length} rutas`);
+    } catch (e) {
+      console.warn('⚠️ Búsqueda por array falló (índice faltante):', e.message);
+    }
+
+    // 2. Búsqueda fallback por campo simple 'cargadorId'
+    if (rutasDocs.length === 0) {
+      const snapshotSimple = await rutasRef
+        .where('companyId', '==', companyId)
+        .where('cargadorId', '==', cargadorId)
+        .where('estado', 'in', ['asignada', 'en_carga'])
+        .get();
+      
+      // Evitar duplicados si la primera búsqueda funcionó parcialmente
+      const idsExistentes = new Set(rutasDocs.map(d => d.id));
+      snapshotSimple.docs.forEach(doc => {
+        if (!idsExistentes.has(doc.id)) {
+          rutasDocs.push(doc);
+        }
+      });
+      
+      console.log(`✅ Búsqueda simple: ${snapshotSimple.docs.length} rutas adicionales`);
+    }
+
+    // 3. Procesar y formatear datos
+    const rutas = rutasDocs.map(doc => {
+      const data = doc.data();
+      const facturas = data.facturas || [];
+      
+      // Calcular estadísticas en tiempo real
+      const totalItems = facturas.reduce((sum, f) => sum + (f.itemsTotal || f.items?.length || 0), 0) || data.itemsTotalRuta || 0;
+      const itemsCargados = facturas.reduce((sum, f) => sum + (f.itemsCargados || 0), 0) || data.itemsCargadosRuta || 0;
+      const facturasCargadas = facturas.filter(f => f.estadoCarga === 'cargada').length;
       const porcentajeCarga = totalItems > 0 ? Math.round((itemsCargados / totalItems) * 100) : 0;
 
       return {
         id: doc.id,
         nombre: data.nombre,
-        zona: data.zona,
+        zona: data.zona || 'Zona General',
         estado: data.estado,
+        repartidorNombre: data.repartidorNombre || data.empleadoNombre || 'Sin asignar',
         cargadorId: data.cargadorId,
         cargadorNombre: data.cargadorNombre,
         
+        // Estadísticas estandarizadas
         estadisticas: {
-          totalFacturas: data.facturas?.length || 0,
-          facturasCargadas: data.facturas?.filter(f => f.estadoCarga === 'cargada').length || 0,
-          totalItems,
-          itemsCargados,
-          porcentajeCarga
+          totalFacturas: facturas.length,
+          facturasCargadas: facturasCargadas,
+          totalItems: totalItems,
+          itemsCargados: itemsCargados,
+          porcentajeCarga: porcentajeCarga
         },
         
-        fechaCreacion: data.fechaCreacion?.toDate?.() || null,
-        fechaAsignacion: data.fechaAsignacion?.toDate?.() || null,
-        fechaActualizacion: data.fechaActualizacion?.toDate?.() || null
+        // Fechas con manejo dual de timestamps
+        fechaCreacion: data.fechaCreacion?.toDate?.() || data.createdAt || new Date().toISOString(),
+        fechaAsignacion: data.fechaAsignacion?.toDate?.() || data.fechaAsignacion || null,
+        fechaActualizacion: data.fechaActualizacion?.toDate?.() || data.updatedAt || null
       };
     });
 
-    console.log(`✅ ${rutas.length} rutas encontradas`);
+    // 4. Ordenar en memoria (workaround para limitación de Firestore con 'in')
+    rutas.sort((a, b) => {
+      const dateA = new Date(a.fechaCreacion);
+      const dateB = new Date(b.fechaCreacion);
+      return dateB - dateA; // Más reciente primero
+    });
 
-    res.json({
-      success: true,
-      data: rutas,
-      total: rutas.length
+    console.log(`✅ Total: ${rutas.length} rutas activas`);
+    
+    res.json({ 
+      success: true, 
+      data: rutas, 
+      total: rutas.length 
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo rutas:', error);
-    res.status(500).json({
-      success: false,
+    console.error('❌ Error crítico obteniendo rutas:', error);
+    res.status(500).json({ 
+      success: false, 
       message: 'Error al obtener las rutas',
-      error: error.message
+      error: error.message 
     });
   }
 };
 
-// ========================================
-// 📦 OBTENER DETALLE DE RUTA CON FACTURAS
-// ========================================
+// ==========================================================================
+// 📦 OBTENER DETALLE DE RUTA (Con Facturas Completas)
+// ==========================================================================
 export const getDetalleRuta = async (req, res) => {
   try {
     const { rutaId } = req.params;
-    const companyId = req.userData?.companyId;
-    const cargadorId = req.userData?.uid;
-
+    const cargadorId = req.user?.uid || req.userData?.uid;
+    
     console.log('📋 Obteniendo detalle de ruta:', rutaId);
 
     const doc = await db.collection('rutas').doc(rutaId).get();
@@ -102,38 +138,50 @@ export const getDetalleRuta = async (req, res) => {
     }
 
     const data = doc.data();
-
-    // Validar permisos
-    if (data.companyId !== companyId) {
+    
+    // Verificar permisos (misma compañía)
+    const userDoc = await db.collection('usuarios').doc(cargadorId).get();
+    const userData = userDoc.data();
+    
+    if (data.companyId !== userData.companyId) {
       return res.status(403).json({
         success: false,
-        message: 'No tiene permisos para ver esta ruta'
+        message: 'No tiene autorización para ver esta ruta'
       });
     }
 
-    if (data.cargadorId !== cargadorId) {
+    // Verificar asignación al cargador (soporte híbrido)
+    const esAsignado = data.cargadorId === cargadorId || 
+                       (data.cargadoresIds && data.cargadoresIds.includes(cargadorId));
+    
+    if (!esAsignado) {
       return res.status(403).json({
         success: false,
         message: 'Esta ruta no está asignada a usted'
       });
     }
 
-    // Obtener detalles completos de cada factura
+    // Obtener detalles completos de facturas desde 'recolecciones'
     const facturasDetalladas = [];
 
     if (data.facturas && data.facturas.length > 0) {
       for (const facturaRuta of data.facturas) {
-        if (facturaRuta.id) {
-          const facturaDoc = await db.collection('recolecciones').doc(facturaRuta.id).get();
+        const facturaId = facturaRuta.id || facturaRuta.facturaId;
+        
+        if (facturaId) {
+          const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
           
           if (facturaDoc.exists) {
             const facturaData = facturaDoc.data();
+            
+            // Determinar qué items están cargados
+            const itemsCargadosIndices = facturaRuta.itemsCargadosIndices || [];
             
             facturasDetalladas.push({
               id: facturaDoc.id,
               codigoTracking: facturaData.codigoTracking,
               
-              // Info básica
+              // Info básica del destinatario
               destinatario: {
                 nombre: facturaData.destinatario?.nombre || 'Sin nombre',
                 direccion: facturaData.destinatario?.direccion || 'Sin dirección',
@@ -141,11 +189,13 @@ export const getDetalleRuta = async (req, res) => {
                 telefono: facturaData.destinatario?.telefono || ''
               },
               
-              // Items con estado de carga
+              // Items con estado de carga individual
               items: (facturaData.items || []).map((item, index) => ({
                 ...item,
                 index,
-                cargado: facturaRuta.itemsCargadosIndices?.includes(index) || false
+                cargado: itemsCargadosIndices.includes(index) || item.cargado || false,
+                fechaCarga: item.fechaCarga || null,
+                cargadoPor: item.cargadoPor || null
               })),
               
               // Estado de carga
@@ -156,17 +206,17 @@ export const getDetalleRuta = async (req, res) => {
                 ? Math.round((facturaRuta.itemsCargados || 0) / facturaData.items.length * 100)
                 : 0,
               
-              // Items dañados reportados durante carga
-              itemsDanados: facturaData.itemsDanados?.filter(
-                d => d.momentoReporte === 'carga'
-              ) || [],
+              // Items dañados (filtrados por momento)
+              itemsDanados: (facturaData.itemsDanados || []).filter(
+                d => d.momentoReporte === 'carga' || d.etapa === 'carga'
+              ),
               
-              // Fotos de los items
+              // Fotos y notas
               fotos: facturaData.fotos || [],
-              
-              // Notas
               notas: facturaData.notas || '',
-              notasSecretaria: facturaData.notasSecretaria || ''
+              notasSecretaria: facturaData.notasSecretaria || '',
+              
+              fechaUltimaCarga: facturaRuta.fechaUltimaCarga || null
             });
           }
         }
@@ -180,12 +230,16 @@ export const getDetalleRuta = async (req, res) => {
       estado: data.estado,
       cargadorId: data.cargadorId,
       cargadorNombre: data.cargadorNombre,
+      repartidorNombre: data.repartidorNombre || data.empleadoNombre,
       facturas: facturasDetalladas,
-      fechaCreacion: data.fechaCreacion?.toDate?.() || null,
-      fechaAsignacion: data.fechaAsignacion?.toDate?.() || null
+      itemsTotalRuta: data.itemsTotalRuta || 0,
+      itemsCargadosRuta: data.itemsCargadosRuta || 0,
+      fechaCreacion: data.fechaCreacion?.toDate?.() || data.createdAt || null,
+      fechaAsignacion: data.fechaAsignacion?.toDate?.() || null,
+      fechaInicioCarga: data.fechaInicioCarga?.toDate?.() || data.fechaInicioCarga || null
     };
 
-    console.log(`✅ Ruta con ${facturasDetalladas.length} facturas`);
+    console.log(`✅ Ruta con ${facturasDetalladas.length} facturas detalladas`);
 
     res.json({
       success: true,
@@ -202,15 +256,14 @@ export const getDetalleRuta = async (req, res) => {
   }
 };
 
-// ========================================
+// ==========================================================================
 // 🚀 INICIAR CARGA DE RUTA
-// ========================================
+// ==========================================================================
 export const iniciarCarga = async (req, res) => {
   try {
     const { rutaId } = req.params;
-    const companyId = req.userData?.companyId;
-    const cargadorId = req.userData?.uid;
-    const nombreCargador = req.userData?.nombre || 'Cargador';
+    const cargadorId = req.user?.uid || req.userData?.uid;
+    const nombreCargador = req.user?.nombre || req.userData?.nombre || 'Cargador';
 
     console.log('🚀 Iniciando carga de ruta:', rutaId);
 
@@ -227,7 +280,10 @@ export const iniciarCarga = async (req, res) => {
     const data = doc.data();
 
     // Validar permisos
-    if (data.companyId !== companyId || data.cargadorId !== cargadorId) {
+    const userDoc = await db.collection('usuarios').doc(cargadorId).get();
+    const userData = userDoc.data();
+    
+    if (data.companyId !== userData.companyId) {
       return res.status(403).json({
         success: false,
         message: 'No tiene permisos para iniciar esta carga'
@@ -255,10 +311,11 @@ export const iniciarCarga = async (req, res) => {
       estado: 'en_carga',
       fechaInicioCarga: FieldValue.serverTimestamp(),
       fechaActualizacion: FieldValue.serverTimestamp(),
+      updatedAt: new Date().toISOString(),
       historial: FieldValue.arrayUnion(historialEntry)
     });
 
-    console.log('✅ Carga iniciada');
+    console.log('✅ Carga iniciada exitosamente');
 
     res.json({
       success: true,
@@ -279,149 +336,133 @@ export const iniciarCarga = async (req, res) => {
   }
 };
 
-// ========================================
-// ✅ CONFIRMAR ITEM CARGADO
-// ========================================
+// ==========================================================================
+// ✅ CONFIRMAR ITEM CARGADO (Transacción Atómica)
+// ==========================================================================
 export const confirmarItemCargado = async (req, res) => {
   try {
     const { rutaId, facturaId } = req.params;
     const { itemIndex } = req.body;
-    const companyId = req.userData?.companyId;
-    const cargadorId = req.userData?.uid;
+    const cargadorId = req.user?.uid || req.userData?.uid;
 
-    console.log(`✅ Confirmando item cargado: ruta ${rutaId}, factura ${facturaId}, item ${itemIndex}`);
+    console.log(`✅ Confirmando item: ruta ${rutaId}, factura ${facturaId}, item ${itemIndex}`);
 
-    if (itemIndex === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'Índice de item requerido'
-      });
-    }
-
-    const rutaRef = db.collection('rutas').doc(rutaId);
-    const doc = await rutaRef.get();
-
-    if (!doc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
-    }
-
-    const data = doc.data();
-
-    // Validar permisos
-    if (data.companyId !== companyId || data.cargadorId !== cargadorId) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tiene permisos'
-      });
-    }
-
-    // Validar estado
-    if (data.estado !== 'en_carga') {
-      return res.status(400).json({
-        success: false,
-        message: 'La ruta no está en proceso de carga'
-      });
-    }
-
-    // Obtener datos de la factura
-    const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
-    
-    if (!facturaDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Factura no encontrada'
-      });
-    }
-
-    const factura = facturaDoc.data();
-
-    if (itemIndex < 0 || itemIndex >= factura.items.length) {
+    if (itemIndex === undefined || itemIndex < 0) {
       return res.status(400).json({
         success: false,
         message: 'Índice de item inválido'
       });
     }
 
-    // Actualizar array de facturas en la ruta
-    const facturasActualizadas = data.facturas.map(f => {
-      if (f.id === facturaId) {
-        const itemsCargadosIndices = f.itemsCargadosIndices || [];
-        
-        // Agregar índice si no está ya
-        if (!itemsCargadosIndices.includes(itemIndex)) {
-          itemsCargadosIndices.push(itemIndex);
-        }
-
-        const itemsCargados = itemsCargadosIndices.length;
-        const itemsTotal = factura.items.length;
-        const estadoCarga = itemsCargados === itemsTotal ? 'cargada' : 'en_carga';
-
-        return {
-          ...f,
-          itemsCargadosIndices,
-          itemsCargados,
-          estadoCarga,
-          fechaUltimaCarga: new Date().toISOString()
-        };
-      }
-      return f;
-    });
-
-    await rutaRef.update({
-      facturas: facturasActualizadas,
-      fechaActualizacion: FieldValue.serverTimestamp()
-    });
-
-    // Actualizar en recolección
-    const facturaRuta = facturasActualizadas.find(f => f.id === facturaId);
+    const rutaRef = db.collection('rutas').doc(rutaId);
     
-    await db.collection('recolecciones').doc(facturaId).update({
-      itemsCargados: facturaRuta.itemsCargados,
-      estadoCarga: facturaRuta.estadoCarga,
-      fechaActualizacion: FieldValue.serverTimestamp()
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(rutaRef);
+      if (!doc.exists) throw new Error("La ruta no existe");
+      
+      const data = doc.data();
+      
+      // Validar estado
+      if (data.estado !== 'en_carga') {
+        throw new Error("La ruta no está en proceso de carga");
+      }
+      
+      // Obtener factura original para validar item
+      const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+      if (!facturaDoc.exists) throw new Error("Factura no encontrada");
+      
+      const facturaOriginal = facturaDoc.data();
+      if (itemIndex >= facturaOriginal.items.length) {
+        throw new Error("Índice de item fuera de rango");
+      }
+      
+      // Clonar array de facturas
+      const facturas = [...(data.facturas || [])];
+      const facturaIdx = facturas.findIndex(f => f.id === facturaId || f.facturaId === facturaId);
+      
+      if (facturaIdx === -1) throw new Error("La factura no pertenece a esta ruta");
+
+      const factura = { ...facturas[facturaIdx] };
+      const items = [...(factura.items || facturaOriginal.items)];
+      
+      // Inicializar array de índices cargados si no existe
+      if (!factura.itemsCargadosIndices) {
+        factura.itemsCargadosIndices = [];
+      }
+
+      // Verificar si ya estaba cargado
+      if (!factura.itemsCargadosIndices.includes(itemIndex)) {
+        // Marcar item como cargado
+        if (items[itemIndex]) {
+          items[itemIndex].cargado = true;
+          items[itemIndex].cargadoPor = cargadorId;
+          items[itemIndex].fechaCarga = new Date().toISOString();
+        }
+        
+        factura.items = items;
+        factura.itemsCargadosIndices.push(itemIndex);
+        factura.itemsCargados = factura.itemsCargadosIndices.length;
+        
+        // Determinar estado de carga
+        const itemsTotal = facturaOriginal.items.length;
+        factura.itemsTotal = itemsTotal;
+        factura.estadoCarga = factura.itemsCargados >= itemsTotal ? 'cargada' : 'en_carga';
+        factura.fechaUltimaCarga = new Date().toISOString();
+
+        // Actualizar en array
+        facturas[facturaIdx] = factura;
+        
+        // Actualizar contadores globales
+        const itemsCargadosRuta = (data.itemsCargadosRuta || 0) + 1;
+
+        // Ejecutar actualización
+        transaction.update(rutaRef, {
+          facturas: facturas,
+          itemsCargadosRuta: itemsCargadosRuta,
+          updatedAt: new Date().toISOString(),
+          fechaActualizacion: FieldValue.serverTimestamp()
+        });
+        
+        // Actualizar también en recolecciones
+        const facturaRef = db.collection('recolecciones').doc(facturaId);
+        transaction.update(facturaRef, {
+          itemsCargados: factura.itemsCargados,
+          estadoCarga: factura.estadoCarga,
+          fechaActualizacion: FieldValue.serverTimestamp()
+        });
+      }
     });
 
     console.log('✅ Item confirmado como cargado');
 
-    res.json({
-      success: true,
-      message: 'Item confirmado como cargado',
-      data: {
-        facturaId,
-        itemIndex,
-        itemsCargados: facturaRuta.itemsCargados,
-        itemsTotal: factura.items.length,
-        estadoCarga: facturaRuta.estadoCarga
-      }
+    res.json({ 
+      success: true, 
+      message: 'Item marcado como cargado exitosamente' 
     });
 
   } catch (error) {
     console.error('❌ Error confirmando item:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al confirmar el item',
-      error: error.message
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Error al confirmar el item',
+      error: error.message 
     });
   }
 };
 
-// ========================================
-// ⚠️ REPORTAR ITEM DAÑADO DURANTE CARGA
-// ========================================
+// ==========================================================================
+// ⚠️ REPORTAR ITEM DAÑADO (Sincronización Recolección <-> Ruta)
+// ==========================================================================
 export const reportarItemDanado = async (req, res) => {
   try {
     const { facturaId } = req.params;
     const { itemIndex, descripcionDano, fotos } = req.body;
-    const companyId = req.userData?.companyId;
-    const cargadorId = req.userData?.uid;
-    const nombreCargador = req.userData?.nombre || 'Cargador';
+    const cargadorId = req.user?.uid || req.userData?.uid;
+    const nombreCargador = req.user?.nombre || req.userData?.nombre || 'Cargador';
 
     console.log(`⚠️ Reportando item dañado: factura ${facturaId}, item ${itemIndex}`);
 
-    if (itemIndex === undefined) {
+    if (itemIndex === undefined || itemIndex < 0) {
       return res.status(400).json({
         success: false,
         message: 'Índice de item requerido'
@@ -435,41 +476,45 @@ export const reportarItemDanado = async (req, res) => {
       });
     }
 
+    // 1. Actualizar colección principal 'recolecciones'
     const facturaRef = db.collection('recolecciones').doc(facturaId);
-    const doc = await facturaRef.get();
-
-    if (!doc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Factura no encontrada'
+    const facturaDoc = await facturaRef.get();
+    
+    if (!facturaDoc.exists) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Factura no encontrada' 
       });
     }
 
-    const data = doc.data();
-
+    const facturaData = facturaDoc.data();
+    
     // Validar permisos
-    if (data.companyId !== companyId) {
+    const userDoc = await db.collection('usuarios').doc(cargadorId).get();
+    const userData = userDoc.data();
+    
+    if (facturaData.companyId !== userData.companyId) {
       return res.status(403).json({
         success: false,
         message: 'No tiene permisos'
       });
     }
 
-    if (itemIndex < 0 || itemIndex >= data.items.length) {
+    if (itemIndex >= facturaData.items.length) {
       return res.status(400).json({
         success: false,
         message: 'Índice de item inválido'
       });
     }
 
-    const item = data.items[itemIndex];
+    const item = facturaData.items[itemIndex];
     
-    const itemDanado = {
+    const itemDanadoData = {
       itemIndex,
       item: {
         cantidad: item.cantidad,
         descripcion: item.descripcion,
-        precio: item.precio
+        precio: item.precio || 0
       },
       descripcionDano: descripcionDano.trim(),
       fotos: fotos || [],
@@ -477,53 +522,82 @@ export const reportarItemDanado = async (req, res) => {
       nombreReportador: nombreCargador,
       rolReportador: 'cargador',
       momentoReporte: 'carga',
+      etapa: 'carga',
       fecha: new Date().toISOString()
     };
 
     const historialEntry = {
       accion: 'item_danado_carga',
-      descripcion: `Item dañado reportado durante carga: ${item.descripcion}`,
+      descripcion: `Item dañado: ${item.descripcion} - ${descripcionDano}`,
       itemIndex,
       usuario: cargadorId,
       nombreUsuario: nombreCargador,
       rol: 'cargador',
       fecha: new Date().toISOString()
     };
-
+      
+    // Agregar a recolección
     await facturaRef.update({
-      itemsDanados: FieldValue.arrayUnion(itemDanado),
+      itemsDanados: FieldValue.arrayUnion(itemDanadoData),
       historial: FieldValue.arrayUnion(historialEntry),
       fechaActualizacion: FieldValue.serverTimestamp()
     });
+      
+    // 2. Sincronizar con la copia en 'rutas'
+    if (facturaData.rutaId) {
+      const rutaRef = db.collection('rutas').doc(facturaData.rutaId);
+      
+      await db.runTransaction(async (transaction) => {
+        const rDoc = await transaction.get(rutaRef);
+        if (rDoc.exists) {
+          const rData = rDoc.data();
+          const facturas = [...(rData.facturas || [])];
+          const fIdx = facturas.findIndex(f => f.id === facturaId || f.facturaId === facturaId);
+          
+          if (fIdx !== -1) {
+            const factura = { ...facturas[fIdx] };
+            if (!factura.itemsDanados) factura.itemsDanados = [];
+            
+            factura.itemsDanados.push(itemDanadoData);
+            facturas[fIdx] = factura;
+            
+            transaction.update(rutaRef, { 
+              facturas,
+              updatedAt: new Date().toISOString(),
+              fechaActualizacion: FieldValue.serverTimestamp()
+            });
+          }
+        }
+      });
+    }
 
-    console.log('✅ Item dañado reportado');
+    console.log('✅ Item dañado reportado exitosamente');
 
-    res.json({
-      success: true,
+    res.json({ 
+      success: true, 
       message: 'Item dañado reportado exitosamente',
-      data: itemDanado
+      data: itemDanadoData
     });
 
   } catch (error) {
-    console.error('❌ Error reportando item dañado:', error);
-    res.status(500).json({
-      success: false,
+    console.error('❌ Error reportando daño:', error);
+    res.status(500).json({ 
+      success: false, 
       message: 'Error al reportar el item dañado',
-      error: error.message
+      error: error.message 
     });
   }
 };
 
-// ========================================
-// 🏁 FINALIZAR CARGA DE RUTA
-// ========================================
+// ==========================================================================
+// 🏁 FINALIZAR CARGA (Con validación inteligente)
+// ==========================================================================
 export const finalizarCarga = async (req, res) => {
   try {
     const { rutaId } = req.params;
-    const { notas } = req.body;
-    const companyId = req.userData?.companyId;
-    const cargadorId = req.userData?.uid;
-    const nombreCargador = req.userData?.nombre || 'Cargador';
+    const { notas, forzarFinalizacion } = req.body;
+    const cargadorId = req.user?.uid || req.userData?.uid;
+    const nombreCargador = req.user?.nombre || req.userData?.nombre || 'Cargador';
 
     console.log('🏁 Finalizando carga de ruta:', rutaId);
 
@@ -540,7 +614,10 @@ export const finalizarCarga = async (req, res) => {
     const data = doc.data();
 
     // Validar permisos
-    if (data.companyId !== companyId || data.cargadorId !== cargadorId) {
+    const userDoc = await db.collection('usuarios').doc(cargadorId).get();
+    const userData = userDoc.data();
+    
+    if (data.companyId !== userData.companyId) {
       return res.status(403).json({
         success: false,
         message: 'No tiene permisos'
@@ -555,10 +632,13 @@ export const finalizarCarga = async (req, res) => {
       });
     }
 
-    // Verificar que todas las facturas estén cargadas
-    const facturasIncompletas = data.facturas.filter(f => f.estadoCarga !== 'cargada');
+    // Verificar facturas incompletas
+    const facturasIncompletas = (data.facturas || []).filter(f => 
+      f.estadoCarga !== 'cargada' && 
+      (f.itemsCargados || 0) < (f.itemsTotal || f.items?.length || 0)
+    );
     
-    if (facturasIncompletas.length > 0) {
+    if (facturasIncompletas.length > 0 && !forzarFinalizacion) {
       return res.status(400).json({
         success: false,
         message: 'Hay facturas con items sin cargar',
@@ -567,14 +647,14 @@ export const finalizarCarga = async (req, res) => {
           id: f.id,
           codigoTracking: f.codigoTracking,
           itemsCargados: f.itemsCargados || 0,
-          itemsTotal: f.itemsTotal || 0
+          itemsTotal: f.itemsTotal || f.items?.length || 0
         }))
       });
     }
 
     const historialEntry = {
       accion: 'finalizar_carga',
-      descripcion: `Carga finalizada por ${nombreCargador}`,
+      descripcion: `Carga finalizada por ${nombreCargador}${facturasIncompletas.length > 0 ? ' (forzada con items pendientes)' : ''}`,
       notas: notas || '',
       usuario: cargadorId,
       nombreUsuario: nombreCargador,
@@ -582,22 +662,27 @@ export const finalizarCarga = async (req, res) => {
       fecha: new Date().toISOString()
     };
 
-    // Actualizar ruta
+    // Actualizar ruta a estado final
+    // 'cargada' es el estado estándar, pero mantenemos compatibilidad con 'carga_finalizada'
     await rutaRef.update({
-      estado: 'cargada',
+      estado: 'cargada', // Estado que activa visibilidad para repartidor
       fechaFinCarga: FieldValue.serverTimestamp(),
       notasCargador: notas || '',
+      notasCarga: notas || '', // Alias por compatibilidad
+      updatedAt: new Date().toISOString(),
       fechaActualizacion: FieldValue.serverTimestamp(),
       historial: FieldValue.arrayUnion(historialEntry)
     });
 
-    // Actualizar facturas a estado 'lista_entrega'
+    // Actualizar facturas individuales a 'lista_entrega'
     const batch = db.batch();
-    for (const factura of data.facturas) {
-      if (factura.id) {
-        const facturaRef = db.collection('recolecciones').doc(factura.id);
+    for (const factura of data.facturas || []) {
+      const facturaId = factura.id || factura.facturaId;
+      if (facturaId) {
+        const facturaRef = db.collection('recolecciones').doc(facturaId);
         batch.update(facturaRef, {
           estado: 'lista_entrega',
+          estadoCarga: factura.estadoCarga || 'cargada',
           fechaActualizacion: FieldValue.serverTimestamp(),
           historial: FieldValue.arrayUnion({
             accion: 'ruta_cargada',
@@ -617,7 +702,9 @@ export const finalizarCarga = async (req, res) => {
       data: {
         rutaId,
         estado: 'cargada',
-        totalFacturas: data.facturas.length
+        totalFacturas: data.facturas?.length || 0,
+        facturasCompletas: (data.facturas?.length || 0) - facturasIncompletas.length,
+        facturasIncompletas: facturasIncompletas.length
       }
     });
 
