@@ -186,6 +186,76 @@ export const getRutaById = async (req, res) => {
 };
 
 // ============================================================
+// 🛑 FINALIZAR RUTA (Lógica para Facturas No Entregadas)
+// Implementación de la lógica solicitada para marcar facturas pendientes como 'no_entregada'.
+// ============================================================
+export const finalizarRuta = async (req, res) => {
+    try {
+        // Se asume que el ID de la ruta viene en el path params o en el cuerpo.
+        const rutaId = req.params.id || req.body.id; 
+        if (!rutaId) {
+            return res.status(400).json({ success: false, error: 'ID de ruta requerido' });
+        }
+
+        const rutaRef = db.collection('rutas').doc(rutaId);
+        const rutaDoc = await rutaRef.get();
+
+        if (!rutaDoc.exists) {
+            return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+        }
+
+        const rutaData = rutaDoc.data();
+        const facturasEnRuta = rutaData.facturas || [];
+
+        const batch = db.batch();
+        let facturasNoEntregadasCount = 0;
+        const now = new Date().toISOString();
+
+        // 1. Procesar todas las facturas de la ruta
+        for (const facturaRuta of facturasEnRuta) {
+            // Se asume que si el estado NO es 'entregada' (sino 'asignado', 'no_encontrado', etc.), 
+            // debe ser reasignada.
+            if (facturaRuta.estado !== 'entregada') {
+                facturasNoEntregadasCount++;
+                const facturaId = facturaRuta.facturaId || facturaRuta.id; // El ID de la recolección
+                const recoleccionRef = db.collection('recolecciones').doc(facturaId);
+
+                // 1.1. Actualizar el documento de la recolección (la factura)
+                batch.update(recoleccionRef, {
+                    estado: 'no_entregada', // Estado para que aparezca en el panel de reasignación
+                    rutaId: FieldValue.delete(), // Desvincular de la ruta
+                    repartidorId: FieldValue.delete(),
+                    repartidorNombre: FieldValue.delete(),
+                    // Puedes añadir más lógica de historial aquí si lo necesitas
+                });
+            }
+        }
+
+        // 2. Actualizar el estado de la ruta a 'completada'
+        batch.update(rutaRef, {
+            estado: 'completada',
+            fechaCierre: now,
+            // Importante: Actualizar el contador de facturas no entregadas
+            facturasNoEntregadas: facturasNoEntregadasCount, 
+            updatedAt: now,
+        });
+
+        await batch.commit();
+
+        // 3. Respuesta final
+        res.json({ 
+            success: true, 
+            message: `Ruta finalizada. ${facturasNoEntregadasCount} facturas marcadas como no entregadas.`,
+            data: { id: rutaId }
+        });
+
+    } catch (error) {
+        console.error('❌ Error en finalizarRuta:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// ============================================================
 // 🛠️ RECURSOS (Solución Error 500 Contenedores)
 // ============================================================
 
@@ -274,7 +344,7 @@ export const cerrarRuta = async (req, res) => {
     } catch(e) { res.status(500).json({error: e.message}); }
 };
 export const updateEntrega = async (req, res) => res.json({msg: 'ok'});
-export const finalizarRuta = async (req, res) => res.json({msg: 'ok'});
+// export const finalizarRuta ya está implementada arriba
 export const getStatsRepartidor = async (req, res) => res.json({success: true, data: {}});
 export const getRutasActivas = async (req, res) => getAllRutas(req, res);
 export const createRuta = async (req, res) => createRutaAvanzada(req, res);

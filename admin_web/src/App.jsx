@@ -11,6 +11,8 @@ import DashboardSuperAdmin from './pages/DashboardSuperAdmin';
 import Companies from './pages/Companies';
 import Embarques from './pages/Embarques';
 import Rutas from './pages/Rutas';
+// ✅ CORRECCIÓN: Importar DetalleRuta para usar la ruta con parámetro
+import DetalleRuta from './pages/DetalleRuta'; 
 import Recolecciones from './pages/Recolecciones';
 import NuevaRecoleccion from './pages/NuevaRecoleccion';
 import PanelSecretarias from './pages/PanelSecretarias';
@@ -75,6 +77,8 @@ function AppContent() {
             <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
+            {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
+            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
             <Route path="/secretarias" element={<PanelSecretarias />} />
             <Route path="/cargadores" element={<PanelCargadores />} />
             <Route path="/repartidores" element={<PanelRepartidores />} />
@@ -117,6 +121,8 @@ function AppContent() {
           <>
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
+            {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
+            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
             <Route path="/secretarias" element={<PanelSecretarias />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
@@ -139,6 +145,8 @@ function AppContent() {
           <>
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
+            {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
+            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
@@ -151,6 +159,8 @@ function AppContent() {
         {rol === 'repartidor' && (
           <>
             <Route path="/rutas" element={<Rutas />} />
+            {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
+            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
             <Route path="/repartidores" element={<PanelRepartidores />} />
             <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
           </>

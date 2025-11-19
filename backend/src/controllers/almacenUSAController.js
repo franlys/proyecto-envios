@@ -7,7 +7,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 // Estados válidos del sistema
 const ESTADOS_CONTENEDOR = {
   ABIERTO: 'abierto',
-  EN_TRANSITO: 'en_transito_rd',
+  EN_TRANSITO: 'en_transito_rd', // Estado después de cerrar en USA
   RECIBIDO: 'recibido_rd',
   TRABAJADO: 'trabajado'
 };
@@ -15,7 +15,7 @@ const ESTADOS_CONTENEDOR = {
 const ESTADOS_FACTURA = {
   PENDIENTE: 'pendiente',
   EN_CONTENEDOR: 'en_contenedor',
-  EN_TRANSITO: 'en_transito',
+  EN_TRANSITO: 'en_transito', // Estado que se asigna al cerrar el contenedor
   RECIBIDA: 'recibida',
   ENTREGADA: 'entregada'
 };
@@ -536,6 +536,7 @@ export const cerrarContenedor = async (req, res) => {
       fecha: new Date().toISOString()
     };
 
+    // 1. Actualizar el estado del contenedor
     await contenedorRef.update({
       estado: ESTADOS_CONTENEDOR.EN_TRANSITO,
       estadoFacturas,
@@ -549,6 +550,7 @@ export const cerrarContenedor = async (req, res) => {
     let facturasActualizadas = 0;
     let facturasConError = 0;
 
+    // 2. Actualizar el estado de CADA factura en la colección 'recolecciones'
     if (contenedor.facturas && Array.isArray(contenedor.facturas)) {
       for (const factura of contenedor.facturas) {
         if (!factura || !factura.id || typeof factura.id !== 'string' || factura.id.trim() === '') {
@@ -563,7 +565,7 @@ export const cerrarContenedor = async (req, res) => {
 
           if (recoleccionDoc.exists) {
             batch.update(recoleccionRef, {
-              estado: ESTADOS_FACTURA.EN_TRANSITO,
+              estado: ESTADOS_FACTURA.EN_TRANSITO, // Se marca como EN_TRANSITO
               estadoItems: factura.estadoItems || ESTADOS_ITEMS.COMPLETO,
               fechaActualizacion: FieldValue.serverTimestamp(),
               historial: FieldValue.arrayUnion({

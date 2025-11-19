@@ -25,7 +25,8 @@ const FacturasNoEntregadas = () => {
   const fetchFacturasNoEntregadas = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/facturas/no-entregadas');
+      // ✅ CORRECCIÓN FINAL: Se cambia la ruta a '/facturacion/no-entregadas'
+      const response = await api.get('/facturacion/no-entregadas'); 
       
       if (response.data.success) {
         setFacturas(response.data.data || []);

@@ -1,11 +1,16 @@
 // backend/src/controllers/rutasAvanzadasController.js
 /**
- * ✅ CONTROLADOR DE RUTAS AVANZADAS - VERSIÓN FINAL
+ * ✅ CONTROLADOR DE RUTAS AVANZADAS - VERSIÓN FINAL ACTUALIZADA
  * Sistema LIFO con orden de carga y entrega
+ * 
+ * CORRECCIONES IMPLEMENTADAS:
+ * ✅ Fix de visibilidad para cargadores (cargadorId agregado al schema)
+ * ✅ Fix de visibilidad para repartidores (estado 'asignada' incluido en filtros)
+ * ✅ Importación correcta de FieldPath
  */
 
 import { db } from '../config/firebase.js';
-// ✅ 1. CORRECCIÓN: Importar FieldPath correctamente
+// ✅ CORRECCIÓN 1: Importar FieldPath correctamente
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 
 // ========================================
@@ -203,7 +208,7 @@ export const getContenedoresDisponibles = async (req, res) => {
        console.warn(`⚠️ Se encontraron ${contenedorIds.length} contenedores, pero la consulta se limita a 30.`);
     }
     const contenedoresSnapshot = await db.collection('contenedores')
-      // ✅ 2. CORRECCIÓN: Usar FieldPath (importado) en lugar de db.FieldPath
+      // ✅ CORRECCIÓN 2: Usar FieldPath (importado) en lugar de db.FieldPath
       .where(FieldPath.documentId(), 'in', contenedorIds.slice(0, 30))
       .get();
       
@@ -228,7 +233,6 @@ export const getContenedoresDisponibles = async (req, res) => {
     });
   }
 };
-
 
 // ========================================
 // OBTENER FACTURAS DISPONIBLES PARA RUTAS
@@ -456,6 +460,12 @@ export const crearRutaAvanzada = async (req, res) => {
       companyId,
       repartidorId,
       repartidorNombre: repartidorData.nombre,
+      
+      // ✅ CORRECCIÓN 3: AÑADIR ID Y NOMBRE DEL CARGADOR PRINCIPAL PARA FILTRADO
+      // Esto soluciona la invisibilidad del cargador
+      cargadorId: cargadoresIds[0], 
+      cargadorNombre: cargadoresData.find(c => c.id === cargadoresIds[0])?.nombre || cargadoresIds[0],
+      
       cargadores: cargadoresData,
       facturas: facturasConOrden,
       configuracion: {
@@ -467,8 +477,10 @@ export const crearRutaAvanzada = async (req, res) => {
       totalFacturas: facturasIds.length,
       facturasEntregadas: 0,
       createdAt: FieldValue.serverTimestamp(),
+      fechaCreacion: FieldValue.serverTimestamp(),
       createdBy: usuarioId,
       fechaActualizacion: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
       historial: [
         {
           accion: 'crear_ruta',
@@ -547,7 +559,7 @@ export const crearRutaAvanzada = async (req, res) => {
 export default {
   getRepartidoresDisponibles,
   getCargadoresDisponibles,
+  getContenedoresDisponibles,
   getFacturasDisponibles,
-  crearRutaAvanzada,
-  getContenedoresDisponibles // ✅ AÑADIDO A LA EXPORTACIÓN
+  crearRutaAvanzada
 };

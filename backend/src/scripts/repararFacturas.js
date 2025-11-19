@@ -1,110 +1,108 @@
-import { db } from '../config/firebase.js'; // <-- Quítale el '/src'
+// backend/src/scripts/repararFacturas.js
+/**
+ * SCRIPT DE REPARACIÓN DE ESTADOS DE FACTURAS HISTÓRICAS
+ * Busca facturas que quedaron en estado 'en_ruta'/'asignada' tras el cierre de rutas
+ * y las cambia a 'no_entregada' para permitir su reasignación.
+ * * EJECUCIÓN:
+ * 1. Asegura que el archivo serviceAccountKey.json está disponible.
+ * 2. Configura la variable de entorno: export GOOGLE_APPLICATION_CREDENTIALS="/ruta/a/serviceAccountKey.json"
+ * 3. Ejecuta: node backend/src/scripts/repararFacturas.js
+ */
 
-const repararFacturasViejas = async () => {
+import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import * as path from 'path';
+
+// ⚠️ AJUSTA LA RUTA DE TU CLAVE DE SERVICIO AQUÍ
+// ----------------------------------------------------
+// SI USAS UN ARCHIVO DE CLAVE:
+// const serviceAccount = require(path.resolve('./backend/serviceAccountKey.json'));
+
+// initializeApp({
+//   credential: cert(serviceAccount),
+// });
+// ----------------------------------------------------
+
+// 🚀 MÉTODO RECOMENDADO (Si configuraste GOOGLE_APPLICATION_CREDENTIALS):
+// Usa la inicialización predeterminada de la aplicación (Google Application Default Credentials)
+initializeApp({
+  credential: applicationDefault(),
+});
+const db = getFirestore();
+
+
+// ============================================================
+// FUNCIÓN PRINCIPAL DE REPARACIÓN DE ESTADO DE FACTURAS
+// ============================================================
+const repararFacturasNoEntregadas = async () => {
+  console.log('------------------------------------------------');
+  console.log('🚀 INICIANDO REPARACIÓN DE ESTADO DE FACTURAS HISTÓRICAS 🚀');
+  console.log('------------------------------------------------');
+
   try {
-    console.log('🔄 Iniciando reparación de facturas...');
-    const recoleccionesRef = db.collection('recolecciones');
-    const contenedoresRef = db.collection('contenedores');
+    // 1. Obtener todas las rutas que ya fueron marcadas como FINALIZADAS
+    const rutasSnapshot = await db.collection('rutas')
+      .where('estado', '==', 'completada')
+      .get();
     
-    // 1. Obtener solo facturas que están (o estuvieron) en un contenedor
-    const snapshot = await recoleccionesRef.where('contenedorId', '!=', null).get();
-
-    console.log(`📊 ${snapshot.size} facturas en contenedores encontradas.`);
-
-    if (snapshot.empty) {
-      console.log('✅ No hay facturas para reparar. Saliendo.');
-      process.exit(0);
+    if (rutasSnapshot.empty) {
+      console.log('✅ No se encontraron rutas completadas para revisar.');
       return;
     }
 
-    let facturasReparadas = 0;
-    let facturasOmitidas = 0; // Ya estaban bien
-    let facturasConError = 0;
-    
-    const batch = db.batch();
-    let batchCount = 0;
+    const rutasCompletadasIds = rutasSnapshot.docs.map(doc => doc.id);
+    let facturasActualizadasCount = 0;
+    const now = new Date().toISOString();
 
-    for (const doc of snapshot.docs) {
-      const facturaId = doc.id;
-      const data = doc.data();
-      const contenedorId = data.contenedorId;
+    console.log(`🔎 Rutas completadas encontradas: ${rutasCompletadasIds.length}`);
 
-      try {
-        // 2. Buscar la "copia" (la verdad) dentro del documento contenedor
-        const contenedorDoc = await contenedoresRef.doc(contenedorId).get();
-        if (!contenedorDoc.exists) {
-          console.warn(`⚠️ Contenedor ${contenedorId} no encontrado (Factura ${facturaId}). Omitiendo.`);
-          facturasOmitidas++;
-          continue;
-        }
+    // Procesamos en lotes de 10 IDs de ruta para cumplir con el límite de 'in' de Firestore
+    const batchSize = 10;
+    for (let i = 0; i < rutasCompletadasIds.length; i += batchSize) {
+      const currentRutaIds = rutasCompletadasIds.slice(i, i + batchSize);
+      
+      // 2. Buscar facturas que aún tengan estados de "en ruta" o "asignada"
+      const facturasPendientesSnapshot = await db.collection('recolecciones')
+        .where('rutaId', 'in', currentRutaIds)
+        .where('estado', 'in', ['en_ruta', 'asignada']) // Estados que deberían ser 'no_entregada'
+        .get();
 
-        const contenedor = contenedorDoc.data();
-        // Encontrar la factura específica dentro del array 'facturas' del contenedor
-        const facturaEnContenedor = contenedor.facturas?.find(f => f.id === facturaId);
-
-        if (!facturaEnContenedor) {
-          console.warn(`⚠️ Factura ${facturaId} no encontrada en el array de ${contenedorId}. Omitiendo.`);
-          facturasOmitidas++;
-          continue;
-        }
-
-        // 3. Estos son los datos CORRECTOS (de la "copia")
-        const itemsTotalCorrecto = facturaEnContenedor.itemsTotal || 0;
-        const itemsMarcadosCorrecto = facturaEnContenedor.itemsMarcados || 0;
-        const estadoItemsCorrecto = facturaEnContenedor.estadoItems || 'pendiente';
-
-        // 4. Comprobar si la factura "original" (data) está desactualizada
-        const necesitaReparacion = 
-          data.itemsTotal !== itemsTotalCorrecto ||
-          data.itemsMarcados !== itemsMarcadosCorrecto ||
-          data.estadoItems !== estadoItemsCorrecto;
-
-        if (necesitaReparacion) {
-          // 5. Reparar la factura "original" en el batch
-          batch.update(doc.ref, {
-            itemsTotal: itemsTotalCorrecto,
-            itemsMarcados: itemsMarcadosCorrecto,
-            estadoItems: estadoItemsCorrecto
-          });
-          batchCount++;
-          facturasReparadas++;
-          console.log(`✅ Reparando ${facturaId} (${data.codigoTracking}): ${itemsMarcadosCorrecto}/${itemsTotalCorrecto}, ${estadoItemsCorrecto}`);
-        } else {
-          facturasOmitidas++;
-        }
-
-        // 6. Ejecutar el batch en lotes de 400 para no fallar
-        if (batchCount >= 400) {
-          await batch.commit();
-          console.log(`--- 💾 Lote de ${batchCount} facturas guardado ---`);
-          batchCount = 0; // Reiniciar el batch
-        }
-
-      } catch (error) {
-        console.error(`❌ Error procesando ${facturaId}:`, error.message);
-        facturasConError++;
+      if (facturasPendientesSnapshot.empty) {
+        continue;
       }
-    }
-
-    // 7. Guardar el último lote restante
-    if (batchCount > 0) {
-      await batch.commit();
-      console.log(`--- 💾 Lote final de ${batchCount} facturas guardado ---`);
-    }
-
-    console.log('\n📊 RESUMEN DE REPARACIÓN:');
-    console.log(`   ✅ Facturas reparadas: ${facturasReparadas}`);
-    console.log(`   ⏭️  Facturas omitidas (ya correctas): ${facturasOmitidas}`);
-    console.log(`   ❌ Facturas con error: ${facturasConError}`);
-    console.log('\n✅ Reparación completada.');
+      
+      const batch = db.batch();
+      
+      facturasPendientesSnapshot.forEach(doc => {
+        facturasActualizadasCount++;
+        const facturaRef = db.collection('recolecciones').doc(doc.id);
         
-    process.exit(0); // Terminar el script
+        // 3. Actualizar el estado a 'no_entregada' y desvincular de la ruta
+        batch.update(facturaRef, {
+          estado: 'no_entregada', 
+          rutaId: FieldValue.delete(),
+          repartidorId: FieldValue.delete(),
+          repartidorNombre: FieldValue.delete(),
+          fechaActualizacion: now,
+          historial: FieldValue.arrayUnion({
+            estado: 'no_entregada',
+            fecha: now,
+            descripcion: 'Corregido por script de mantenimiento: Ruta cerrada sin entrega.'
+          })
+        });
+      });
+      
+      await batch.commit();
+      console.log(`   - Procesados ${facturasActualizadasCount} documentos hasta ahora...`);
+    }
+
+    console.log('------------------------------------------------');
+    console.log(`🎉 REPARACIÓN FINALIZADA. ${facturasActualizadasCount} facturas corregidas.`);
+    console.log('------------------------------------------------');
 
   } catch (error) {
-    console.error('❌ Error fatal en la reparación:', error);
-    process.exit(1);
+    console.error('❌ ERROR CRÍTICO DURANTE EL SCRIPT DE REPARACIÓN:', error);
   }
 };
 
-// Ejecutar la reparación
-repararFacturasViejas();
+repararFacturasNoEntregadas();

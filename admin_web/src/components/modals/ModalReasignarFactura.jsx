@@ -3,11 +3,22 @@ import { useState, useEffect } from 'react';
 import api from "../../services/api";
 
 const ModalReasignarFactura = ({ factura, onClose, onSuccess }) => {
+  // ✅ CORRECCIÓN 1: Cláusula de guardia para evitar el crash (si la factura es nula)
+  if (!factura) return null; 
+
   const [loading, setLoading] = useState(false);
   const [accion, setAccion] = useState('pendiente'); // 'pendiente' o 'nueva_ruta'
   const [observaciones, setObservaciones] = useState('');
   const [rutaSeleccionada, setRutaSeleccionada] = useState('');
   const [rutasDisponibles, setRutasDisponibles] = useState([]);
+
+  useEffect(() => {
+    // Si la factura cambia y ya estaba en el modal, resetea la acción
+    if (factura.id) {
+        setAccion('pendiente');
+        setRutaSeleccionada('');
+    }
+  }, [factura.id]);
 
   useEffect(() => {
     if (accion === 'nueva_ruta') {
@@ -18,7 +29,8 @@ const ModalReasignarFactura = ({ factura, onClose, onSuccess }) => {
   const fetchRutasActivas = async () => {
     try {
       const response = await api.get('/rutas/activas');
-      setRutasDisponibles(response.data || []);
+      // ✅ Usar response.data.data si el backend devuelve el objeto data anidado
+      setRutasDisponibles(response.data.data || []);
     } catch (error) {
       console.error('Error al cargar rutas:', error);
     }
@@ -34,16 +46,16 @@ const ModalReasignarFactura = ({ factura, onClose, onSuccess }) => {
       setLoading(true);
 
       const payload = {
-        facturaId: factura.id,
+        facturaId: factura.id, 
         accion,
         observaciones,
         ...(accion === 'nueva_ruta' && { nuevaRutaId: rutaSeleccionada })
       };
 
-      await api.post('/facturas/reasignar', payload);
+      await api.post('/facturacion/reasignar', payload); 
 
-      alert('Factura reasignada exitosamente');
-      onSuccess();
+      onSuccess(); // Disparar recarga en el componente padre
+
     } catch (error) {
       console.error('Error:', error);
       alert(error.response?.data?.error || 'Error al reasignar la factura');
@@ -63,20 +75,21 @@ const ModalReasignarFactura = ({ factura, onClose, onSuccess }) => {
             <h3 className="font-medium text-gray-700 mb-2">Información de la Factura</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Número:</span>
-                <span className="font-medium">{factura.numeroFactura}</span>
+                <span className="text-gray-600">Número/Tracking:</span>
+                {/* ✅ CORRECCIÓN 2: Usar codigoTracking como principal y fallback a numeroFactura */}
+                <span className="font-medium">{factura.codigoTracking || factura.numeroFactura || factura.id}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Cliente:</span>
-                <span className="font-medium">{factura.cliente}</span>
+                <span className="font-medium">{factura.cliente || factura.destinatario?.nombre || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Dirección:</span>
-                <span className="font-medium text-right ml-4">{factura.direccion}</span>
+                <span className="font-medium text-right ml-4">{factura.direccion || factura.destinatario?.direccion}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Motivo no entrega:</span>
-                <span className="font-medium text-red-600">{factura.motivoNoEntrega || 'Sin especificar'}</span>
+                <span className="font-medium text-red-600">{factura.motivoNoEntrega || factura.reporteNoEntrega?.motivo || 'Sin especificar'}</span>
               </div>
             </div>
           </div>

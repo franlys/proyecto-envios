@@ -2,8 +2,7 @@
 /**
  * RUTAS DEL SISTEMA DE FACTURACIÓN
  * Gestión de pagos, precios y estados financieros
- * 
- * Rutas base: /api/facturacion
+ * * Rutas base: /api/facturacion
  */
 
 import express from 'express';
@@ -12,19 +11,22 @@ import {
   actualizarFacturacion,
   registrarPago,
   getFacturasPendientes,
-  getFacturasPorContenedor
+  getFacturasPorContenedor,
+  // ✅ CORRECCIÓN: Se importa la nueva función del controller
+  getFacturasNoEntregadas,
+  reasignarFactura // <-- Nueva importación
 } from '../controllers/facturacionController.js';
 
 const router = express.Router();
 
-// ========================================
+// ========================================\
 // MIDDLEWARE DE AUTENTICACIÓN
-// ========================================
+// ========================================\
 router.use(verifyToken);
 
-// ========================================
+// ========================================\
 // RUTAS DE FACTURACIÓN
-// ========================================
+// ========================================\
 
 /**
  * PUT /api/facturacion/recolecciones/:id
@@ -50,15 +52,28 @@ router.post('/recolecciones/:id/pago', registrarPago);
  */
 router.get('/pendientes', getFacturasPendientes);
 
+// ✅ RUTA CORREGIDA: Resuelve el error 404 en el frontend.
+/**
+ * POST /api/facturacion/reasignar
+ * Reasignar una factura no entregada a pendiente o a otra ruta activa
+ * Body: { facturaId, accion, observaciones, nuevaRutaId }
+ * Roles: admin_general, secretaria
+ */
+router.post('/reasignar', reasignarFactura); // <-- Nueva ruta POST
+
+/**
+ * GET /api/facturacion/no-entregadas
+ * Obtener todas las facturas no entregadas
+ * Roles: admin_general, secretaria, almacen_rd
+ */
+router.get('/no-entregadas', getFacturasNoEntregadas);
+
 /**
  * GET /api/facturacion/contenedores/:contenedorId
- * Obtener todas las facturas de un contenedor con resumen financiero
+ * Obtener todas las facturas de un contenedor.
  * Roles: admin_general, secretaria, almacen_rd
  */
 router.get('/contenedores/:contenedorId', getFacturasPorContenedor);
 
-// ========================================
-// EXPORTAR ROUTER
-// ========================================
 
 export default router;

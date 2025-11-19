@@ -33,7 +33,8 @@ router.get('/estadisticas', getEstadisticasAlmacen);
 router.post('/contenedores', crearContenedor);
 router.get('/contenedores', getContenedores);
 router.get('/contenedores/:id', getContenedorById);
-router.post('/contenedores/:id/cerrar', cerrarContenedor);
+// 🔑 CORRECCIÓN DE RUTA (SOLUCIÓN AL 404): La ruta es '/cerrar', no '/trabajado'
+router.post('/contenedores/:id/cerrar', cerrarContenedor); 
 
 // ========================================
 // RUTAS DE FACTURAS

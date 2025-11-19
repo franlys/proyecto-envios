@@ -1,7 +1,10 @@
 // backend/src/controllers/repartidoresController.js
 /**
- * CONTROLADOR DE REPARTIDORES - VERSIÓN UNIFICADA Y OPTIMIZADA
+ * ✅ CONTROLADOR DE REPARTIDORES - VERSIÓN UNIFICADA Y OPTIMIZADA
  * Gestión completa del ciclo de entrega item por item
+ * 
+ * CORRECCIONES IMPLEMENTADAS:
+ * ✅ Estado 'asignada' agregado al filtro para visibilidad inmediata de rutas
  * 
  * Funcionalidades:
  * ✅ Ver rutas asignadas con estadísticas en tiempo real
@@ -39,14 +42,15 @@ export const getRutasAsignadas = async (req, res) => {
     console.log('🚛 Repartidor buscando rutas:', repartidorId, 'Empresa:', companyId);
 
     // Buscar rutas asignadas
+    // ✅ CORRECCIÓN 4: Incluir 'asignada' para planificación inmediata
     // Estados visibles:
+    // - 'asignada': Rutas recién creadas, listas para planificación
     // - 'carga_finalizada': Carga terminada, listo para salir
     // - 'en_entrega': Ruta en proceso
-    // - 'asignada': Rutas futuras planificadas
     const snapshot = await db.collection('rutas')
       .where('companyId', '==', companyId)
       .where('repartidorId', '==', repartidorId)
-      .where('estado', 'in', ['carga_finalizada', 'en_entrega', 'asignada'])
+      .where('estado', 'in', ['asignada', 'carga_finalizada', 'en_entrega'])
       .orderBy('fechaCreacion', 'desc')
       .get();
 
@@ -65,13 +69,15 @@ export const getRutasAsignadas = async (req, res) => {
       let estadoTexto = data.estado;
       let estadoCliente = data.estado;
       
-      if (data.estado === 'carga_finalizada') {
+      if (data.estado === 'asignada') {
+        estadoTexto = 'Planificada';
+        estadoCliente = 'asignada';
+      } else if (data.estado === 'carga_finalizada') {
         estadoTexto = 'Lista para Salir';
         estadoCliente = 'cargada'; // El frontend espera 'cargada'
       } else if (data.estado === 'en_entrega') {
         estadoTexto = 'En Ruta';
-      } else if (data.estado === 'asignada') {
-        estadoTexto = 'Planificada';
+        estadoCliente = 'en_entrega';
       }
 
       return {
@@ -91,10 +97,10 @@ export const getRutasAsignadas = async (req, res) => {
           porcentajeEntrega
         },
         
-        fechaCreacion: data.fechaCreacion?.toDate?.() || data.createdAt || new Date().toISOString(),
+        fechaCreacion: data.fechaCreacion?.toDate?.() || data.createdAt?.toDate?.() || new Date().toISOString(),
         fechaAsignacion: data.fechaAsignacionRepartidor?.toDate?.() || null,
         fechaInicioEntrega: data.fechaInicioEntrega?.toDate?.() || null,
-        fechaActualizacion: data.fechaActualizacion?.toDate?.() || data.updatedAt || null
+        fechaActualizacion: data.fechaActualizacion?.toDate?.() || data.updatedAt?.toDate?.() || null
       };
     });
 
@@ -243,10 +249,10 @@ export const getDetalleRuta = async (req, res) => {
       repartidorId: data.repartidorId,
       repartidorNombre: data.repartidorNombre,
       facturas: facturasDetalladas,
-      fechaCreacion: data.fechaCreacion?.toDate?.() || data.createdAt || null,
+      fechaCreacion: data.fechaCreacion?.toDate?.() || data.createdAt?.toDate?.() || null,
       fechaAsignacion: data.fechaAsignacionRepartidor?.toDate?.() || null,
       fechaInicioEntrega: data.fechaInicioEntrega?.toDate?.() || null,
-      fechaActualizacion: data.fechaActualizacion?.toDate?.() || data.updatedAt || null
+      fechaActualizacion: data.fechaActualizacion?.toDate?.() || data.updatedAt?.toDate?.() || null
     };
 
     console.log(`✅ Detalle de ruta con ${facturasDetalladas.length} facturas`);
@@ -725,7 +731,7 @@ export const reportarDano = async (req, res) => {
 export const reportarItemDanado = reportarDano;
 
 // ==========================================================================
-// 🏁 MARCAR FACTURA COMO ENTREGADA
+// ✅ MARCAR FACTURA COMO ENTREGADA
 // ==========================================================================
 export const entregarFactura = async (req, res) => {
   try {
@@ -1065,3 +1071,25 @@ export const finalizarRuta = async (req, res) => {
     });
   }
 };
+
+// ==========================================================================
+// EXPORTACIÓN DE TODAS LAS FUNCIONES
+// ==========================================================================
+export default {
+  getRutasAsignadas,
+  getDetalleRuta,
+  iniciarEntregas,
+  entregarItem,
+  confirmarItemEntregado,
+  subirFotos,
+  subirFotosEvidencia,
+  confirmarPago,
+  confirmarPagoContraentrega,
+  reportarDano,
+  reportarItemDanado,
+  entregarFactura,
+  marcarFacturaEntregada,
+  reportarNoEntrega,
+  reportarFacturaNoEntregada,
+  finalizarRuta
+}

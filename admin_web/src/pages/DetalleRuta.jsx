@@ -316,7 +316,7 @@ const TabsDetalleRuta = ({ facturas, gastos }) => {
   );
 };
 
-// ✅ TABLA DE FACTURAS CON CAMPO SECTOR INTEGRADO
+// ✅ TABLA DE FACTURAS CON CORRECCIÓN DEL WARNING "KEY" (ya incluida)
 const TablaFacturas = ({ facturas }) => {
   if (facturas.length === 0) {
     return (
