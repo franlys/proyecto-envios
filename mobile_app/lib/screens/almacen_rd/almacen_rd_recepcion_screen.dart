@@ -177,13 +177,9 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
   }
 
   // ==================== LISTA DE CONTENEDORES ====================
-  Widget _buildContenedoresList(
-    String almacenId,
-    String empleadoNombre,
-    ResponsiveHelper helper,
-  ) {
-    return StreamBuilder<List<ContenedorRecibido>>(
-      stream: _almacenService.getContenedoresStream(
+  Widget _buildContenedoresList(String almacenId, String empleadoNombre, ResponsiveHelper helper) {
+    return FutureBuilder<List<ContenedorRecibido>>(
+      future: _almacenService.getContenedores(
         filtroEstado: _filtroEstado == 'todos' ? null : _filtroEstado,
       ),
       builder: (context, snapshot) {
@@ -192,263 +188,146 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error al cargar contenedores',
+                  style: TextStyle(fontSize: helper.getFontSize(16), color: Colors.red),
+                ),
+              ],
+            ),
+          );
         }
 
         final contenedores = snapshot.data ?? [];
 
         if (contenedores.isEmpty) {
-          return _buildEmptyState(helper);
+          return RefreshIndicator(
+            onRefresh: () async => setState(() {}),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]),
+                      const SizedBox(height: 24),
+                      Text(
+                        '¡Bienvenido al Almacén RD!',
+                        style: TextStyle(
+                          fontSize: helper.getFontSize(20),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No hay contenedores disponibles en este momento.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: helper.getFontSize(16),
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Los contenedores aparecerán aquí cuando sean enviados desde USA.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: helper.getFontSize(14),
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         }
 
-        return ListView.builder(
-          padding: helper.screenPadding,
-          itemCount: contenedores.length,
-          itemBuilder: (context, index) {
-            return _buildContenedorCard(
-              contenedores[index],
-              almacenId,
-              empleadoNombre,
-              helper,
-            );
-          },
+        return RefreshIndicator(
+          onRefresh: () async => setState(() {}),
+          child: ListView.builder(
+            padding: helper.screenPadding,
+            itemCount: contenedores.length,
+            itemBuilder: (context, index) {
+              return _buildContenedorCard(contenedores[index], empleadoNombre, helper);
+            },
+          ),
         );
       },
     );
   }
 
   // ==================== CARD DE CONTENEDOR ====================
-  Widget _buildContenedorCard(
-    ContenedorRecibido contenedor,
-    String almacenId,
-    String empleadoNombre,
-    ResponsiveHelper helper,
-  ) {
-    final color = _getEstadoColor(contenedor.estado);
-
+  Widget _buildContenedorCard(ContenedorRecibido contenedor, String empleadoNombre, ResponsiveHelper helper) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(helper.responsiveValue(
-          phone: 12,
-          tablet: 16,
-          desktop: 20,
-        )),
-        child: Column(
+      child: ExpansionTile(
+        leading: CircleAvatar(
+          backgroundColor: _getEstadoColor(contenedor.estado).withValues(alpha: 0.2),
+          child: Icon(Icons.inventory_2, color: _getEstadoColor(contenedor.estado)),
+        ),
+        title: Text(
+          contenedor.numeroContenedor,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: color.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(
-                    contenedor.numeroContenedor,
-                    style: TextStyle(
-                      fontSize: helper.getFontSize(12),
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                _buildEstadoBadge(contenedor.estado, helper),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Info
-            Row(
-              children: [
-                Icon(Icons.flight_takeoff, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Text(
-                  'Procedencia: ${contenedor.procedencia.toUpperCase()}',
-                  style: TextStyle(
-                    fontSize: helper.getFontSize(14),
-                    color: Colors.grey[700],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Fechas
-            Row(
-              children: [
-                Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
-                const SizedBox(width: 6),
-                Text(
-                  'Enviado: ${_formatFecha(contenedor.fechaEnvio)}',
-                  style: TextStyle(
-                    fontSize: helper.getFontSize(12),
-                    color: Colors.grey[500],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                if (contenedor.fechaRecepcion != null) ...[
-                  Icon(Icons.inbox, size: 14, color: Colors.grey[500]),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Recibido: ${_formatFecha(contenedor.fechaRecepcion!)}',
-                    style: TextStyle(
-                      fontSize: helper.getFontSize(12),
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Progreso
-            Column(
+            Text('Estado: ${_getEstadoTexto(contenedor.estado)}'),
+            const SizedBox(height: 4),
+            Text('Fecha: ${_formatFecha(contenedor.fechaEnvio)}'),
+            if (contenedor.estado == 'en_transito' && contenedor.fechaEstimadaLlegada != null)
+              Text('ETA: ${_formatFecha(contenedor.fechaEstimadaLlegada!)}',
+                style: const TextStyle(fontWeight: FontWeight.w500)),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (contenedor.naviera != null)
+                  _buildInfoRow('Naviera:', contenedor.naviera!),
+                if (contenedor.trackingNaviera != null)
+                  _buildInfoRow('Tracking:', contenedor.trackingNaviera!),
+                const SizedBox(height: 16),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Text(
-                      'Procesamiento',
-                      style: TextStyle(
-                        fontSize: helper.getFontSize(12),
-                        color: Colors.grey[600],
+                    if (contenedor.estado == 'en_transito') ...[
+                      ElevatedButton.icon(
+                        onPressed: () => _recibirContenedor(contenedor, empleadoNombre),
+                        icon: const Icon(Icons.check),
+                        label: const Text('Recibir'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successColor),
                       ),
-                    ),
-                    Text(
-                      '${contenedor.itemsProcesados} / ${contenedor.totalItems}',
-                      style: TextStyle(
-                        fontSize: helper.getFontSize(12),
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.almacenRDColor,
+                    ],
+                    if (contenedor.estado == 'recibido') ...[
+                      ElevatedButton.icon(
+                        onPressed: () => _procesarContenedor(contenedor, empleadoNombre),
+                        icon: const Icon(Icons.settings),
+                        label: const Text('Procesar'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warningColor),
                       ),
+                    ],
+                    OutlinedButton.icon(
+                      onPressed: () => _verItemsContenedor(contenedor),
+                      icon: const Icon(Icons.list),
+                      label: const Text('Ver Items'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: contenedor.progresoProcesamiento,
-                  backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    contenedor.progresoProcesamiento == 1.0
-                        ? AppTheme.successColor
-                        : AppTheme.almacenRDColor,
-                  ),
-                  minHeight: 8,
-                ),
               ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Botones de acción
-            if (contenedor.estado == 'en_transito')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _recibirContenedor(
-                    contenedor.id,
-                    empleadoNombre,
-                    almacenId,
-                  ),
-                  icon: const Icon(Icons.inbox),
-                  label: const Text('Marcar como Recibido'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.successColor,
-                  ),
-                ),
-              ),
-
-            if (contenedor.estado == 'recibido')
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _agregarNota(contenedor.id),
-                      icon: const Icon(Icons.note_add),
-                      label: const Text('Agregar Nota'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _marcarProcesado(contenedor.id),
-                      icon: const Icon(Icons.done_all),
-                      label: const Text('Procesado'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.almacenRDColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ==================== BADGE DE ESTADO ====================
-  Widget _buildEstadoBadge(String estado, ResponsiveHelper helper) {
-    final color = _getEstadoColor(estado);
-    final texto = _getEstadoTexto(estado);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          fontSize: helper.getFontSize(12),
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  // ==================== EMPTY STATE ====================
-  Widget _buildEmptyState(ResponsiveHelper helper) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.inventory_2,
-            size: 80,
-            color: Colors.grey[300],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No hay contenedores',
-            style: TextStyle(
-              fontSize: helper.getFontSize(18),
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _filtroEstado == 'todos'
-                ? 'No se han registrado contenedores'
-                : 'No hay contenedores con este estado',
-            style: TextStyle(
-              fontSize: helper.getFontSize(14),
-              color: Colors.grey[500],
             ),
           ),
         ],
@@ -456,21 +335,27 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
     );
   }
 
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value, style: TextStyle(color: Colors.grey[700])),
+        ],
+      ),
+    );
+  }
+
   // ==================== ACCIONES ====================
-  
-  Future<void> _recibirContenedor(
-    String contenedorId,
-    String empleadoNombre,
-    String almacenId,
-  ) async {
+
+  Future<void> _recibirContenedor(ContenedorRecibido contenedor, String empleadoNombre) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Recibir Contenedor'),
-        content: const Text(
-          '¿Confirmar recepción de este contenedor?\n\n'
-          'Esto registrará la fecha y hora de recepción.',
-        ),
+        content: Text('¿Confirmar recepción del contenedor ${contenedor.numeroContenedor}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -478,6 +363,7 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successColor),
             child: const Text('Confirmar'),
           ),
         ],
@@ -485,86 +371,92 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
     );
 
     if (confirm == true) {
-      bool success = await _almacenService.recibirContenedor(
-        contenedorId,
-        empleadoNombre,
-        almacenId,
-      );
+      bool success = await _almacenService.recibirContenedor(contenedor.id, empleadoNombre);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Contenedor recibido correctamente'),
-            backgroundColor: AppTheme.successColor,
-          ),
+          const SnackBar(content: Text('✅ Contenedor recibido exitosamente')),
         );
+        setState(() {});
       }
     }
   }
 
-  Future<void> _marcarProcesado(String contenedorId) async {
-    bool success = await _almacenService.marcarContenedorProcesado(contenedorId);
-
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Contenedor marcado como procesado'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
-    }
-  }
-
-  Future<void> _agregarNota(String contenedorId) async {
-    final controller = TextEditingController();
-
-    final nota = await showDialog<String>(
+  Future<void> _procesarContenedor(ContenedorRecibido contenedor, String empleadoNombre) async {
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Agregar Nota'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Escribe una nota...',
-            border: OutlineInputBorder(),
-          ),
-          maxLines: 3,
-        ),
+        title: const Text('Procesar Contenedor'),
+        content: Text('¿Iniciar procesamiento del contenedor ${contenedor.numeroContenedor}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Guardar'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Procesar'),
           ),
         ],
       ),
     );
 
-    if (nota != null && nota.trim().isNotEmpty) {
-      bool success = await _almacenService.agregarNotaContenedor(
-        contenedorId,
-        nota.trim(),
-      );
+    if (confirm == true) {
+      bool success = await _almacenService.procesarContenedor(contenedor.id, empleadoNombre);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Nota agregada'),
-            backgroundColor: AppTheme.successColor,
-          ),
+          const SnackBar(content: Text('✅ Contenedor en procesamiento')),
         );
+        setState(() {});
       }
     }
   }
 
+  Future<void> _verItemsContenedor(ContenedorRecibido contenedor) async {
+    final items = await _almacenService.getItemsDeContenedor(contenedor.id);
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Items - ${contenedor.numeroContenedor}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: items.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No hay items en este contenedor'),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      leading: const Icon(Icons.inventory),
+                      title: Text(item.descripcion ?? 'Sin descripción'),
+                      subtitle: Text('Tracking: ${item.tracking}'),
+                      trailing: Text('${item.peso}kg'),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ==================== HELPERS ====================
-  
+
   Color _getEstadoColor(String estado) {
     switch (estado) {
-      case 'distribuido':
       case 'procesado':
         return AppTheme.successColor;
       case 'recibido':

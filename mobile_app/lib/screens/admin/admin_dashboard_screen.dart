@@ -56,8 +56,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return FutureBuilder<EstadisticasGlobales>(
       future: _adminService.getEstadisticasGlobales(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return _buildEmptyState(helper);
         }
 
         final stats = snapshot.data!;
@@ -259,5 +263,103 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   String _formatFecha(DateTime fecha) {
     return '${fecha.day}/${fecha.month} ${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}';
+  }
+
+  // ==================== ESTADO VACÍO ====================
+  Widget _buildEmptyState(ResponsiveHelper helper) {
+    return Center(
+      child: Padding(
+        padding: helper.screenPadding,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.dashboard_outlined,
+              size: 100,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 32),
+            Text(
+              '¡Bienvenido al Panel Administrativo!',
+              style: TextStyle(
+                fontSize: helper.getFontSize(24),
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'El sistema está listo para gestionar operaciones.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: helper.getFontSize(16),
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Los datos y estadísticas aparecerán aquí cuando haya actividad.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: helper.getFontSize(14),
+                color: Colors.grey[500],
+              ),
+            ),
+            const SizedBox(height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildQuickActionCard(
+                  'Usuarios',
+                  Icons.people,
+                  AppTheme.adminColor,
+                  helper,
+                ),
+                const SizedBox(width: 16),
+                _buildQuickActionCard(
+                  'Reportes',
+                  Icons.analytics,
+                  AppTheme.infoColor,
+                  helper,
+                ),
+                const SizedBox(width: 16),
+                _buildQuickActionCard(
+                  'Configuración',
+                  Icons.settings,
+                  AppTheme.warningColor,
+                  helper,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard(String label, IconData icon, Color color, ResponsiveHelper helper) {
+    return Container(
+      padding: EdgeInsets.all(helper.responsiveValue(phone: 12, tablet: 16, desktop: 20)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 32, color: color),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: helper.getFontSize(12),
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

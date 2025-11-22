@@ -19,8 +19,6 @@ class SecretariaDashboardScreen extends StatefulWidget {
 
 class _SecretariaDashboardScreenState extends State<SecretariaDashboardScreen> {
   final SecretariaService _secretariaService = SecretariaService();
-  
-  get secretariaService => null;
 
   @override
   Widget build(BuildContext context) {
@@ -55,10 +53,14 @@ class _SecretariaDashboardScreenState extends State<SecretariaDashboardScreen> {
   // ==================== ESTADÍSTICAS ====================
   Widget _buildEstadisticas(ResponsiveHelper helper) {
     return FutureBuilder<EstadisticasSecretaria>(
-      future: secretariaService.getEstadisticas(),
+      future: _secretariaService.getEstadisticas(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return _buildEmptyState(helper);
         }
 
         final stats = snapshot.data!;
@@ -195,6 +197,58 @@ class _SecretariaDashboardScreenState extends State<SecretariaDashboardScreen> {
             const SizedBox(height: 8),
             Text(label, textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== ESTADO VACÍO ====================
+  Widget _buildEmptyState(ResponsiveHelper helper) {
+    return Center(
+      child: Padding(
+        padding: helper.screenPadding,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.dashboard_outlined,
+              size: 80,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '¡Bienvenido/a!',
+              style: TextStyle(
+                fontSize: helper.getFontSize(24),
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Aún no hay datos disponibles.\nComienza a registrar clientes y operaciones.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: helper.getFontSize(16),
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Icon(
+              Icons.arrow_downward,
+              size: 40,
+              color: AppTheme.secretariaColor.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Usa los accesos rápidos para empezar',
+              style: TextStyle(
+                fontSize: helper.getFontSize(14),
+                color: AppTheme.secretariaColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
