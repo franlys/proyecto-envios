@@ -5,7 +5,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MapPin, Truck, Users, AlertCircle, Eye, Package } from 'lucide-react';
-import api from '../services/api'; 
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext'; 
 
 // --- MAPEO DE ZONAS ---
 const zonasPrincipalesMap = {
@@ -32,6 +33,7 @@ const zonasPrincipalesMap = {
 
 const Rutas = () => {
   const navigate = useNavigate();
+  const { userData } = useAuth();
   const [rutas, setRutas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCloseModal, setShowCloseModal] = useState(false);
@@ -467,15 +469,18 @@ const Rutas = () => {
           <p className="text-gray-600 dark:text-gray-400">Crea y administra rutas de entrega</p>
         </div>
         
-        <div className="flex gap-3">
-          <button
-            onClick={openCreateModalAvanzado}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-purple-700 transition shadow-lg"
-          >
-            <span>✨</span>
-            Crear Nueva Ruta
-          </button>
-        </div>
+        {/* Solo mostrar botón de crear ruta si NO es repartidor */}
+        {userData?.rol !== 'repartidor' && (
+          <div className="flex gap-3">
+            <button
+              onClick={openCreateModalAvanzado}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:from-blue-700 hover:to-purple-700 transition shadow-lg"
+            >
+              <span>✨</span>
+              Crear Nueva Ruta
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4 mb-6 border-b dark:border-gray-700">

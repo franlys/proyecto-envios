@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Bell } from 'lucide-react';
+import { LogOut, Bell, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
@@ -28,6 +28,7 @@ const Layout = ({ children }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedFactura, setSelectedFactura] = useState(null);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Estado para controlar el sidebar en móvil
 
   // Hook de notificaciones (si existe)
   const notificationHook = useNotifications ? useNotifications() : {
@@ -225,9 +226,17 @@ const Layout = ({ children }) => {
       <header className="bg-white dark:bg-gray-800 shadow-sm z-50 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo y título */}
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Sistema de Envíos</h1>
+            {/* Logo y título con botón hamburguesa en móvil */}
+            <div className="flex items-center gap-3">
+              {/* Botón hamburguesa - visible solo en móvil */}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                aria-label="Toggle menu"
+              >
+                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Sistema de Envíos</h1>
             </div>
 
             {/* Usuario y notificaciones (Sin cambios) */}
@@ -294,13 +303,41 @@ const Layout = ({ children }) => {
 
       {/* CAMBIO 3: Este div ahora es el contenedor principal. 'flex-1' hace que ocupe
       // el resto de la altura, y 'overflow-hidden' evita que este div tenga scroll. */}
-      <div className="flex flex-1 overflow-hidden">
-        
-        {/* CAMBIO 4: El Sidebar (aside) ya no es 'sticky' ni tiene 'min-h'.
-        // Es una columna de ancho fijo y no se encoge ('flex-shrink-0').
-        // Le añadimos 'flex flex-col' para que su contenido (el nav) pueda crecer. */}
-        <aside className="w-64 bg-white dark:bg-gray-800 shadow-md flex flex-col flex-shrink-0">
-          
+      <div className="flex flex-1 overflow-hidden relative">
+
+        {/* Overlay oscuro para móvil cuando el sidebar está abierto */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* CAMBIO 4: El Sidebar (aside) ahora es responsivo:
+        // - En móvil: position fixed, se muestra/oculta con transform
+        // - En desktop (lg+): position normal, siempre visible */}
+        <aside className={`
+          fixed lg:relative
+          top-0 left-0 h-full
+          w-64 bg-white dark:bg-gray-800 shadow-md
+          flex flex-col flex-shrink-0
+          z-50 lg:z-auto
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+
+          {/* Header del sidebar en móvil */}
+          <div className="lg:hidden p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-800 dark:text-white">Menú</h2>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+              aria-label="Cerrar menú"
+            >
+              <X size={20} className="text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
+
           {/* CAMBIO 5: La navegación (nav) ahora es 'flex-1' (ocupa el espacio vertical)
           // y 'overflow-y-auto' (permite scroll *sólo* en el menú si es muy largo). */}
           <nav className="flex-1 p-4 overflow-y-auto">
@@ -308,17 +345,31 @@ const Layout = ({ children }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition ${
+                onClick={() => setSidebarOpen(false)} // Cerrar sidebar al hacer click en móvil
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition text-sm sm:text-base ${
                   location.pathname === item.path
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                <span className="text-xl">{item.icon}</span>
-                <span className="font-medium">{item.label}</span>
+                <span className="text-lg sm:text-xl flex-shrink-0">{item.icon}</span>
+                <span className="font-medium truncate">{item.label}</span>
               </Link>
             ))}
           </nav>
+
+          {/* Info de usuario en el sidebar (visible en móvil) */}
+          <div className="lg:hidden p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                {userData?.nombre?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 dark:text-white truncate">{userData?.nombre || 'Usuario'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{getRolName()}</p>
+              </div>
+            </div>
+          </div>
         </aside>
 
         {/* CAMBIO 6: El 'main' (contenido principal) ahora es el único que tiene 'overflow-y-auto'.

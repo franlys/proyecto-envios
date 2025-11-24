@@ -45,6 +45,10 @@ const PanelCargadores = () => {
   const [fotosGaleria, setFotosGaleria] = useState([]);
   const [fotoActual, setFotoActual] = useState(0);
 
+  // Estados para modal de detalles de factura
+  const [showModalDetalleFactura, setShowModalDetalleFactura] = useState(false);
+  const [facturaDetalleSeleccionada, setFacturaDetalleSeleccionada] = useState(null);
+
   // ==============================================================================
   // 🔄 EFECTOS Y CARGA INICIAL
   // ==============================================================================
@@ -256,6 +260,12 @@ const PanelCargadores = () => {
     setShowModalGaleria(true);
   };
 
+  // Helper para abrir detalles de factura
+  const abrirDetalleFactura = (factura) => {
+    setFacturaDetalleSeleccionada(factura);
+    setShowModalDetalleFactura(true);
+  };
+
   // ==============================================================================
   // 🎨 RENDERIZADO
   // ==============================================================================
@@ -442,8 +452,8 @@ const PanelCargadores = () => {
                 >
                   {/* Cabecera de Factura */}
                   <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                           {factura.codigoTracking}
                         </h3>
@@ -452,8 +462,15 @@ const PanelCargadores = () => {
                         }`}>
                           {factura.estadoCarga === 'cargada' ? 'COMPLETADA' : 'PENDIENTE'}
                         </span>
+                        <button
+                          onClick={() => abrirDetalleFactura(factura)}
+                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1"
+                        >
+                          <Package size={12} />
+                          Ver Detalles
+                        </button>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         {factura.destinatario?.nombre || 'Sin destinatario'}
                       </p>
                     </div>
@@ -677,29 +694,29 @@ const PanelCargadores = () => {
       {showModalGaleria && fotosGaleria.length > 0 && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
           <div className="relative w-full max-w-4xl flex flex-col items-center">
-            <button 
+            <button
               onClick={() => { setShowModalGaleria(false); setFotosGaleria([]); }}
               className="absolute -top-10 right-0 text-white hover:text-gray-300 p-2"
             >
               <X size={32} />
             </button>
-            
-            <img 
-              src={fotosGaleria[fotoActual]} 
-              alt={`Foto ${fotoActual + 1}`} 
+
+            <img
+              src={fotosGaleria[fotoActual]}
+              alt={`Foto ${fotoActual + 1}`}
               className="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
             />
-            
+
             {fotosGaleria.length > 1 && (
               <div className="flex gap-4 mt-4">
-                <button 
+                <button
                   onClick={() => setFotoActual(prev => (prev > 0 ? prev - 1 : fotosGaleria.length - 1))}
                   className="px-4 py-2 bg-white/20 text-white rounded-full hover:bg-white/30"
                 >
                   Anterior
                 </button>
                 <span className="text-white py-2">{fotoActual + 1} / {fotosGaleria.length}</span>
-                <button 
+                <button
                   onClick={() => setFotoActual(prev => (prev < fotosGaleria.length - 1 ? prev + 1 : 0))}
                   className="px-4 py-2 bg-white/20 text-white rounded-full hover:bg-white/30"
                 >
@@ -707,6 +724,149 @@ const PanelCargadores = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalle de Factura */}
+      {showModalDetalleFactura && facturaDetalleSeleccionada && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl p-6 shadow-2xl my-8">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Package className="text-blue-600" />
+                Detalles de Factura
+              </h2>
+              <button
+                onClick={() => setShowModalDetalleFactura(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Información de Tracking */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-2">Código de Tracking</h3>
+                <p className="text-2xl font-mono font-bold text-blue-700 dark:text-blue-300">
+                  {facturaDetalleSeleccionada.codigoTracking}
+                </p>
+              </div>
+
+              {/* Información del Destinatario */}
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <MapPin size={18} className="text-green-600" />
+                  Destinatario
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Nombre:</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {facturaDetalleSeleccionada.destinatario?.nombre || 'No especificado'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Teléfono:</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {facturaDetalleSeleccionada.destinatario?.telefono || 'No especificado'}
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-gray-500 dark:text-gray-400">Dirección:</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {facturaDetalleSeleccionada.destinatario?.direccion || 'No especificada'}
+                    </p>
+                  </div>
+                  {facturaDetalleSeleccionada.destinatario?.sector && (
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Sector:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {facturaDetalleSeleccionada.destinatario.sector}
+                      </p>
+                    </div>
+                  )}
+                  {facturaDetalleSeleccionada.destinatario?.zona && (
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Zona:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {facturaDetalleSeleccionada.destinatario.zona}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de Items */}
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Box size={18} className="text-purple-600" />
+                  Items de la Factura ({facturaDetalleSeleccionada.items?.length || 0})
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {facturaDetalleSeleccionada.items?.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {item.descripcion}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Cantidad: {item.cantidad}
+                        </p>
+                        {item.fotos && item.fotos.length > 0 && (
+                          <button
+                            onClick={() => abrirGaleriaFotos(item.fotos)}
+                            className="mt-1 text-xs text-blue-600 hover:underline flex items-center gap-1"
+                          >
+                            <ImageIcon size={12}/> Ver {item.fotos.length} foto(s)
+                          </button>
+                        )}
+                      </div>
+                      {item.cargado && (
+                        <CheckCircle className="text-green-600 flex-shrink-0 ml-2" size={20} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Información de Facturación */}
+              {facturaDetalleSeleccionada.facturacion && (
+                <div className="border dark:border-gray-700 rounded-lg p-4">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-3">Facturación</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {facturaDetalleSeleccionada.facturacion.subtotal && (
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400">Subtotal:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          ${facturaDetalleSeleccionada.facturacion.subtotal}
+                        </p>
+                      </div>
+                    )}
+                    {facturaDetalleSeleccionada.facturacion.total && (
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400">Total:</p>
+                        <p className="font-bold text-lg text-gray-900 dark:text-white">
+                          ${facturaDetalleSeleccionada.facturacion.total}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Botón Cerrar */}
+              <button
+                onClick={() => setShowModalDetalleFactura(false)}
+                className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

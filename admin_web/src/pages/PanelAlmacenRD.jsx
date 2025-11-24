@@ -26,6 +26,10 @@ const PanelAlmacenRD = () => {
   const [vistaActual, setVistaActual] = useState('lista');
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
 
+  // Contadores separados para cada tab
+  const [contadorEnTransito, setContadorEnTransito] = useState(0);
+  const [contadorRecibidos, setContadorRecibidos] = useState(0);
+
   // Estados de modales
   const [modalConfirmarRecepcion, setModalConfirmarRecepcion] = useState(false);
   const [modalMarcarDanado, setModalMarcarDanado] = useState(null);
@@ -68,11 +72,28 @@ const PanelAlmacenRD = () => {
     try {
       setLoading(true);
       setError(null);
-      const endpoint = tabActiva === 'en_transito' 
+
+      // Cargar contenedores de la tab activa
+      const endpoint = tabActiva === 'en_transito'
         ? '/almacen-rd/contenedores/en-transito'
         : '/almacen-rd/contenedores/recibidos';
       const response = await api.get(endpoint);
-      if (response.data.success) setContenedores(response.data.data);
+      if (response.data.success) {
+        setContenedores(response.data.data);
+      }
+
+      // Cargar contadores de ambas tabs en paralelo
+      const [transitoRes, recibidosRes] = await Promise.all([
+        api.get('/almacen-rd/contenedores/en-transito'),
+        api.get('/almacen-rd/contenedores/recibidos')
+      ]);
+
+      if (transitoRes.data.success) {
+        setContadorEnTransito(transitoRes.data.data.length);
+      }
+      if (recibidosRes.data.success) {
+        setContadorRecibidos(recibidosRes.data.data.length);
+      }
     } catch (err) {
       setError('Error al cargar los contenedores');
       console.error('Error:', err);
@@ -458,7 +479,7 @@ const PanelAlmacenRD = () => {
                 }`}
               >
                 <Truck size={20} />
-                En Tránsito ({contenedores.length})
+                En Tránsito ({contadorEnTransito})
               </button>
               <button
                 onClick={() => setTabActiva('recibidos')}
@@ -469,7 +490,7 @@ const PanelAlmacenRD = () => {
                 }`}
               >
                 <CheckCircle size={20} />
-                Recibidos ({contenedores.length})
+                Recibidos ({contadorRecibidos})
               </button>
             </div>
 

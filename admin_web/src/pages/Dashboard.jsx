@@ -7,7 +7,7 @@ import api from '../services/api';
 const Dashboard = () => {
   const { userData, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  
+
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,6 +27,9 @@ const Dashboard = () => {
       } else if (rol === 'repartidor') {
         navigate('/rutas');
         return;
+      } else if (rol === 'cargador') {
+        navigate('/cargadores');
+        return;
       } else if (rol === 'almacen_rd') {
         navigate('/embarques');
         return;
@@ -34,7 +37,7 @@ const Dashboard = () => {
         navigate('/almacen-usa');
         return;
       }
-      
+
       // Solo admin_general y super_admin ven este dashboard
       if (rol !== 'admin_general' && rol !== 'super_admin') {
         navigate('/');
@@ -57,10 +60,10 @@ const Dashboard = () => {
 
         const response = await api.get('/dashboard/stats');
         console.log('📊 Respuesta del backend:', response.data);
-        
+
         // ✅ CORRECCIÓN: El backend devuelve directamente los datos, no dentro de data.stats
         const data = response.data;
-        
+
         // Transformar los datos del backend al formato que espera el frontend
         const transformedStats = {
           embarquesActivos: data.embarques?.activos || 0,
@@ -84,7 +87,7 @@ const Dashboard = () => {
 
       } catch (err) {
         console.error('❌ Error cargando estadísticas:', err);
-        
+
         if (err.response) {
           if (err.response.status === 401) {
             setError('Sesión expirada. Por favor, inicia sesión nuevamente.');
@@ -164,21 +167,21 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
+    <div className="p-4 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
           Dashboard - {userData?.rol === 'super_admin' ? 'Super Admin' : 'Administrador General'}
         </h1>
-        <p className="text-gray-600">Bienvenido, {userData?.nombre}</p>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Bienvenido, {userData?.nombre}</p>
         {stats.empresa && (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-1">
             Empresa: {stats.empresa.nombre} - Plan: {stats.empresa.plan}
           </p>
         )}
       </div>
 
       {/* Estadísticas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
         <StatCard
           title="Embarques Activos"
           value={stats.embarquesActivos}
@@ -210,60 +213,60 @@ const Dashboard = () => {
       </div>
 
       {/* Estadísticas adicionales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Usuarios del Sistema</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalUsuarios || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Usuarios del Sistema</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">{stats.totalUsuarios || 0}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 Activos: {stats.usuariosActivos || 0}
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-              <span className="text-2xl">👥</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl sm:text-2xl">👥</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total de Facturas</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.totalFacturas || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {stats.totalFacturas > 0 
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Total de Facturas</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">{stats.totalFacturas || 0}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {stats.totalFacturas > 0
                   ? `${Math.round((stats.facturasEntregadas / stats.totalFacturas) * 100)}% entregadas`
                   : 'Sin facturas'
                 }
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span className="text-2xl">📋</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl sm:text-2xl">📋</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Estado del Sistema</p>
-              <p className="text-2xl font-bold text-green-600">Operativo</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Estado del Sistema</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">Operativo</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 Todos los servicios funcionando
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <span className="text-2xl">✅</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl sm:text-2xl">✅</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Accesos rápidos */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Accesos Rápidos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mb-3 sm:mb-4">Accesos Rápidos</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <QuickAccessButton
             title="Embarques"
             icon="📦"
@@ -297,25 +300,25 @@ const Dashboard = () => {
 // Componente StatCard
 const StatCard = ({ title, value, subtitle, icon, color }) => {
   const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    yellow: 'bg-yellow-100 text-yellow-600',
-    red: 'bg-red-100 text-red-600',
-    purple: 'bg-purple-100 text-purple-600'
+    blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+    green: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+    yellow: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
+    red: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+    purple: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-800">{value}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1 truncate">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{value}</p>
           {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{subtitle}</p>
           )}
         </div>
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClasses[color] || colorClasses.blue}`}>
-          <span className="text-2xl">{icon}</span>
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ml-2 ${colorClasses[color] || colorClasses.blue}`}>
+          <span className="text-xl sm:text-2xl">{icon}</span>
         </div>
       </div>
     </div>
@@ -325,19 +328,19 @@ const StatCard = ({ title, value, subtitle, icon, color }) => {
 // Componente QuickAccessButton
 const QuickAccessButton = ({ title, icon, color, onClick }) => {
   const colorClasses = {
-    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-600',
-    green: 'bg-green-50 hover:bg-green-100 text-green-600',
-    yellow: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-600',
-    purple: 'bg-purple-50 hover:bg-purple-100 text-purple-600'
+    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-400',
+    green: 'bg-green-50 hover:bg-green-100 text-green-600 dark:bg-green-900/20 dark:hover:bg-green-900/40 dark:text-green-400',
+    yellow: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/40 dark:text-yellow-400',
+    purple: 'bg-purple-50 hover:bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 dark:text-purple-400'
   };
 
   return (
     <button
       onClick={onClick}
-      className={`p-4 rounded-lg transition ${colorClasses[color]} flex flex-col items-center justify-center gap-2`}
+      className={`p-3 sm:p-4 rounded-lg transition ${colorClasses[color]} flex flex-col items-center justify-center gap-1 sm:gap-2 min-h-[80px] sm:min-h-[100px]`}
     >
-      <span className="text-3xl">{icon}</span>
-      <span className="text-sm font-medium">{title}</span>
+      <span className="text-2xl sm:text-3xl">{icon}</span>
+      <span className="text-xs sm:text-sm font-medium text-center">{title}</span>
     </button>
   );
 };

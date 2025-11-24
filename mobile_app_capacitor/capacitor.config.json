@@ -1,0 +1,14 @@
+{
+    "appId": "com.prologix.app",
+    "appName": "ProLogix",
+    "webDir": "www",
+    "server": {
+        "url": "https://proyecto-envios.vercel.app",
+        "cleartext": true
+    },
+    "android": {
+        "allowMixedContent": true,
+        "captureInput": true,
+        "webContentsDebuggingEnabled": false
+    }
+}

@@ -490,25 +490,25 @@ const PanelRepartidores = () => {
   // 🎨 RENDERIZADO
   // ==============================================================================
   return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+    <div className="p-3 sm:p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header - Mobile First */}
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center">
+        <div className="flex-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
             Panel de Repartidores
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             {vistaActual === 'lista' ? 'Tus rutas asignadas' : rutaSeleccionada?.nombre}
           </p>
         </div>
-        
+
         {/* Botón Volver Dinámico */}
         {(vistaActual !== 'lista') && (
-          <button 
+          <button
               onClick={vistaActual === 'factura' ? volverARuta : volverALista}
-              className="p-2 bg-white dark:bg-gray-800 rounded-full shadow hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              className="self-start sm:self-auto p-2.5 sm:p-2 bg-white dark:bg-gray-800 rounded-full shadow hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
-              <ArrowLeft className="text-gray-600 dark:text-gray-300"/>
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-300"/>
           </button>
         )}
       </div>
@@ -529,12 +529,12 @@ const PanelRepartidores = () => {
               <p className="text-lg font-medium text-blue-800 dark:text-blue-200">No tienes rutas asignadas</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {rutas.map((ruta) => (
-                <div key={ruta.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-xl transition border-t-4 border-blue-500">
-                  <div className="flex justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{ruta.nombre}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs h-fit font-medium ${
+                <div key={ruta.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 hover:shadow-xl transition border-t-4 border-blue-500">
+                  <div className="flex flex-col sm:flex-row justify-between mb-3 sm:mb-4 gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{ruta.nombre}</h3>
+                    <span className={`px-3 py-1 rounded-full text-xs self-start h-fit font-medium ${
                       ruta.estado === 'cargada'
                         ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                         : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
@@ -542,18 +542,32 @@ const PanelRepartidores = () => {
                       {ruta.estadoTexto}
                     </span>
                   </div>
-                  
-                  <div className="flex justify-between text-sm mb-4 text-gray-600 dark:text-gray-400 p-2 rounded-lg">
-                    <span>Total: <span className="font-bold">{ruta.estadisticas?.totalFacturas || 0}</span></span>
-                    <span>Entregadas: <span className="font-bold text-green-600">{ruta.estadisticas?.facturasEntregadas || 0}</span></span>
-                    <span>Pendientes: <span className="font-bold text-orange-600">{ruta.estadisticas?.facturasPendientes || 0}</span></span>
+
+                  {/* Estadísticas como cards en móvil */}
+                  <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm mb-3 sm:mb-4">
+                    <div className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                      <div className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">{ruta.estadisticas?.totalFacturas || 0}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                    </div>
+                    <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                      <div className="font-bold text-green-600 text-base sm:text-lg">{ruta.estadisticas?.facturasEntregadas || 0}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Entregadas</div>
+                    </div>
+                    <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                      <div className="font-bold text-orange-600 text-base sm:text-lg">{ruta.estadisticas?.facturasPendientes || 0}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Pendientes</div>
+                    </div>
                   </div>
-                  
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3 sm:mb-4">
                     <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${ruta.estadisticas?.porcentajeEntrega || 0}%` }}></div>
                   </div>
 
-                  <button onClick={() => cargarDetalleRuta(ruta.id)} disabled={loadingDetalle} className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+                  <button
+                    onClick={() => cargarDetalleRuta(ruta.id)}
+                    disabled={loadingDetalle}
+                    className="w-full bg-blue-600 text-white py-3 sm:py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base min-h-[48px] sm:min-h-[44px]"
+                  >
                     {loadingDetalle ? <Loader className="animate-spin mx-auto" size={20}/> : (ruta.estado === 'cargada' ? 'Iniciar Entregas' : 'Continuar Entrega')}
                   </button>
                 </div>
@@ -619,6 +633,29 @@ const PanelRepartidores = () => {
                   </h4>
                   <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">👤 {f.destinatario?.nombre}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 truncate">📍 {f.destinatario?.direccion}</p>
+
+                  {/* Botones de navegación inline */}
+                  <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(f.destinatario?.direccion || '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition"
+                    >
+                      <Navigation size={12} />
+                      Maps
+                    </a>
+                    <a
+                      href={`https://waze.com/ul?q=${encodeURIComponent(f.destinatario?.direccion || '')}&navigate=yes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-500 text-white rounded text-xs hover:bg-cyan-600 transition"
+                    >
+                      <Navigation size={12} />
+                      Waze
+                    </a>
+                  </div>
+
                   {f.pago?.estado !== 'pagada' && f.pago?.total > 0 && (
                     <p className="text-sm font-bold text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
                       <DollarSign size={14}/> Cobrar: ${f.pago.total.toFixed(2)}
@@ -655,16 +692,29 @@ const PanelRepartidores = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div>
               <p className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2"><MapPin size={18}/> {facturaActual.destinatario?.nombre}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{facturaActual.destinatario?.direccion}</p>
-              <a
-                href={`http://maps.google.com/?q=${encodeURIComponent(facturaActual.destinatario.direccion)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm mt-1"
-              >
-                <Navigation size={16} />
-                Navegar
-              </a>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{facturaActual.destinatario?.direccion}</p>
+
+              {/* Botones de Navegación */}
+              <div className="flex gap-2 flex-wrap">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
+                >
+                  <Navigation size={16} />
+                  Google Maps
+                </a>
+                <a
+                  href={`https://waze.com/ul?q=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}&navigate=yes`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition font-medium shadow-sm"
+                >
+                  <Navigation size={16} />
+                  Waze
+                </a>
+              </div>
             </div>
             <div className="md:border-l md:pl-4">
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pago Contraentrega:</p>
@@ -694,18 +744,18 @@ const PanelRepartidores = () => {
             ))}
           </div>
           
-          {/* Botones de Acción (Fila) */}
-          <div className="flex gap-3 mb-6">
-              <button 
-                onClick={() => setShowModalFotos(true)} 
-                className="flex-1 bg-purple-600 text-white py-3 rounded-lg flex justify-center items-center gap-2 hover:bg-purple-700 transition"
+          {/* Botones de Acción - Mobile First */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <button
+                onClick={() => setShowModalFotos(true)}
+                className="w-full sm:flex-1 bg-purple-600 text-white py-3 sm:py-2.5 rounded-lg flex justify-center items-center gap-2 hover:bg-purple-700 transition min-h-[48px] sm:min-h-[44px]"
               >
                 <Camera size={20}/> Fotos ({facturaActual.fotosEntrega?.length || 0})
               </button>
               {facturaActual.pago?.estado !== 'pagada' && rutaSeleccionada.estado === 'en_entrega' && (
-                  <button 
-                    onClick={() => setShowModalPago(true)} 
-                    className="flex-1 bg-green-600 text-white py-3 rounded-lg flex justify-center items-center gap-2 hover:bg-green-700 transition"
+                  <button
+                    onClick={() => setShowModalPago(true)}
+                    className="w-full sm:flex-1 bg-green-600 text-white py-3 sm:py-2.5 rounded-lg flex justify-center items-center gap-2 hover:bg-green-700 transition min-h-[48px] sm:min-h-[44px]"
                   >
                     <DollarSign size={20}/> Pago
                   </button>
@@ -737,22 +787,22 @@ const PanelRepartidores = () => {
           MODALES
           ============================================================================== */}
       
-      {/* Modal Fotos */}
+      {/* Modal Fotos - Mobile First */}
       {showModalFotos && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-0 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-none sm:rounded-2xl w-full max-w-full sm:max-w-md shadow-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4 text-purple-600 flex items-center gap-2"><Camera/> Fotos de Evidencia</h3>
             
             <div className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tomar o Seleccionar Fotos *</label>
-                    <input 
-                      type="file" 
-                      multiple 
-                      accept="image/*" 
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
                       capture="environment"
-                      onChange={e => setFotosEvidencia(Array.from(e.target.files))} 
-                      className="w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      onChange={e => setFotosEvidencia(Array.from(e.target.files))}
+                      className="w-full text-sm sm:text-xs text-gray-500 dark:text-gray-300 file:mr-4 file:py-3 sm:file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 min-h-[48px] sm:min-h-[40px]"
                     />
                     {fotosEvidencia.length > 0 && <p className="text-xs text-green-600 mt-1">{fotosEvidencia.length} foto(s) seleccionada(s) para subir.</p>}
                 </div>
@@ -771,17 +821,17 @@ const PanelRepartidores = () => {
                 )}
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => { setShowModalFotos(false); setFotosEvidencia([]); }} 
-                className="flex-1 border p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <button
+                onClick={() => { setShowModalFotos(false); setFotosEvidencia([]); }}
+                className="w-full sm:flex-1 border p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition min-h-[48px]"
               >
                 Cancelar
               </button>
-              <button 
-                onClick={handleSubirFotos} 
-                disabled={procesando || subiendoFotos || fotosEvidencia.length === 0} 
-                className="flex-1 bg-purple-600 text-white p-3 rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-purple-700 transition"
+              <button
+                onClick={handleSubirFotos}
+                disabled={procesando || subiendoFotos || fotosEvidencia.length === 0}
+                className="w-full sm:flex-1 bg-purple-600 text-white p-3 rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-purple-700 transition min-h-[48px]"
               >
                 {subiendoFotos || procesando ? <Loader className="animate-spin" size={18}/> : <Plus size={18}/>}
                 {subiendoFotos || procesando ? 'Subiendo...' : 'Subir Fotos'}
@@ -791,29 +841,29 @@ const PanelRepartidores = () => {
         </div>
       )}
 
-      {/* Modal Pago */}
+      {/* Modal Pago - Mobile First */}
       {showModalPago && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-            <h3 className="text-xl font-bold mb-4 text-green-600 flex items-center gap-2"><DollarSign/> Confirmar Pago Contraentrega</h3>
-            
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-0 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-none sm:rounded-2xl w-full max-w-full sm:max-w-md shadow-2xl h-full sm:h-auto overflow-y-auto">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 text-green-600 flex items-center gap-2"><DollarSign/> Confirmar Pago Contraentrega</h3>
+
             <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <p className="text-sm text-green-800 dark:text-green-400">Total a Cobrar:</p>
                 <p className="text-2xl font-bold text-green-700 dark:text-white">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
             </div>
-            
+
             <div className="space-y-4">
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500" 
-                  placeholder="Monto Pagado*" 
-                  value={montoPagado} 
-                  onChange={e => setMontoPagado(e.target.value)} 
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 text-base min-h-[48px]"
+                  placeholder="Monto Pagado*"
+                  value={montoPagado}
+                  onChange={e => setMontoPagado(e.target.value)}
                 />
-                <select 
-                  className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500" 
-                  value={metodoPago} 
+                <select
+                  className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 text-base min-h-[48px]"
+                  value={metodoPago}
                   onChange={e => setMetodoPago(e.target.value)}
                 >
                     <option value="efectivo">Efectivo</option>
@@ -822,34 +872,34 @@ const PanelRepartidores = () => {
                     <option value="cheque">Cheque</option>
                 </select>
                 {(metodoPago !== 'efectivo') && (
-                  <input 
-                    type="text" 
-                    className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500" 
-                    placeholder="Referencia de Pago" 
-                    value={referenciaPago} 
-                    onChange={e => setReferenciaPago(e.target.value)} 
+                  <input
+                    type="text"
+                    className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 text-base min-h-[48px]"
+                    placeholder="Referencia de Pago"
+                    value={referenciaPago}
+                    onChange={e => setReferenciaPago(e.target.value)}
                   />
                 )}
-                <textarea 
-                  className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500" 
-                  rows="2" 
-                  placeholder="Notas de pago..." 
-                  value={notasPago} 
-                  onChange={e => setNotasPago(e.target.value)} 
+                <textarea
+                  className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 text-base"
+                  rows="3"
+                  placeholder="Notas de pago..."
+                  value={notasPago}
+                  onChange={e => setNotasPago(e.target.value)}
                 />
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => { setShowModalPago(false); resetFormPago(); }} 
-                className="flex-1 border p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <button
+                onClick={() => { setShowModalPago(false); resetFormPago(); }}
+                className="w-full sm:flex-1 border p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition min-h-[48px]"
               >
                 Cancelar
               </button>
-              <button 
-                onClick={handleConfirmarPago} 
-                disabled={procesando || !montoPagado || parseFloat(montoPagado) < 0} 
-                className="flex-1 bg-green-600 text-white p-3 rounded-lg font-bold disabled:opacity-50 hover:bg-green-700 transition flex items-center justify-center gap-2"
+              <button
+                onClick={handleConfirmarPago}
+                disabled={procesando || !montoPagado || parseFloat(montoPagado) < 0}
+                className="w-full sm:flex-1 bg-green-600 text-white p-3 rounded-lg font-bold disabled:opacity-50 hover:bg-green-700 transition flex items-center justify-center gap-2 min-h-[48px]"
               >
                 {procesando ? <Loader className="animate-spin" size={18}/> : <CheckCircle size={18}/>}
                 {procesando ? 'Confirmando...' : 'Confirmar Pago'}
@@ -861,9 +911,9 @@ const PanelRepartidores = () => {
       
       {/* Modal Reportar Daño */}
       {showModalDano && itemDanado && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4 text-orange-600 flex items-center gap-2"><AlertTriangle/> Reportar Item Dañado</h3>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-0 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-none sm:rounded-2xl w-full max-w-full sm:max-w-md shadow-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg sm:text-xl font-bold mb-4 text-orange-600 flex items-center gap-2"><AlertTriangle/> Reportar Item Dañado</h3>
             
             <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 <p className="font-bold text-orange-800 dark:text-orange-200">{itemDanado.descripcion}</p>
@@ -873,38 +923,38 @@ const PanelRepartidores = () => {
             <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descripción del daño *</label>
-                  <textarea 
-                    className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500" 
-                    rows="3" 
-                    placeholder="Describe el daño encontrado..." 
-                    value={descripcionDano} 
-                    onChange={e => setDescripcionDano(e.target.value)} 
+                  <textarea
+                    className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 text-base min-h-[100px]"
+                    rows="3"
+                    placeholder="Describe el daño encontrado..."
+                    value={descripcionDano}
+                    onChange={e => setDescripcionDano(e.target.value)}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fotos de Evidencia (Opcional)</label>
-                  <input 
-                    type="file" 
-                    multiple 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
                     capture="environment"
-                    onChange={e => setFotosDano(Array.from(e.target.files))} 
-                    className="w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    onChange={e => setFotosDano(Array.from(e.target.files))}
+                    className="w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-3 sm:file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 file:min-h-[48px]"
                   />
                 </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => { setShowModalDano(false); resetFormDano(); }} 
-                className="flex-1 border p-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <button
+                onClick={() => { setShowModalDano(false); resetFormDano(); }}
+                className="w-full sm:flex-1 border py-3 sm:py-2 px-4 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition min-h-[48px] text-base sm:text-sm"
               >
                 Cancelar
               </button>
-              <button 
-                onClick={handleReportarDano} 
-                disabled={procesando || !descripcionDano.trim()} 
-                className="flex-1 bg-orange-600 text-white p-3 rounded-lg font-bold disabled:opacity-50 hover:bg-orange-700 transition flex items-center justify-center gap-2"
+              <button
+                onClick={handleReportarDano}
+                disabled={procesando || !descripcionDano.trim()}
+                className="w-full sm:flex-1 bg-orange-600 text-white py-3 sm:py-2 px-4 rounded-lg font-bold disabled:opacity-50 hover:bg-orange-700 transition flex items-center justify-center gap-2 min-h-[48px] text-base sm:text-sm"
               >
                 {procesando ? <Loader className="animate-spin" size={18}/> : <AlertTriangle size={18}/>}
                 {procesando ? 'Reportando...' : 'Reportar Daño'}
@@ -916,9 +966,9 @@ const PanelRepartidores = () => {
 
       {/* Modal Entregar */}
       {showModalEntregar && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-0 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-none sm:rounded-2xl w-full max-w-full sm:max-w-md shadow-2xl h-full sm:h-auto overflow-y-auto">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
                 <CheckCircle className="text-green-600" />
                 Marcar como Entregada
             </h2>
@@ -932,7 +982,7 @@ const PanelRepartidores = () => {
                     type="text"
                     value={nombreReceptor}
                     onChange={(e) => setNombreReceptor(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-base min-h-[48px]"
                     placeholder="Nombre del receptor (Obligatorio)"
                   />
                 </div>
@@ -944,7 +994,7 @@ const PanelRepartidores = () => {
                   <textarea
                     value={notasEntrega}
                     onChange={(e) => setNotasEntrega(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-base min-h-[100px]"
                     rows="3"
                     placeholder="Observaciones de la entrega..."
                   />
@@ -960,17 +1010,17 @@ const PanelRepartidores = () => {
                 </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
                 onClick={() => { setShowModalEntregar(false); resetFormEntregar(); }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                className="w-full sm:flex-1 px-4 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition min-h-[48px] text-base sm:text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleMarcarEntregada}
                 disabled={procesando || !nombreReceptor.trim()} // Hacemos el nombre del receptor obligatorio
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 px-4 py-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[48px] text-base sm:text-sm"
               >
                 {procesando ? <Loader className="animate-spin" size={18}/> : <CheckCircle size={18}/>}
                 {procesando ? 'Marcando...' : 'Marcar Entregada'}
@@ -982,9 +1032,9 @@ const PanelRepartidores = () => {
 
       {/* Modal No Entrega */}
       {showModalNoEntrega && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-0 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-none sm:rounded-2xl w-full max-w-full sm:max-w-md shadow-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
                 <XCircle className="text-orange-600" />
                 Reportar No Entrega
             </h2>
@@ -995,7 +1045,7 @@ const PanelRepartidores = () => {
                   <select
                     value={motivoNoEntrega}
                     onChange={(e) => setMotivoNoEntrega(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-base min-h-[48px]"
                   >
                     <option value="">Seleccionar motivo</option>
                     <option value="cliente_ausente">Cliente ausente</option>
@@ -1010,21 +1060,21 @@ const PanelRepartidores = () => {
                   <textarea
                     value={descripcionNoEntrega}
                     onChange={(e) => setDescripcionNoEntrega(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-3 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-base min-h-[120px]"
                     rows="4"
                     placeholder="Describe la situación..."
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fotos de Evidencia (Opcional)</label>
-                  <input 
-                    type="file" 
-                    multiple 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
                     capture="environment"
-                    onChange={e => setFotosNoEntrega(Array.from(e.target.files))} 
-                    className="w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    onChange={e => setFotosNoEntrega(Array.from(e.target.files))}
+                    className="w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-3 sm:file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 file:min-h-[48px]"
                   />
                 </div>
 
@@ -1042,17 +1092,17 @@ const PanelRepartidores = () => {
                 </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
                 onClick={() => { setShowModalNoEntrega(false); resetFormNoEntrega(); }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                className="w-full sm:flex-1 px-4 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition min-h-[48px] text-base sm:text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleReportarNoEntrega}
                 disabled={procesando || !motivoNoEntrega || !descripcionNoEntrega.trim()}
-                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 px-4 py-3 sm:py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[48px] text-base sm:text-sm"
               >
                 {procesando ? <Loader className="animate-spin" size={18}/> : <XCircle size={18}/>}
                 {procesando ? 'Reportando...' : 'Reportar No Entrega'}
@@ -1064,11 +1114,11 @@ const PanelRepartidores = () => {
 
       {/* Modal Finalizar Ruta */}
       {showModalFinalizar && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-0 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-none sm:rounded-2xl w-full max-w-full sm:max-w-md shadow-2xl h-full sm:h-auto overflow-y-auto">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
                 <CheckCircle className="text-purple-600" />
-                Finalizar Ruta: {rutaSeleccionada?.nombre}
+                <span className="text-base sm:text-2xl">Finalizar Ruta: {rutaSeleccionada?.nombre}</span>
             </h2>
 
             <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
@@ -1084,23 +1134,23 @@ const PanelRepartidores = () => {
               <textarea
                 value={notasFinalizacion}
                 onChange={(e) => setNotasFinalizacion(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-base min-h-[100px]"
                 rows="3"
                 placeholder="Observaciones generales de la ruta..."
               />
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
                 onClick={() => { setShowModalFinalizar(false); setNotasFinalizacion(''); }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                className="w-full sm:flex-1 px-4 py-3 sm:py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition min-h-[48px] text-base sm:text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleFinalizarRuta}
                 disabled={procesando}
-                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 px-4 py-3 sm:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[48px] text-base sm:text-sm"
               >
                 {procesando ? (
                   <>

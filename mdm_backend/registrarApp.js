@@ -20,24 +20,24 @@ const androidmanagement = google.androidmanagement({
 async function registrarWebApp(enterpriseName) {
   try {
     console.log("🧩 Registrando tu APK como WebApp en Google...");
-    
+
     const response = await androidmanagement.enterprises.webApps.create({
       parent: enterpriseName,
       requestBody: {
         // El título que se verá en el teléfono
-        title: "App Repartidor", 
-        
+        title: "ProLogix",
+
         // La URL de tu APK en GitHub
-        startUrl: "https://github.com/franlys/apk-host-repartidor/releases/download/v1.0.0.2/mobile_app.1.apk",
-        
+        startUrl: "https://github.com/franlys/proyecto-envios/releases/download/v1.0.0/app-debug.apk",
+
         // Cómo se debe mostrar (standalone = app normal)
-        displayMode: "STANDALONE", 
+        displayMode: "STANDALONE",
       },
     });
 
     console.log("✅ ¡WebApp registrada exitosamente!");
     console.log("Este es el 'name' (guárdalo):", response.data.name);
-    
+
     // ESTO ES LO MÁS IMPORTANTE
     console.log("👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇");
     console.log("COPIA ESTE 'packageName' y pégalo en tu policyBase.js:");
@@ -51,7 +51,7 @@ async function registrarWebApp(enterpriseName) {
 }
 
 // Tomar el enterpriseName desde la terminal
-const enterpriseName = process.argv[2]; 
+const enterpriseName = process.argv[2];
 if (!enterpriseName) {
   console.error("❌ Debes pasar tu enterpriseName. Ej: node registrarApp.js enterprises/LC0xxxxxxx");
 } else {
