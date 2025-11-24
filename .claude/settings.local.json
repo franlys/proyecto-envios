@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 29932 -Force\")",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(node -r dotenv/config:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 36592 -Force\":*)",
+      "Bash($null)",
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter devices:*)",
+      "Bash(flutter run:*)",
+      "Bash(ping:*)",
+      "Bash(nul)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

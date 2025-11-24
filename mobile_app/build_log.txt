@@ -1,0 +1,278 @@
+Running Gradle task 'assembleDebug'...                          
+Invalid depfile: C:\Users\elmae\proyecto-envios\mobile_app\.dart_tool\flutter_build\dc490dec359f0ad10f358c917995747c\kernel_snapshot_program.d
+Invalid depfile: C:\Users\elmae\proyecto-envios\mobile_app\.dart_tool\flutter_build\dc490dec359f0ad10f358c917995747c\kernel_snapshot_program.d
+Error: Couldn't resolve the package 'firebase_auth' in 'package:firebase_auth/firebase_auth.dart'.
+lib/services/auth_service.dart:6:8: Error: Not found: 'package:firebase_auth/firebase_auth.dart'
+import 'package:firebase_auth/firebase_auth.dart';
+       ^
+lib/screens/almacen_rd/almacen_rd_rutas_screen.dart:36:49: Error: Can't find ']' to match '['.
+                itemBuilder: (context) => const [
+                                                ^
+lib/screens/almacen_rd/almacen_rd_rutas_screen.dart:32:22: Error: Can't find ']' to match '['.
+            actions: [
+                     ^
+lib/screens/almacen_rd/almacen_rd_rutas_screen.dart:28:24: Error: Can't find ')' to match '('.
+        return Scaffold(
+                       ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:114:19: Error: Can't find ']' to match '['.
+        children: [
+                  ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:112:20: Error: Can't find ')' to match '('.
+      child: Column(
+                   ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:105:21: Error: Can't find ')' to match '('.
+    return Container(
+                    ^
+Error: Couldn't resolve the package 'firebase_storage' in 'package:firebase_storage/firebase_storage.dart'.
+lib/services/photo_service.dart:8:8: Error: Not found: 'package:firebase_storage/firebase_storage.dart'
+import 'package:firebase_storage/firebase_storage.dart';
+       ^
+lib/services/auth_service.dart:12:9: Error: Type 'FirebaseAuth' not found.
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+        ^^^^^^^^^^^^
+lib/services/auth_service.dart:20:3: Error: Type 'User' not found.
+  User? get currentUser => _auth.currentUser;
+  ^^^^
+lib/services/auth_service.dart:23:10: Error: Type 'User' not found.
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+         ^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:270:31: Error: Type 'ContenedorRD' not found.
+  Widget _buildContenedorCard(ContenedorRD contenedor, String empleadoNombre, ResponsiveHelper helper) {
+                              ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:353:35: Error: Type 'ContenedorRD' not found.
+  Future<void> _recibirContenedor(ContenedorRD contenedor, String empleadoNombre) async {
+                                  ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:385:36: Error: Type 'ContenedorRD' not found.
+  Future<void> _procesarContenedor(ContenedorRD contenedor, String empleadoNombre) async {
+                                   ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:416:36: Error: Type 'ContenedorRD' not found.
+  Future<void> _verItemsContenedor(ContenedorRD contenedor) async {
+                                   ^^^^^^^^^^^^
+lib/services/photo_service.dart:13:9: Error: Type 'FirebaseStorage' not found.
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+        ^^^^^^^^^^^^^^^
+lib/services/auth_service.dart:12:9: Error: 'FirebaseAuth' isn't a type.
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+        ^^^^^^^^^^^^
+lib/services/auth_service.dart:12:30: Error: Undefined name 'FirebaseAuth'.
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+                             ^^^^^^^^^^^^
+lib/services/auth_service.dart:64:7: Error: 'UserCredential' isn't a type.
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      ^^^^^^^^^^^^^^
+lib/services/auth_service.dart:94:10: Error: 'FirebaseAuthException' isn't a type.
+    } on FirebaseAuthException catch (e) {
+         ^^^^^^^^^^^^^^^^^^^^^
+lib/services/auth_service.dart:149:25: Error: The method 'logout' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'logout'.
+      await _apiService.logout();
+                        ^^^^^^
+lib/screens/auth/login_screen.dart:39:39: Error: The method 'login' isn't defined for the type 'AuthService'.
+ - 'AuthService' is from 'package:mobile_app/services/auth_service.dart' ('lib/services/auth_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'login'.
+    final success = await authService.login(
+                                      ^^^^^
+lib/screens/repartidores/mis_rutas_screen.dart:35:41: Error: The method 'getRutasEmpleado' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getRutasEmpleado'.
+        final rutas = await _apiService.getRutasEmpleado(empleadoId);
+                                        ^^^^^^^^^^^^^^^^
+lib/screens/cargadores/mis_rutas_cargador_screen.dart:31:39: Error: The method 'getRutasCargador' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getRutasCargador'.
+      final rutas = await _apiService.getRutasCargador();
+                                      ^^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:181:31: Error: 'ContenedorRD' isn't a type.
+    return FutureBuilder<List<ContenedorRD>>(
+                              ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:270:31: Error: 'ContenedorRD' isn't a type.
+  Widget _buildContenedorCard(ContenedorRD contenedor, String empleadoNombre, ResponsiveHelper helper) {
+                              ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:353:35: Error: 'ContenedorRD' isn't a type.
+  Future<void> _recibirContenedor(ContenedorRD contenedor, String empleadoNombre) async {
+                                  ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:374:61: Error: Too few positional arguments: 3 required, 2 given.
+      bool success = await _almacenService.recibirContenedor(contenedor.id, empleadoNombre);
+                                                            ^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:385:36: Error: 'ContenedorRD' isn't a type.
+  Future<void> _procesarContenedor(ContenedorRD contenedor, String empleadoNombre) async {
+                                   ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:405:62: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+      bool success = await _almacenService.procesarContenedor(contenedor.id, empleadoNombre);
+                                                             ^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:416:36: Error: 'ContenedorRD' isn't a type.
+  Future<void> _verItemsContenedor(ContenedorRD contenedor) async {
+                                   ^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:417:41: Error: The method 'getItemsDeContenedor' isn't defined for the type 'AlmacenRDService'.
+ - 'AlmacenRDService' is from 'package:mobile_app/services/almacen_rd_service.dart' ('lib/services/almacen_rd_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getItemsDeContenedor'.
+    final items = await _almacenService.getItemsDeContenedor(contenedor.id);
+                                        ^^^^^^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:49:24: Error: The method '_buildFacturasList' isn't defined for the type '_AlmacenRDFacturasScreenState'.
+ - '_AlmacenRDFacturasScreenState' is from 'package:mobile_app/screens/almacen_rd/almacen_rd_facturas_screen.dart' ('lib/screens/almacen_rd/almacen_rd_facturas_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_buildFacturasList'.
+                child: _buildFacturasList(helper),
+                       ^^^^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:54:30: Error: The method '_mostrarCrearFactura' isn't defined for the type '_AlmacenRDFacturasScreenState'.
+ - '_AlmacenRDFacturasScreenState' is from 'package:mobile_app/screens/almacen_rd/almacen_rd_facturas_screen.dart' ('lib/screens/almacen_rd/almacen_rd_facturas_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_mostrarCrearFactura'.
+            onPressed: () => _mostrarCrearFactura(context),
+                             ^^^^^^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:133:7: Error: Unexpected token 'case'.
+      case 'pagada': return AppTheme.successColor;
+      ^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:133:20: Error: Expected '=>' before this.
+      case 'pagada': return AppTheme.successColor;
+                   ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:133:22: Error: Unexpected token 'return'.
+      case 'pagada': return AppTheme.successColor;
+                     ^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:133:50: Error: Expected ',' before this.
+      case 'pagada': return AppTheme.successColor;
+                                                 ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:134:7: Error: Unexpected token 'case'.
+      case 'cancelada': return AppTheme.errorColor;
+      ^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:134:23: Error: Expected '=>' before this.
+      case 'cancelada': return AppTheme.errorColor;
+                      ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:134:25: Error: Unexpected token 'return'.
+      case 'cancelada': return AppTheme.errorColor;
+                        ^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:134:51: Error: Expected ',' before this.
+      case 'cancelada': return AppTheme.errorColor;
+                                                  ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:135:7: Error: A switch expression may not use the `default` keyword.
+Try replacing `default` with `_`.
+      default: return AppTheme.warningColor;
+      ^^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:135:14: Error: Expected '=>' before this.
+      default: return AppTheme.warningColor;
+             ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:135:16: Error: Unexpected token 'return'.
+      default: return AppTheme.warningColor;
+               ^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:135:44: Error: Expected ',' before this.
+      default: return AppTheme.warningColor;
+                                           ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:136:5: Error: Expected ';' after this.
+    }
+    ^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:132:13: Error: The getter 'factura' isn't defined for the type '_AlmacenRDFacturasScreenState'.
+ - '_AlmacenRDFacturasScreenState' is from 'package:mobile_app/screens/almacen_rd/almacen_rd_facturas_screen.dart' ('lib/screens/almacen_rd/almacen_rd_facturas_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'factura'.
+    switch (factura.estado) {
+            ^^^^^^^
+lib/screens/almacen_rd/almacen_rd_facturas_screen.dart:132:5: Error: A value of type 'Color' can't be assigned to a variable of type 'Widget'.
+ - 'Color' is from 'dart:ui'.
+ - 'Widget' is from 'package:flutter/src/widgets/framework.dart' ('/C:/flutter/packages/flutter/lib/src/widgets/framework.dart').
+    switch (factura.estado) {
+    ^
+lib/screens/repartidores/detalle_ruta_screen.dart:39:38: Error: The method 'getRutaDetalle' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getRutaDetalle'.
+      final ruta = await _apiService.getRutaDetalle(widget.rutaId);
+                                     ^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_ruta_screen.dart:99:41: Error: The method 'iniciarEntregas' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'iniciarEntregas'.
+      final success = await _apiService.iniciarEntregas(widget.rutaId);
+                                        ^^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_ruta_screen.dart:182:72: Error: The argument type 'String?' can't be assigned to the parameter type 'String'.
+      final resultado = await _apiService.finalizarRuta(widget.rutaId, notas);
+                                                                       ^
+lib/screens/repartidores/historial_rutas_screen.dart:30:39: Error: The method 'getRutasEmpleado' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getRutasEmpleado'.
+      final rutas = await _apiService.getRutasEmpleado(widget.empleadoId);
+                                      ^^^^^^^^^^^^^^^^
+lib/screens/repartidores/historial_rutas_screen.dart:109:73: Error: No named parameter with the name 'ruta'.
+                                builder: (context) => DetalleRutaScreen(ruta: ruta),
+                                                                        ^^^^
+lib/screens/repartidores/detalle_ruta_screen.dart:15:9: Context: Found this candidate, but the arguments don't match.
+  const DetalleRutaScreen({super.key, required this.rutaId});
+        ^^^^^^^^^^^^^^^^^
+lib/screens/cargadores/checklist_carga_screen.dart:35:38: Error: The method 'getRutaDetalle' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getRutaDetalle'.
+      final ruta = await _apiService.getRutaDetalle(widget.rutaId);
+                                     ^^^^^^^^^^^^^^
+lib/screens/cargadores/checklist_carga_screen.dart:54:41: Error: The method 'confirmarCargaItem' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'confirmarCargaItem'.
+      final success = await _apiService.confirmarCargaItem(
+                                        ^^^^^^^^^^^^^^^^^^
+lib/screens/repartidores/gastos_screen.dart:36:38: Error: The method 'getRutaDetalle' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getRutaDetalle'.
+      final ruta = await _apiService.getRutaDetalle(widget.rutaId);
+                                     ^^^^^^^^^^^^^^
+lib/screens/repartidores/gastos_screen.dart:666:43: Error: The method 'registrarGasto' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'registrarGasto'.
+      final resultado = await _apiService.registrarGasto(
+                                          ^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:65:53: Error: Too few positional arguments: 3 required, 2 given.
+      final success = await _apiService.entregarItem(_factura.id, itemIndex);
+                                                    ^
+lib/screens/repartidores/detalle_factura_screen.dart:142:43: Error: The method 'subirFotosEvidencia' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'subirFotosEvidencia'.
+        final success = await _apiService.subirFotosEvidencia(_factura.id, urls);
+                                          ^^^^^^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:268:54: Error: Too few positional arguments: 1 required, 0 given.
+      final success = await _apiService.confirmarPago(
+                                                     ^
+lib/screens/repartidores/detalle_factura_screen.dart:396:59: Error: Too few positional arguments: 1 required, 0 given.
+      final success = await _apiService.reportarItemDanado(
+                                                          ^
+lib/screens/repartidores/detalle_factura_screen.dart:495:58: Error: Too few positional arguments: 1 required, 0 given.
+      final success = await _apiService.reportarNoEntrega(
+                                                         ^
+lib/screens/repartidores/detalle_factura_screen.dart:604:63: Error: Too few positional arguments: 1 required, 0 given.
+      final success = await _apiService.marcarFacturaEntregada(
+                                                              ^
+lib/services/photo_service.dart:13:9: Error: 'FirebaseStorage' isn't a type.
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+        ^^^^^^^^^^^^^^^
+lib/services/photo_service.dart:13:36: Error: Undefined name 'FirebaseStorage'.
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+                                   ^^^^^^^^^^^^^^^
+lib/services/photo_service.dart:150:24: Error: The method 'SettableMetadata' isn't defined for the type 'PhotoService'.
+ - 'PhotoService' is from 'package:mobile_app/services/photo_service.dart' ('lib/services/photo_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'SettableMetadata'.
+      final metadata = SettableMetadata(
+                       ^^^^^^^^^^^^^^^^
+Unhandled exception:
+FileSystemException(uri=org-dartlang-untranslatable-uri:package%3Afirebase_auth%2Ffirebase_auth.dart; message=StandardFileSystem only supports file:* and data:* URIs)
+#0      StandardFileSystem.entityForUri (package:front_end/src/api_prototype/standard_file_system.dart:45)
+#1      asFileUri (package:vm/kernel_front_end.dart:1002)
+#2      writeDepfile (package:vm/kernel_front_end.dart:1165)
+<asynchronous suspension>
+#3      FrontendCompiler.compile (package:frontend_server/frontend_server.dart:729)
+<asynchronous suspension>
+#4      starter (package:frontend_server/starter.dart:102)
+<asynchronous suspension>
+#5      main (file:///C:/b/s/w/ir/x/w/sdk/pkg/frontend_server/bin/frontend_server_starter.dart:13)
+<asynchronous suspension>
+
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 26s
+Running Gradle task 'assembleDebug'...                             26.7s
+Gradle task assembleDebug failed with exit code 1

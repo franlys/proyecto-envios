@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.envios.mobile_app"
+    namespace = "com.prologix.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
     
@@ -20,7 +20,7 @@ android {
     }
     
     defaultConfig {
-        applicationId = "com.envios.mobile_app"
+        applicationId = "com.prologix.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -1,0 +1,47 @@
+Running Gradle task 'assembleDebug'...                          
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:439:40: Error: The getter 'descripcion' isn't defined for the type 'EntregaItem'.
+ - 'EntregaItem' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'descripcion'.
+                      title: Text(item.descripcion),
+                                       ^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:440:56: Error: The getter 'numeroTracking' isn't defined for the type 'EntregaItem'.
+ - 'EntregaItem' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'numeroTracking'.
+                      subtitle: Text('Tracking: ${item.numeroTracking}'),
+                                                       ^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:441:46: Error: The getter 'peso' isn't defined for the type 'EntregaItem'.
+ - 'EntregaItem' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'peso'.
+                      trailing: Text('${item.peso}kg'),
+                                             ^^^^
+lib/screens/cargadores/checklist_carga_screen.dart:54:59: Error: Too many positional arguments: 0 allowed, but 3 found.
+Try removing the extra positional arguments.
+      final success = await _apiService.confirmarCargaItem(
+                                                          ^
+lib/screens/repartidores/detalle_factura_screen.dart:399:9: Error: No named parameter with the name 'descripcionDano'.
+        descripcionDano: descripcion,
+        ^^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:498:9: Error: No named parameter with the name 'fotoUrl'.
+        fotoUrl: fotoUrl,
+        ^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:604:63: Error: Required named parameter 'nombreReceptor' must be provided.
+      final success = await _apiService.marcarFacturaEntregada(
+                                                              ^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 10s
+Running Gradle task 'assembleDebug'...                             11.0s
+Gradle task assembleDebug failed with exit code 1

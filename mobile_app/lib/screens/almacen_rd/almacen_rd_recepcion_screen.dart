@@ -178,8 +178,8 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
 
   // ==================== LISTA DE CONTENEDORES ====================
   Widget _buildContenedoresList(String almacenId, String empleadoNombre, ResponsiveHelper helper) {
-    return FutureBuilder<List<ContenedorRecibido>>(
-      future: _almacenService.getContenedores(
+    return StreamBuilder<List<ContenedorRecibido>>(
+      stream: _almacenService.getContenedoresStream(
         filtroEstado: _filtroEstado == 'todos' ? null : _filtroEstado,
       ),
       builder: (context, snapshot) {
@@ -258,7 +258,7 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
             padding: helper.screenPadding,
             itemCount: contenedores.length,
             itemBuilder: (context, index) {
-              return _buildContenedorCard(contenedores[index], empleadoNombre, helper);
+              return _buildContenedorCard(contenedores[index], almacenId, empleadoNombre, helper);
             },
           ),
         );
@@ -267,7 +267,7 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
   }
 
   // ==================== CARD DE CONTENEDOR ====================
-  Widget _buildContenedorCard(ContenedorRecibido contenedor, String empleadoNombre, ResponsiveHelper helper) {
+  Widget _buildContenedorCard(ContenedorRecibido contenedor, String almacenId, String empleadoNombre, ResponsiveHelper helper) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
@@ -284,9 +284,9 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
           children: [
             Text('Estado: ${_getEstadoTexto(contenedor.estado)}'),
             const SizedBox(height: 4),
-            Text('Fecha: ${_formatFecha(contenedor.fechaEnvio)}'),
-            if (contenedor.estado == 'en_transito' && contenedor.fechaEstimadaLlegada != null)
-              Text('ETA: ${_formatFecha(contenedor.fechaEstimadaLlegada!)}',
+            Text('Fecha Envío: ${_formatFecha(contenedor.fechaEnvio)}'),
+            if (contenedor.fechaRecepcion != null)
+              Text('Recibido: ${_formatFecha(contenedor.fechaRecepcion!)}',
                 style: const TextStyle(fontWeight: FontWeight.w500)),
           ],
         ),
@@ -296,17 +296,29 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (contenedor.naviera != null)
-                  _buildInfoRow('Naviera:', contenedor.naviera!),
-                if (contenedor.trackingNaviera != null)
-                  _buildInfoRow('Tracking:', contenedor.trackingNaviera!),
+                _buildInfoRow('Procedencia:', contenedor.procedencia),
+                _buildInfoRow('Items Total:', contenedor.itemsTotal.toString()),
+                _buildInfoRow('Items Procesados:', contenedor.itemsProcesados.toString()),
+                if (contenedor.recibioPor != null)
+                  _buildInfoRow('Recibido por:', contenedor.recibioPor!),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: contenedor.progresoProcesamiento,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.almacenRDColor),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Progreso: ${(contenedor.progresoProcesamiento * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if (contenedor.estado == 'en_transito') ...[
                       ElevatedButton.icon(
-                        onPressed: () => _recibirContenedor(contenedor, empleadoNombre),
+                        onPressed: () => _recibirContenedor(contenedor, almacenId, empleadoNombre),
                         icon: const Icon(Icons.check),
                         label: const Text('Recibir'),
                         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.successColor),
@@ -314,16 +326,16 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
                     ],
                     if (contenedor.estado == 'recibido') ...[
                       ElevatedButton.icon(
-                        onPressed: () => _procesarContenedor(contenedor, empleadoNombre),
+                        onPressed: () => _procesarContenedor(contenedor),
                         icon: const Icon(Icons.settings),
                         label: const Text('Procesar'),
                         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warningColor),
                       ),
                     ],
                     OutlinedButton.icon(
-                      onPressed: () => _verItemsContenedor(contenedor),
-                      icon: const Icon(Icons.list),
-                      label: const Text('Ver Items'),
+                      onPressed: () => _verDetallesContenedor(contenedor),
+                      icon: const Icon(Icons.info_outline),
+                      label: const Text('Detalles'),
                     ),
                   ],
                 ),
@@ -350,7 +362,7 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
 
   // ==================== ACCIONES ====================
 
-  Future<void> _recibirContenedor(ContenedorRecibido contenedor, String empleadoNombre) async {
+  Future<void> _recibirContenedor(ContenedorRecibido contenedor, String almacenId, String empleadoNombre) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -371,23 +383,30 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
     );
 
     if (confirm == true) {
-      bool success = await _almacenService.recibirContenedor(contenedor.id, empleadoNombre);
+      try {
+        await _almacenService.recibirContenedor(contenedor.id, empleadoNombre, almacenId);
 
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Contenedor recibido exitosamente')),
-        );
-        setState(() {});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ Contenedor recibido exitosamente')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorColor),
+          );
+        }
       }
     }
   }
 
-  Future<void> _procesarContenedor(ContenedorRecibido contenedor, String empleadoNombre) async {
+  Future<void> _procesarContenedor(ContenedorRecibido contenedor) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Procesar Contenedor'),
-        content: Text('¿Iniciar procesamiento del contenedor ${contenedor.numeroContenedor}?'),
+        content: Text('¿Marcar contenedor ${contenedor.numeroContenedor} como procesado?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -402,52 +421,90 @@ class _AlmacenRDRecepcionScreenState extends State<AlmacenRDRecepcionScreen> {
     );
 
     if (confirm == true) {
-      bool success = await _almacenService.procesarContenedor(contenedor.id, empleadoNombre);
+      try {
+        await _almacenService.marcarContenedorProcesado(contenedor.id);
 
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Contenedor en procesamiento')),
-        );
-        setState(() {});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ Contenedor marcado como procesado')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorColor),
+          );
+        }
       }
     }
   }
 
-  Future<void> _verItemsContenedor(ContenedorRecibido contenedor) async {
-    final items = await _almacenService.getItemsDeContenedor(contenedor.id);
-
-    if (!mounted) return;
-
+  void _verDetallesContenedor(ContenedorRecibido contenedor) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Items - ${contenedor.numeroContenedor}'),
+        title: Text('Detalles - ${contenedor.numeroContenedor}'),
         content: SizedBox(
           width: double.maxFinite,
-          child: items.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('No hay items en este contenedor'),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      leading: const Icon(Icons.inventory),
-                      title: Text(item.descripcion ?? 'Sin descripción'),
-                      subtitle: Text('Tracking: ${item.tracking}'),
-                      trailing: Text('${item.peso}kg'),
-                    );
-                  },
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('Número:', contenedor.numeroContenedor),
+                _buildDetailRow('Estado:', _getEstadoTexto(contenedor.estado)),
+                _buildDetailRow('Procedencia:', contenedor.procedencia),
+                _buildDetailRow('Fecha Envío:', _formatFecha(contenedor.fechaEnvio)),
+                if (contenedor.fechaRecepcion != null)
+                  _buildDetailRow('Fecha Recepción:', _formatFecha(contenedor.fechaRecepcion!)),
+                _buildDetailRow('Items Total:', contenedor.itemsTotal.toString()),
+                _buildDetailRow('Items Procesados:', contenedor.itemsProcesados.toString()),
+                if (contenedor.recibioPor != null)
+                  _buildDetailRow('Recibido por:', contenedor.recibioPor!),
+                const SizedBox(height: 16),
+                const Text('Progreso de Procesamiento:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: contenedor.progresoProcesamiento,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.almacenRDColor),
                 ),
+                const SizedBox(height: 4),
+                Text('${(contenedor.progresoProcesamiento * 100).toStringAsFixed(0)}% completado'),
+                if (contenedor.notas != null && contenedor.notas!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text('Notas:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ...contenedor.notas!.map((nota) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('• $nota', style: TextStyle(color: Colors.grey[700])),
+                  )),
+                ],
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cerrar'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );

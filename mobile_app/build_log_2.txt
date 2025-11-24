@@ -1,0 +1,159 @@
+Running Gradle task 'assembleDebug'...                          
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:288:66: Error: The getter 'fechaEstimadaLlegada' isn't defined for the type 'ContenedorRecibido'.
+ - 'ContenedorRecibido' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'fechaEstimadaLlegada'.
+            if (contenedor.estado == 'en_transito' && contenedor.fechaEstimadaLlegada != null)
+                                                                 ^^^^^^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:289:52: Error: The getter 'fechaEstimadaLlegada' isn't defined for the type 'ContenedorRecibido'.
+ - 'ContenedorRecibido' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'fechaEstimadaLlegada'.
+              Text('ETA: ${_formatFecha(contenedor.fechaEstimadaLlegada!)}',
+                                                   ^^^^^^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:299:32: Error: The getter 'naviera' isn't defined for the type 'ContenedorRecibido'.
+ - 'ContenedorRecibido' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'naviera'.
+                if (contenedor.naviera != null)
+                               ^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:300:56: Error: The getter 'naviera' isn't defined for the type 'ContenedorRecibido'.
+ - 'ContenedorRecibido' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'naviera'.
+                  _buildInfoRow('Naviera:', contenedor.naviera!),
+                                                       ^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:301:32: Error: The getter 'trackingNaviera' isn't defined for the type 'ContenedorRecibido'.
+ - 'ContenedorRecibido' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'trackingNaviera'.
+                if (contenedor.trackingNaviera != null)
+                               ^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:302:57: Error: The getter 'trackingNaviera' isn't defined for the type 'ContenedorRecibido'.
+ - 'ContenedorRecibido' is from 'package:mobile_app/models/almacen_rd_models.dart' ('lib/models/almacen_rd_models.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'trackingNaviera'.
+                  _buildInfoRow('Tracking:', contenedor.trackingNaviera!),
+                                                        ^^^^^^^^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:374:61: Error: Too few positional arguments: 3 required, 2 given.
+      bool success = await _almacenService.recibirContenedor(contenedor.id, empleadoNombre);
+                                                            ^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:405:62: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+      bool success = await _almacenService.procesarContenedor(contenedor.id, empleadoNombre);
+                                                             ^
+lib/screens/almacen_rd/almacen_rd_recepcion_screen.dart:417:41: Error: The method 'getItemsDeContenedor' isn't defined for the type 'AlmacenRDService'.
+ - 'AlmacenRDService' is from 'package:mobile_app/services/almacen_rd_service.dart' ('lib/services/almacen_rd_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'getItemsDeContenedor'.
+    final items = await _almacenService.getItemsDeContenedor(contenedor.id);
+                                        ^^^^^^^^^^^^^^^^^^^^
+lib/screens/cargadores/checklist_carga_screen.dart:54:59: Error: Too many positional arguments: 0 allowed, but 3 found.
+Try removing the extra positional arguments.
+      final success = await _apiService.confirmarCargaItem(
+                                                          ^
+lib/services/api_service.dart:134:18: Error: Expected ';' after this.
+        headers: headers,
+                 ^^^^^^^
+lib/services/api_service.dart:134:25: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+        headers: headers,
+                        ^
+lib/services/api_service.dart:134:25: Error: Unexpected token ','.
+        headers: headers,
+                        ^
+lib/services/api_service.dart:140:10: Error: Expected ';' after this.
+        }),
+         ^
+lib/services/api_service.dart:140:11: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+        }),
+          ^
+lib/services/api_service.dart:140:11: Error: Unexpected token ','.
+        }),
+          ^
+lib/services/api_service.dart:141:7: Error: Expected an identifier, but got ')'.
+Try inserting an identifier before ')'.
+      );
+      ^
+lib/services/api_service.dart:140:11: Error: Expected ';' after this.
+        }),
+          ^
+lib/services/api_service.dart:141:7: Error: Unexpected token ')'.
+      );
+      ^
+lib/services/api_service.dart:134:18: Error: The getter 'headers' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'headers'.
+        headers: headers,
+                 ^^^^^^^
+lib/services/api_service.dart:136:21: Error: The getter 'motivo' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'motivo'.
+          'motivo': motivo,
+                    ^^^^^^
+lib/services/api_service.dart:137:26: Error: The getter 'descripcion' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'descripcion'.
+          'descripcion': descripcion,
+                         ^^^^^^^^^^^
+lib/services/api_service.dart:139:33: Error: The getter 'intentarNuevamente' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'intentarNuevamente'.
+          'intentarNuevamente': intentarNuevamente,
+                                ^^^^^^^^^^^^^^^^^^
+lib/services/api_service.dart:143:14: Error: The getter 'response' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'response'.
+      return response.statusCode == 200;
+             ^^^^^^^^
+lib/screens/almacen_rd/almacen_rd_rutas_screen.dart:36:49: Error: Can't find ']' to match '['.
+                itemBuilder: (context) => const [
+                                                ^
+lib/screens/almacen_rd/almacen_rd_rutas_screen.dart:32:22: Error: Can't find ']' to match '['.
+            actions: [
+                     ^
+lib/screens/almacen_rd/almacen_rd_rutas_screen.dart:28:24: Error: Can't find ')' to match '('.
+        return Scaffold(
+                       ^
+lib/screens/repartidores/historial_rutas_screen.dart:109:73: Error: No named parameter with the name 'ruta'.
+                                builder: (context) => DetalleRutaScreen(ruta: ruta),
+                                                                        ^^^^
+lib/screens/repartidores/detalle_ruta_screen.dart:15:9: Context: Found this candidate, but the arguments don't match.
+  const DetalleRutaScreen({super.key, required this.rutaId});
+        ^^^^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:268:41: Error: The method 'confirmarPago' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'confirmarPago'.
+      final success = await _apiService.confirmarPago(
+                                        ^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:396:41: Error: The method 'reportarItemDanado' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'reportarItemDanado'.
+      final success = await _apiService.reportarItemDanado(
+                                        ^^^^^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:495:41: Error: The method 'reportarNoEntrega' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'reportarNoEntrega'.
+      final success = await _apiService.reportarNoEntrega(
+                                        ^^^^^^^^^^^^^^^^^
+lib/screens/repartidores/detalle_factura_screen.dart:604:41: Error: The method 'marcarFacturaEntregada' isn't defined for the type 'ApiService'.
+ - 'ApiService' is from 'package:mobile_app/services/api_service.dart' ('lib/services/api_service.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'marcarFacturaEntregada'.
+      final success = await _apiService.marcarFacturaEntregada(
+                                        ^^^^^^^^^^^^^^^^^^^^^^
+lib/screens/repartidores/gastos_screen.dart:666:57: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+      final resultado = await _apiService.registrarGasto(
+                                                        ^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 10s
+Running Gradle task 'assembleDebug'...                             11.4s
+Gradle task assembleDebug failed with exit code 1
