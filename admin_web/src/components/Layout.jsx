@@ -238,7 +238,7 @@ const Layout = ({ children }) => {
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
               <div className="flex items-center gap-2 sm:gap-3">
-                <img src={logo} alt="ProLogix" className="h-8 sm:h-10 w-auto object-contain" />
+                <img src={logo} alt="ProLogix" className="h-10 sm:h-12 w-auto object-contain" />
                 <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   ProLogix
                 </span>
