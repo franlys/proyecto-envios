@@ -110,7 +110,7 @@ const Login = ({ onLoginStart, onExitComplete }) => {
         `}
       >
         {/* Vector Icon (Visible in Box/Animation states) */}
-        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${(animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
+        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 pointer-events-none ${(animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
           }`}>
           <Package className="text-blue-600" size={32} />
         </div>
