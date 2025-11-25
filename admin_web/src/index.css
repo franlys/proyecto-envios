@@ -45,12 +45,12 @@
 /* Start Y: 50vh - 200px (calculated from ship deck position) */
 @keyframes boxFloatUp {
   0% {
-    transform: translateY(calc(50vh - 200px)) scale(1);
+    transform: translateY(calc(50vh - 200px));
     opacity: 1;
   }
 
   100% {
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -71,15 +71,19 @@
     width: 60px;
     height: 60px;
     border-radius: 8px;
-    background: white;
+    background: #ffffff;
+    /* Start as solid white box */
   }
 
   100% {
     width: 100%;
     max-width: 28rem;
-    height: auto;
+    height: 500px;
+    /* Fixed height for smooth expansion, or use min-height */
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.1);
+    /* Fade to glass */
+    backdrop-filter: blur(12px);
   }
 }
 
@@ -87,21 +91,19 @@
   0% {
     width: 100%;
     max-width: 28rem;
-    height: auto;
-    transform: scale(1);
+    height: 500px;
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
     opacity: 1;
   }
 
   100% {
     width: 60px;
     height: 60px;
-    transform: scale(1);
     border-radius: 8px;
-    background: white;
-    border: 2px solid #3B82F6;
-    padding: 0;
+    background: #ffffff;
+    backdrop-filter: blur(0px);
     opacity: 1;
   }
 }

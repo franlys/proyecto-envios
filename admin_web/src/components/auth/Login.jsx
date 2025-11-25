@@ -93,24 +93,24 @@ const Login = () => {
 
       {/* Main Container (The Active Box/Form) */}
       <div
-        className={`relative z-50 flex flex-col items-center justify-center transition-all
+        className={`relative z-50 flex flex-col items-center justify-center transition-all overflow-hidden
           ${animState < 1 ? 'opacity-0 scale-0' : ''} 
           ${animState === 1 ? 'animate-box-float-up' : ''}
           ${animState === 2 ? 'animate-expand-form' : ''}
-          ${animState === 3 ? 'w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
+          ${animState === 3 ? 'w-full max-w-md h-[500px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
           ${animState === 4 ? 'animate-collapse' : ''}
           ${animState === 5 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-box-drop' : ''}
           ${animState === 6 ? 'opacity-0' : ''}
         `}
       >
         {/* Vector Icon (Visible in Box/Animation states) */}
-        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${(animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
+        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${(animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
           }`}>
           <Package className="text-blue-600" size={32} />
         </div>
 
         {/* Form Content (Visible in Form state) */}
-        <div className={`w-full transition-opacity duration-500 ${animState === 3 ? 'opacity-100' : 'opacity-0 hidden'}`}>
+        <div className={`w-full h-full flex flex-col justify-center transition-opacity duration-700 delay-200 ${animState === 3 ? 'opacity-100' : 'opacity-0 hidden'}`}>
           <div className="text-center mb-8">
             <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ring-4 ring-white/10 p-4">
               <img src={logo} alt="ProLogix" className="w-full h-full object-contain" />
