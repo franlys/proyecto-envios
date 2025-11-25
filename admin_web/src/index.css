@@ -28,8 +28,6 @@
   100% {
     transform: translateX(0);
   }
-
-  /* Centers ship relative to its container */
 }
 
 @keyframes shipDepart {
@@ -43,44 +41,74 @@
 }
 
 /* --- Crane Animations --- */
-@keyframes craneGrab {
+/* Crane moves from top (-100%) to deck level */
+/* Deck level calculation: 
+   Ship container bottom: 100px.
+   Ship body height: 70px.
+   Cabin/Details: ~50px.
+   Hook needs to reach Box Top.
+   Box is 60x60.
+   Box Bottom = 100 + 70 = 170px from screen bottom.
+   Box Top = 170 + 60 = 230px from screen bottom.
+   Screen Height = 100vh.
+   Hook Target Y (from top) = 100vh - 230px.
+   Crane is 50vh tall.
+   We need to translate Y so the tip (bottom of crane) hits the target.
+   Crane Tip is at 50vh (since it's top:0, height:50vh).
+   Delta = (100vh - 230px) - 50vh = 50vh - 230px.
+*/
+@keyframes craneDown {
   0% {
     transform: translateY(-100%);
   }
 
-  /* Start hidden up */
-  40% {
-    transform: translateY(160px);
+  100% {
+    transform: translateY(calc(50vh - 230px));
+  }
+}
+
+@keyframes craneUp {
+  0% {
+    transform: translateY(calc(50vh - 230px));
   }
 
-  /* Down to ship deck level */
-  50% {
-    transform: translateY(160px);
-  }
-
-  /* Grab wait */
   100% {
     transform: translateY(0);
   }
 
-  /* Lift to center */
+  /* Back to center (hook at 50vh) */
 }
 
 /* --- Box/Form Animations --- */
-/* Box lifting from ship to center */
-@keyframes boxLiftFromShip {
+/* Box lifts from Ship Deck to Center */
+/* Start Y: 50vh - 230px (Same delta as crane)
+   End Y: 0 (Center) 
+   Wait, Box is centered at 50vh.
+   If we translate Y by (50vh - 230px), it moves DOWN.
+   Correct.
+*/
+@keyframes boxLift {
   0% {
-    transform: translate(-50%, 180px) scale(1);
+    transform: translateY(calc(50vh - 200px));
     opacity: 1;
   }
 
-  /* On ship */
+  /* Center of box is 30px lower than top */
   100% {
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0);
     opacity: 1;
   }
+}
 
-  /* Center */
+/* Drop: Center -> Ship Deck */
+@keyframes boxDrop {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(calc(50vh - 200px));
+  }
 }
 
 @keyframes expandForm {
@@ -123,18 +151,6 @@
   }
 }
 
-@keyframes dropToShip {
-  0% {
-    transform: translateY(0);
-  }
-
-  100% {
-    transform: translateY(180px);
-  }
-
-  /* Drops to ship */
-}
-
 /* --- Environment --- */
 @keyframes waveMove {
   0% {
@@ -155,25 +171,28 @@
   animation: shipDepart 2.5s ease-in forwards;
 }
 
-.animate-crane-grab {
-  animation: craneGrab 3s ease-in-out forwards;
+.animate-crane-down {
+  animation: craneDown 1.5s ease-in-out forwards;
+}
+
+.animate-crane-up {
+  animation: craneUp 1.5s ease-in-out forwards;
 }
 
 .animate-box-lift {
-  animation: boxLiftFromShip 1.5s ease-out forwards;
+  animation: boxLift 1.5s ease-in-out forwards;
 }
 
-/* Sync with crane up */
+.animate-box-drop {
+  animation: boxDrop 0.8s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
 .animate-expand-form {
   animation: expandForm 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-collapse {
   animation: collapseToBox 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-}
-
-.animate-drop {
-  animation: dropToShip 0.6s cubic-bezier(0.5, 0, 0.75, 0) forwards;
 }
 
 .animate-wave {
