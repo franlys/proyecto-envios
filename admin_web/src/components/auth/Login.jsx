@@ -11,25 +11,28 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   // Animation States: 
-  // 0: Initial (Crane Lowering)
-  // 1: Box Expanding (Transition to Form)
-  // 2: Form Active (Idle)
-  // 3: Collapsing (Exit Start)
-  // 4: Dropping to Ship
-  // 5: Ship Departing
+  // 0: Ship Entering (0-2s)
+  // 1: Crane Grabbing (2-3.5s) -> Handoff at 3.5s
+  // 2: Lifting to Center (3.5-5s)
+  // 3: Expanding to Form (5s+)
+  // 4: Form Active
+  // 5: Collapsing
+  // 6: Dropping to Ship
+  // 7: Ship Departing
   const [animState, setAnimState] = useState(0);
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Sequence: Crane Lowers (0-3s) -> Box Expands (3s) -> Form Active
-    const timer1 = setTimeout(() => setAnimState(1), 3000); // Start expansion
-    const timer2 = setTimeout(() => setAnimState(2), 3800); // Form fully active
+    // Entry Sequence
+    const t1 = setTimeout(() => setAnimState(1), 2000); // Ship Arrived, Crane Starts
+    const t2 = setTimeout(() => setAnimState(2), 3500); // Crane Grabs (Handoff)
+    const t3 = setTimeout(() => setAnimState(3), 5000); // Lifted, Start Expand
+    const t4 = setTimeout(() => setAnimState(4), 5800); // Form Active
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
     };
   }, []);
 
@@ -42,12 +45,12 @@ const Login = () => {
       await login(email, password);
 
       // Exit Sequence
-      setAnimState(3); // Collapse
+      setAnimState(5); // Collapse
 
-      setTimeout(() => setAnimState(4), 800); // Drop
+      setTimeout(() => setAnimState(6), 800); // Drop
 
       setTimeout(() => {
-        setAnimState(5); // Ship Depart
+        setAnimState(7); // Ship Depart
         setTimeout(() => navigate('/dashboard'), 2000); // Navigate
       }, 1400);
 
@@ -62,16 +65,17 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-blue-900 to-gray-900 overflow-hidden relative">
 
       {/* --- Environment --- */}
-      {/* Water */}
       <div className="absolute bottom-0 w-full h-[140px] bg-blue-900/80 z-30 overflow-hidden border-t border-blue-500/30 backdrop-blur-sm">
         <div className="absolute -top-5 w-[200%] h-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 120\' preserveAspectRatio=\'none\'%3E%3Cpath d=\'M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z\' fill=\'%2360A5FA\' opacity=\'0.3\'/%3E%3C/svg%3E')] bg-[length:50%_100%] animate-wave"></div>
       </div>
 
       {/* Ship Container */}
       <div
-        className={`absolute bottom-[100px] w-[260px] h-[100px] z-20 transition-transform duration-[2000ms] ease-in ${animState >= 5 ? 'translate-x-[150vw]' :
-            animState >= 1 ? 'translate-x-0 left-[calc(50%-130px)]' : '-translate-x-[400px]'
-          }`}
+        className={`absolute bottom-[100px] w-[260px] h-[100px] z-20 transition-transform duration-[2500ms] ease-in-out
+          ${animState === 0 ? 'animate-ship-enter' : ''}
+          ${animState >= 1 && animState < 7 ? 'translate-x-0 left-[calc(50%-130px)]' : ''}
+          ${animState === 7 ? 'animate-ship-depart left-[calc(50%-130px)]' : ''}
+        `}
       >
         <div className="absolute -top-[50px] right-[40px] w-[70px] h-[50px] bg-gray-700 rounded-t-[5px] border-2 border-gray-600">
           <div className="absolute top-[10px] left-[10px] w-5 h-5 bg-blue-400/50 rounded-[2px] animate-pulse"></div>
@@ -80,36 +84,44 @@ const Login = () => {
           <div className="absolute top-[15px] w-full h-[8px] bg-red-600/80"></div>
           <div className="absolute bottom-[10px] left-[20px] text-gray-500 text-[10px] font-mono tracking-widest">PROLOGIX-01</div>
         </div>
+
+        {/* Cargo Box on Ship (Visible only before grab and after drop) */}
+        <div className={`absolute -top-[60px] left-[80px] w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg flex items-center justify-center shadow-md transition-opacity duration-0
+          ${(animState < 2 || animState >= 7) ? 'opacity-100' : 'opacity-0'}
+        `}>
+          <img src={logo} className="w-8 h-8 object-contain" alt="Logo" />
+        </div>
       </div>
 
-      {/* Crane Mechanism (Only visible during entry) */}
-      <div className={`absolute top-0 left-1/2 -translate-x-1/2 z-40 transition-opacity duration-500 ${animState >= 2 ? 'opacity-0' : 'opacity-100'}`}>
-        <div className="w-1 bg-gray-600 origin-top animate-crane-lower h-[50vh]">
+      {/* Crane Mechanism */}
+      <div className={`absolute top-0 left-1/2 -translate-x-1/2 z-40 transition-opacity duration-500 ${animState >= 4 ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`w-1 bg-gray-600 origin-top h-[50vh] ${animState === 1 ? 'animate-crane-grab' : ''} ${animState >= 2 ? 'h-0 transition-all duration-[1500ms] ease-out' : ''}`}>
           <div className="absolute bottom-0 left-[-18px] w-10 h-10 border-4 border-gray-400 border-t-0 rounded-b-[20px] -translate-x-[2px]"></div>
         </div>
       </div>
 
-      {/* Main Container (Morphs from Box -> Form -> Box) */}
+      {/* Main Container (The Active Box/Form) */}
       <div
         className={`relative z-50 flex flex-col items-center justify-center transition-all
-          ${animState === 0 ? 'animate-box-appear' : ''}
-          ${animState === 1 ? 'animate-expand-form' : ''}
-          ${animState === 2 ? 'w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
-          ${animState === 3 ? 'animate-collapse' : ''}
-          ${animState === 4 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-drop' : ''}
-          ${animState === 5 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg translate-x-[150vw] translate-y-[180px] transition-transform duration-[2000ms] ease-in' : ''}
+          ${animState < 2 ? 'opacity-0 scale-0' : ''} 
+          ${animState === 2 ? 'animate-box-lift' : ''}
+          ${animState === 3 ? 'animate-expand-form' : ''}
+          ${animState === 4 ? 'w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
+          ${animState === 5 ? 'animate-collapse' : ''}
+          ${animState === 6 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-drop' : ''}
+          ${animState === 7 ? 'opacity-0' : ''}
         `}
       >
         {/* Logo (Visible in Box state) */}
         <img
           src={logo}
           alt="Logo"
-          className={`absolute w-10 h-10 object-contain transition-opacity duration-300 ${(animState === 0 || animState >= 3) ? 'opacity-100' : 'opacity-0'
+          className={`absolute w-10 h-10 object-contain transition-opacity duration-300 ${(animState === 2 || animState === 3 || animState >= 5) ? 'opacity-100' : 'opacity-0'
             }`}
         />
 
         {/* Form Content (Visible in Form state) */}
-        <div className={`w-full transition-opacity duration-500 ${animState === 2 ? 'opacity-100' : 'opacity-0 hidden'}`}>
+        <div className={`w-full transition-opacity duration-500 ${animState === 4 ? 'opacity-100' : 'opacity-0 hidden'}`}>
           <div className="text-center mb-8">
             <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ring-4 ring-white/10 p-4">
               <img src={logo} alt="ProLogix" className="w-full h-full object-contain" />

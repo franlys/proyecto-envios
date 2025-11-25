@@ -19,60 +19,75 @@
   animation-delay: 1000ms;
 }
 
-/* --- Crane Entry Animation --- */
-@keyframes craneLower {
+/* --- Ship Animations --- */
+@keyframes shipEnter {
   0% {
-    transform: translateY(-100%);
+    transform: translateX(-120vw);
   }
 
-  60% {
-    transform: translateY(0);
-  }
-
-  /* Lowers box to center */
-  80% {
-    transform: translateY(0);
-  }
-
-  /* Holds */
   100% {
-    transform: translateY(-100%);
+    transform: translateX(0);
   }
 
-  /* Retracts */
+  /* Centers ship relative to its container */
 }
 
-@keyframes boxAppear {
+@keyframes shipDepart {
   0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
+    transform: translateX(0);
   }
 
-  60% {
-    transform: translate(-50%, 20px) scale(1);
+  100% {
+    transform: translateX(150vw);
+  }
+}
+
+/* --- Crane Animations --- */
+@keyframes craneGrab {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  /* Start hidden up */
+  40% {
+    transform: translateY(160px);
+  }
+
+  /* Down to ship deck level */
+  50% {
+    transform: translateY(160px);
+  }
+
+  /* Grab wait */
+  100% {
+    transform: translateY(0);
+  }
+
+  /* Lift to center */
+}
+
+/* --- Box/Form Animations --- */
+/* Box lifting from ship to center */
+@keyframes boxLiftFromShip {
+  0% {
+    transform: translate(-50%, 180px) scale(1);
     opacity: 1;
   }
 
-  /* Hangs on hook */
-  80% {
-    transform: translate(-50%, 20px) scale(1);
-    opacity: 1;
-  }
-
+  /* On ship */
   100% {
     transform: translate(-50%, 0) scale(1);
     opacity: 1;
   }
 
-  /* Lands on center */
+  /* Center */
 }
 
-/* --- Login Form Transitions --- */
 @keyframes expandForm {
   0% {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
     background: white;
   }
 
@@ -85,7 +100,6 @@
   }
 }
 
-/* --- Exit Animations --- */
 @keyframes collapseToBox {
   0% {
     width: 100%;
@@ -118,17 +132,7 @@
     transform: translateY(180px);
   }
 
-  /* Drops down to ship deck */
-}
-
-@keyframes shipDepart {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(150vw);
-  }
+  /* Drops to ship */
 }
 
 /* --- Environment --- */
@@ -143,14 +147,23 @@
 }
 
 /* --- Classes --- */
-.animate-crane-lower {
-  animation: craneLower 3s ease-in-out forwards;
+.animate-ship-enter {
+  animation: shipEnter 2s ease-out forwards;
 }
 
-.animate-box-appear {
-  animation: boxAppear 3s ease-in-out forwards;
+.animate-ship-depart {
+  animation: shipDepart 2.5s ease-in forwards;
 }
 
+.animate-crane-grab {
+  animation: craneGrab 3s ease-in-out forwards;
+}
+
+.animate-box-lift {
+  animation: boxLiftFromShip 1.5s ease-out forwards;
+}
+
+/* Sync with crane up */
 .animate-expand-form {
   animation: expandForm 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
