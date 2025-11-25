@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -35,7 +36,7 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="bg-white/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ring-4 ring-white/10">
             <img
-              src="/assets/logo.png"
+              src={logo}
               alt="ProLogix Logo"
               className="h-16 w-auto drop-shadow-md"
             />

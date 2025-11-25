@@ -8,6 +8,7 @@ import { LogOut, Bell, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
+import logo from '../assets/logo.png';
 
 // Importar componentes de notificaciones (si existen)
 let NotificationListener, NotificationPanel, NotificationToast, ModalDetalleFactura, useNotifications;
@@ -236,7 +237,7 @@ const Layout = ({ children }) => {
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-              <img src="/assets/logo.png" alt="Logo" className="h-8 w-auto" />
+              <img src={logo} alt="Logo" className="h-8 w-auto" />
               <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Sistema de Envíos</h1>
             </div>
 
@@ -348,8 +349,8 @@ const Layout = ({ children }) => {
                 to={item.path}
                 onClick={() => setSidebarOpen(false)} // Cerrar sidebar al hacer click en móvil
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition text-sm sm:text-base ${location.pathname === item.path
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
                 <span className="text-lg sm:text-xl flex-shrink-0">{item.icon}</span>
