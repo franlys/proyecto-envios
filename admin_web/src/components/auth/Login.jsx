@@ -1,5 +1,4 @@
-﻿```
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
@@ -10,7 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   // Animation States: 
   // 0: Ship Entering (0-2s)
   // 1: Box Float Up (2-3.2s)
@@ -20,7 +19,7 @@ const Login = () => {
   // 5: Dropping to Ship
   // 6: Ship Departing
   const [animState, setAnimState] = useState(0);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -29,7 +28,7 @@ const Login = () => {
     const t1 = setTimeout(() => setAnimState(1), 2000); // Ship Arrived, Box Floats Up
     const t2 = setTimeout(() => setAnimState(2), 3200); // Box at Center, Expand
     const t3 = setTimeout(() => setAnimState(3), 4000); // Form Active
-    
+
     return () => {
       clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
     };
@@ -42,12 +41,12 @@ const Login = () => {
 
     try {
       await login(email, password);
-      
+
       // Exit Sequence
       setAnimState(4); // Collapse
-      
+
       setTimeout(() => setAnimState(5), 800); // Drop
-      
+
       setTimeout(() => {
         setAnimState(6); // Ship Depart
         setTimeout(() => navigate('/dashboard'), 2000); // Navigate
@@ -62,19 +61,19 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-blue-900 to-gray-900 overflow-hidden relative">
-      
+
       {/* --- Environment --- */}
       <div className="absolute bottom-0 w-full h-[140px] bg-blue-900/80 z-30 overflow-hidden border-t border-blue-500/30 backdrop-blur-sm">
         <div className="absolute -top-5 w-[200%] h-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 120\' preserveAspectRatio=\'none\'%3E%3Cpath d=\'M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z\' fill=\'%2360A5FA\' opacity=\'0.3\'/%3E%3C/svg%3E')] bg-[length:50%_100%] animate-wave"></div>
       </div>
 
       {/* Ship Container */}
-      <div 
-        className={`absolute bottom - [100px] w - [260px] h - [100px] z - 20 transition - transform duration - [2500ms] ease -in -out
-          ${ animState === 0 ? 'animate-ship-enter' : '' }
-          ${ animState >= 1 && animState < 6 ? 'translate-x-0 left-[calc(50%-130px)]' : '' }
-          ${ animState === 6 ? 'animate-ship-depart left-[calc(50%-130px)]' : '' }
-`}
+      <div
+        className={`absolute bottom-[100px] w-[260px] h-[100px] z-20 transition-transform duration-[2500ms] ease-in-out
+          ${animState === 0 ? 'animate-ship-enter' : ''}
+          ${animState >= 1 && animState < 6 ? 'translate-x-0 left-[calc(50%-130px)]' : ''}
+          ${animState === 6 ? 'animate-ship-depart left-[calc(50%-130px)]' : ''}
+        `}
       >
         <div className="absolute -top-[50px] right-[40px] w-[70px] h-[50px] bg-gray-700 rounded-t-[5px] border-2 border-gray-600">
           <div className="absolute top-[10px] left-[10px] w-5 h-5 bg-blue-400/50 rounded-[2px] animate-pulse"></div>
@@ -85,34 +84,33 @@ const Login = () => {
         </div>
 
         {/* Cargo Box on Ship (Visible only before float up and after drop) */}
-        <div className={`absolute - top - [60px] left - [100px] w - [60px] h - [60px] bg - white border - 2 border - blue - 500 rounded - lg flex items - center justify - center shadow - md transition - opacity duration - 0
-          ${ (animState < 1 || animState >= 6) ? 'opacity-100' : 'opacity-0' }
-`}>
-           <Package className="text-blue-600" size={32} />
+        <div className={`absolute -top-[60px] left-[100px] w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg flex items-center justify-center shadow-md transition-opacity duration-0
+          ${(animState < 1 || animState >= 6) ? 'opacity-100' : 'opacity-0'}
+        `}>
+          <Package className="text-blue-600" size={32} />
         </div>
       </div>
 
       {/* Main Container (The Active Box/Form) */}
-      <div 
-        className={`relative z - 50 flex flex - col items - center justify - center transition - all
-          ${ animState < 1 ? 'opacity-0 scale-0' : '' } 
-          ${ animState === 1 ? 'animate-box-float-up' : '' }
-          ${ animState === 2 ? 'animate-expand-form' : '' }
-          ${ animState === 3 ? 'w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : '' }
-          ${ animState === 4 ? 'animate-collapse' : '' }
-          ${ animState === 5 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-box-drop' : '' }
-          ${ animState === 6 ? 'opacity-0' : '' }
-`}
+      <div
+        className={`relative z-50 flex flex-col items-center justify-center transition-all
+          ${animState < 1 ? 'opacity-0 scale-0' : ''} 
+          ${animState === 1 ? 'animate-box-float-up' : ''}
+          ${animState === 2 ? 'animate-expand-form' : ''}
+          ${animState === 3 ? 'w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
+          ${animState === 4 ? 'animate-collapse' : ''}
+          ${animState === 5 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-box-drop' : ''}
+          ${animState === 6 ? 'opacity-0' : ''}
+        `}
       >
         {/* Vector Icon (Visible in Box/Animation states) */}
-        <div className={`absolute inset - 0 flex items - center justify - center transition - opacity duration - 300 ${
-  (animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
-} `}>
+        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${(animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
+          }`}>
           <Package className="text-blue-600" size={32} />
         </div>
 
         {/* Form Content (Visible in Form state) */}
-        <div className={`w - full transition - opacity duration - 500 ${ animState === 3 ? 'opacity-100' : 'opacity-0 hidden' } `}>
+        <div className={`w-full transition-opacity duration-500 ${animState === 3 ? 'opacity-100' : 'opacity-0 hidden'}`}>
           <div className="text-center mb-8">
             <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ring-4 ring-white/10 p-4">
               <img src={logo} alt="ProLogix" className="w-full h-full object-contain" />
@@ -179,4 +177,3 @@ const Login = () => {
 };
 
 export default Login;
-```
