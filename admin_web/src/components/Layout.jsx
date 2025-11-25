@@ -36,12 +36,12 @@ const Layout = ({ children }) => {
     showPanel: false,
     currentToast: null,
     unreadCount: 0,
-    addNotification: () => {},
-    loadExistingNotifications: () => {},
-    markAsRead: () => {},
-    closeToast: () => {},
-    togglePanel: () => {},
-    setShowPanel: () => {}
+    addNotification: () => { },
+    loadExistingNotifications: () => { },
+    markAsRead: () => { },
+    closeToast: () => { },
+    togglePanel: () => { },
+    setShowPanel: () => { }
   };
 
   const {
@@ -190,7 +190,7 @@ const Layout = ({ children }) => {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Listener de notificaciones (si existe) */}
       {NotificationListener && (
-        <NotificationListener 
+        <NotificationListener
           onNewNotification={addNotification}
           onLoadExisting={loadExistingNotifications}
         />
@@ -208,7 +208,7 @@ const Layout = ({ children }) => {
       {/* Panel de notificaciones (si existe y está visible) */}
       {NotificationPanel && showPanel && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40"
             onClick={() => setShowPanel(false)}
           />
@@ -236,6 +236,7 @@ const Layout = ({ children }) => {
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
+              <img src="/assets/logo.png" alt="Logo" className="h-8 w-auto" />
               <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">Sistema de Envíos</h1>
             </div>
 
@@ -243,7 +244,7 @@ const Layout = ({ children }) => {
             <div className="flex items-center gap-4">
               {/* Notificaciones (si existe el componente) */}
               {useNotifications && (
-                <button 
+                <button
                   onClick={togglePanel}
                   className="relative p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                 >
@@ -346,11 +347,10 @@ const Layout = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)} // Cerrar sidebar al hacer click en móvil
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition text-sm sm:text-base ${
-                  location.pathname === item.path
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition text-sm sm:text-base ${location.pathname === item.path
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 <span className="text-lg sm:text-xl flex-shrink-0">{item.icon}</span>
                 <span className="font-medium truncate">{item.label}</span>
