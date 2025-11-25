@@ -19,81 +19,78 @@
   animation-delay: 1000ms;
 }
 
-/* --- Crane Animation (Entry) --- */
-@keyframes cableDrop {
+/* --- Crane Entry Animation --- */
+@keyframes craneLower {
   0% {
     transform: translateY(-100%);
-    height: 200px;
-  }
-
-  30% {
-    transform: translateY(0);
-    height: 200px;
-  }
-
-  45% {
-    transform: translateY(0);
-    height: 200px;
   }
 
   60% {
-    transform: translateY(-100%);
-    height: 200px;
+    transform: translateY(0);
   }
 
+  /* Lowers box to center */
+  80% {
+    transform: translateY(0);
+  }
+
+  /* Holds */
   100% {
     transform: translateY(-100%);
-    height: 200px;
   }
+
+  /* Retracts */
 }
 
-@keyframes boxLift {
+@keyframes boxAppear {
   0% {
-    transform: translate(-50%, 200px);
+    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
   }
 
-  10% {
-    transform: translate(-50%, 100px);
+  60% {
+    transform: translate(-50%, 20px) scale(1);
     opacity: 1;
   }
 
-  30% {
-    transform: translate(-50%, 100px);
-  }
-
-  45% {
-    transform: translate(-50%, 100px) scale(1.05);
-  }
-
-  60% {
-    transform: translate(-50%, -140px);
+  /* Hangs on hook */
+  80% {
+    transform: translate(-50%, 20px) scale(1);
+    opacity: 1;
   }
 
   100% {
-    transform: translate(-50%, -140px);
-    opacity: 0;
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
   }
+
+  /* Lands on center */
 }
 
-/* --- Ship Animation (Exit) --- */
-@keyframes waveMove {
+/* --- Login Form Transitions --- */
+@keyframes expandForm {
   0% {
-    transform: translateX(0);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: white;
   }
 
   100% {
-    transform: translateX(-50%);
+    width: 100%;
+    max-width: 28rem;
+    height: auto;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.1);
   }
 }
 
+/* --- Exit Animations --- */
 @keyframes collapseToBox {
   0% {
     width: 100%;
     max-width: 28rem;
-    /* max-w-md */
     height: auto;
-    min-height: 500px;
     transform: scale(1);
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.1);
@@ -103,7 +100,6 @@
   100% {
     width: 60px;
     height: 60px;
-    min-height: 60px;
     transform: scale(1);
     border-radius: 8px;
     background: white;
@@ -119,26 +115,56 @@
   }
 
   100% {
-    /* Adjust based on screen layout, roughly dropping to bottom area */
-    transform: translateY(200px);
+    transform: translateY(180px);
+  }
+
+  /* Drops down to ship deck */
+}
+
+@keyframes shipDepart {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(150vw);
   }
 }
 
-/* --- Generic Transitions --- */
-.animate-cable-drop {
-  animation: cableDrop 4s ease-in-out forwards;
+/* --- Environment --- */
+@keyframes waveMove {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
-.animate-box-lift {
-  animation: boxLift 4s ease-in-out forwards;
+/* --- Classes --- */
+.animate-crane-lower {
+  animation: craneLower 3s ease-in-out forwards;
 }
 
-.animate-wave {
-  animation: waveMove 8s linear infinite;
+.animate-box-appear {
+  animation: boxAppear 3s ease-in-out forwards;
+}
+
+.animate-expand-form {
+  animation: expandForm 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-collapse {
   animation: collapseToBox 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.animate-drop {
+  animation: dropToShip 0.6s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+.animate-wave {
+  animation: waveMove 8s linear infinite;
 }
 
 .animate-fade-in-up {
