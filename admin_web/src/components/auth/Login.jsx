@@ -34,11 +34,11 @@ const Login = () => {
 
       <div className="relative bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
         <div className="text-center mb-8">
-          <div className="bg-white/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ring-4 ring-white/10">
+          <div className="bg-white w-28 h-28 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl ring-4 ring-white/20 p-4">
             <img
               src={logo}
               alt="ProLogix Logo"
-              className="h-16 w-auto drop-shadow-md"
+              className="w-full h-full object-contain"
             />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">ProLogix</h1>
