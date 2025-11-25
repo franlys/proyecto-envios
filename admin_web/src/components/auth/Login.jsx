@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { Loader2, AlertCircle, Package } from 'lucide-react';
 
-const Login = () => {
+const Login = ({ onLoginStart, onExitComplete }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ const Login = () => {
   const [animState, setAnimState] = useState(0);
 
   const { login } = useAuth();
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Navigation is now handled by AppContent via onExitComplete
 
   useEffect(() => {
     // Entry Sequence
@@ -40,6 +40,7 @@ const Login = () => {
     setLoading(true);
 
     try {
+      if (onLoginStart) onLoginStart(); // Notify App to keep Login mounted
       await login(email, password);
 
       // Exit Sequence
@@ -49,13 +50,18 @@ const Login = () => {
 
       setTimeout(() => {
         setAnimState(6); // Ship Depart
-        setTimeout(() => navigate('/dashboard'), 2000); // Navigate
+        setTimeout(() => {
+          if (onExitComplete) onExitComplete(); // Notify App to switch to Layout
+        }, 2000);
       }, 1000);
 
     } catch (error) {
       console.error('Error en login:', error);
       setError('Email o contraseña incorrectos');
       setLoading(false);
+      // If login failed, we might want to reset isExitingLogin in App, but we don't have a callback for failure here.
+      // However, since userData won't be set, App will continue to render Login anyway.
+      // Ideally we should have onLoginFailure to be clean, but it works as is because !userData keeps Login mounted.
     }
   };
 

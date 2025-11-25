@@ -12,7 +12,7 @@ import Companies from './pages/Companies';
 import Embarques from './pages/Embarques';
 import Rutas from './pages/Rutas';
 // ✅ CORRECCIÓN: Importar DetalleRuta para usar la ruta con parámetro
-import DetalleRuta from './pages/DetalleRuta'; 
+import DetalleRuta from './pages/DetalleRuta';
 import Recolecciones from './pages/Recolecciones';
 import NuevaRecoleccion from './pages/NuevaRecoleccion';
 import PanelSecretarias from './pages/PanelSecretarias';
@@ -31,22 +31,38 @@ import FacturasPendientesPago from './pages/FacturasPendientesPago';
 // Componente que decide qué Dashboard mostrar según el rol
 const DashboardRouter = () => {
   const { userData } = useAuth();
-  
+
   if (userData?.rol === 'super_admin') {
     return <DashboardSuperAdmin />;
   }
-  
+
   return <Dashboard />;
 };
 
 function AppContent() {
-  const { userData } = useAuth();
+  const { userData, loading } = useAuth();
+  const [isExitingLogin, setIsExitingLogin] = useState(false);
 
-  if (!userData) {
-    return <Login />;
+  // Show loading spinner while checking auth status
+  if (loading) {
+    return (
+      <div className="h-screen w-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
-  // Normalizar rol (admin → admin_general para compatibilidad)
+  // Show Login if not authenticated OR if we are in the middle of the exit animation
+  if (!userData || isExitingLogin) {
+    return (
+      <Login
+        onLoginStart={() => setIsExitingLogin(true)}
+        onExitComplete={() => setIsExitingLogin(false)}
+      />
+    );
+  }
+
+  // Normalizer rol (admin → admin_general para compatibilidad)
   const rol = userData.rol === 'admin' ? 'admin_general' : userData.rol;
 
   return (
@@ -56,7 +72,7 @@ function AppContent() {
       <Routes>
         {/* Dashboard dinámico según rol */}
         <Route path="/dashboard" element={<DashboardRouter />} />
-        
+
         {/* ============================================ */}
         {/* RUTAS PARA SUPER ADMIN */}
         {/* ============================================ */}
@@ -78,7 +94,7 @@ function AppContent() {
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
             {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
-            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
+            <Route path="/rutas/:id" element={<DetalleRuta />} />
             <Route path="/secretarias" element={<PanelSecretarias />} />
             <Route path="/cargadores" element={<PanelCargadores />} />
             <Route path="/repartidores" element={<PanelRepartidores />} />
@@ -122,7 +138,7 @@ function AppContent() {
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
             {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
-            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
+            <Route path="/rutas/:id" element={<DetalleRuta />} />
             <Route path="/secretarias" element={<PanelSecretarias />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
@@ -146,7 +162,7 @@ function AppContent() {
             <Route path="/embarques" element={<Embarques />} />
             <Route path="/rutas" element={<Rutas />} />
             {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
-            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
+            <Route path="/rutas/:id" element={<DetalleRuta />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
@@ -160,7 +176,7 @@ function AppContent() {
           <>
             <Route path="/rutas" element={<Rutas />} />
             {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
-            <Route path="/rutas/:id" element={<DetalleRuta />} /> 
+            <Route path="/rutas/:id" element={<DetalleRuta />} />
             <Route path="/repartidores" element={<PanelRepartidores />} />
             <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
           </>
@@ -171,7 +187,7 @@ function AppContent() {
         {/* ============================================ */}
         <Route path="/configuracion" element={<Configuracion />} />
         <Route path="/ayuda" element={<Ayuda />} />
-        
+
         {/* Redirects */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
