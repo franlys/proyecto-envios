@@ -95,7 +95,7 @@ const Login = () => {
       <div
         className={`relative z-50 flex flex-col items-center justify-center transition-all overflow-hidden
           ${animState < 1 ? 'opacity-0 scale-0' : ''} 
-          ${animState === 1 ? 'animate-box-float-up' : ''}
+          ${animState === 1 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-box-float-up' : ''}
           ${animState === 2 ? 'animate-expand-form' : ''}
           ${animState === 3 ? 'w-full max-w-md h-[500px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
           ${animState === 4 ? 'animate-collapse' : ''}
