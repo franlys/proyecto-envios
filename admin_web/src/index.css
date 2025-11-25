@@ -40,62 +40,17 @@
   }
 }
 
-/* --- Crane Animations --- */
-/* Crane moves from top (-100%) to deck level */
-/* Deck level calculation: 
-   Ship container bottom: 100px.
-   Ship body height: 70px.
-   Cabin/Details: ~50px.
-   Hook needs to reach Box Top.
-   Box is 60x60.
-   Box Bottom = 100 + 70 = 170px from screen bottom.
-   Box Top = 170 + 60 = 230px from screen bottom.
-   Screen Height = 100vh.
-   Hook Target Y (from top) = 100vh - 230px.
-   Crane is 50vh tall.
-   We need to translate Y so the tip (bottom of crane) hits the target.
-   Crane Tip is at 50vh (since it's top:0, height:50vh).
-   Delta = (100vh - 230px) - 50vh = 50vh - 230px.
-*/
-@keyframes craneDown {
-  0% {
-    transform: translateY(-100%);
-  }
-
-  100% {
-    transform: translateY(calc(50vh - 230px));
-  }
-}
-
-@keyframes craneUp {
-  0% {
-    transform: translateY(calc(50vh - 230px));
-  }
-
-  100% {
-    transform: translateY(0);
-  }
-
-  /* Back to center (hook at 50vh) */
-}
-
 /* --- Box/Form Animations --- */
-/* Box lifts from Ship Deck to Center */
-/* Start Y: 50vh - 230px (Same delta as crane)
-   End Y: 0 (Center) 
-   Wait, Box is centered at 50vh.
-   If we translate Y by (50vh - 230px), it moves DOWN.
-   Correct.
-*/
-@keyframes boxLift {
+/* Box lifts from Ship Deck (offset) to Center (0) */
+/* Start Y: 50vh - 200px (calculated from ship deck position) */
+@keyframes boxFloatUp {
   0% {
-    transform: translateY(calc(50vh - 200px));
+    transform: translateY(calc(50vh - 200px)) scale(1);
     opacity: 1;
   }
 
-  /* Center of box is 30px lower than top */
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
@@ -171,16 +126,8 @@
   animation: shipDepart 2.5s ease-in forwards;
 }
 
-.animate-crane-down {
-  animation: craneDown 1.5s ease-in-out forwards;
-}
-
-.animate-crane-up {
-  animation: craneUp 1.5s ease-in-out forwards;
-}
-
-.animate-box-lift {
-  animation: boxLift 1.5s ease-in-out forwards;
+.animate-box-float-up {
+  animation: boxFloatUp 1.2s ease-in-out forwards;
 }
 
 .animate-box-drop {
