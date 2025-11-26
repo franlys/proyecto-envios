@@ -184,6 +184,7 @@ export const createRecoleccion = async (req, res) => {
       codigoTracking,
       companyId,
       sucursalId: userData.sucursalId || null,
+      userId: usuarioId, // ✅ ID del recolector que creó esta recolección
 
       remitente: {
         nombre: remitenteNombre || '',

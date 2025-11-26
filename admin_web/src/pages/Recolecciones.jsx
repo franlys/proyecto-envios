@@ -28,7 +28,11 @@ const Recolecciones = () => {
     error
   } = useRealtimeCollectionOptimized({
     collectionName: 'recolecciones',
-    orderBy: ['fechaCreacion', 'desc']
+    orderBy: ['fechaCreacion', 'desc'],
+    // ✅ Filtro condicional: Recolectores ven solo sus recolecciones, Admin y AlmacénUSA ven todas
+    ...(userData?.rol === 'recolector' && userData?.uid && {
+      where: [['userId', '==', userData.uid]]
+    })
   });
 
   // ✅ Hook para lightbox de imágenes
