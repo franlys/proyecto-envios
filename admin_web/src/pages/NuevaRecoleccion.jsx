@@ -226,6 +226,12 @@ const NuevaRecoleccion = () => {
       return;
     }
 
+    // Validar cantidades
+    if (items.some(item => !item.cantidad || parseInt(item.cantidad) < 1)) {
+      toast.error('Todos los items deben tener una cantidad válida (mínimo 1).');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -502,9 +508,11 @@ const NuevaRecoleccion = () => {
                     type="number"
                     min="1"
                     value={item.cantidad}
-                    onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-center"
+                    onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center ${!item.cantidad ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                      }`}
                     title="Cantidad"
+                    placeholder="Cant."
                   />
                 </div>
                 <button

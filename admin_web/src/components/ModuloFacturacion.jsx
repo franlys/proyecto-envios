@@ -7,13 +7,13 @@
 import { useState, useEffect } from 'react';
 import { DollarSign, CreditCard, Wallet, Calculator, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
-const ModuloFacturacion = ({ 
-  items = [], 
-  onItemsChange, 
-  facturacion = {}, 
+const ModuloFacturacion = ({
+  items = [],
+  onItemsChange,
+  facturacion = {},
   onFacturacionChange,
   readOnly = false,
-  mostrarPagos = true 
+  mostrarPagos = true
 }) => {
   const [itemsConPrecios, setItemsConPrecios] = useState(items);
   const [estadoPago, setEstadoPago] = useState(facturacion.estadoPago || 'pendiente_pago');
@@ -47,10 +47,10 @@ const ModuloFacturacion = ({
 
     // Calcular impuestos (ITBIS 18% para RD)
     const nuevosImpuestos = nuevoSubtotal * 0.18;
-    
+
     // Total
     const nuevoTotal = nuevoSubtotal + nuevosImpuestos;
-    
+
     // Calcular saldo pendiente
     let nuevoSaldoPendiente = nuevoTotal;
     let montoPagadoActual = parseFloat(montoPagado) || 0;
@@ -87,12 +87,13 @@ const ModuloFacturacion = ({
 
   const handlePrecioChange = (index, precio) => {
     const nuevosItems = [...itemsConPrecios];
+    // Permitir valor vacío o número
     nuevosItems[index] = {
       ...nuevosItems[index],
-      precio: parseFloat(precio) || 0
+      precio: precio
     };
     setItemsConPrecios(nuevosItems);
-    
+
     if (onItemsChange) {
       onItemsChange(nuevosItems);
     }
@@ -100,7 +101,7 @@ const ModuloFacturacion = ({
 
   const handleEstadoPagoChange = (nuevoEstado) => {
     setEstadoPago(nuevoEstado);
-    
+
     // Si cambia a "pagada", ajustar el monto pagado
     if (nuevoEstado === 'pagada') {
       setMontoPagado(total);
@@ -145,7 +146,6 @@ const ModuloFacturacion = ({
   };
 
   const formatCurrency = (amount) => {
-    // CAMBIADO: de 'RD$' y 'es-DO' a 'USD$' y 'en-US'
     return `USD$ ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -172,7 +172,7 @@ const ModuloFacturacion = ({
         <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
           Items y Precios
         </h4>
-        
+
         <div className="space-y-2">
           {itemsConPrecios.map((item, index) => (
             <div
@@ -189,13 +189,16 @@ const ModuloFacturacion = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">USD$</span> 
+                <span className="text-sm text-gray-600 dark:text-gray-400">USD$</span>
                 <input
                   type="number"
-                  value={item.precio || ''}
+                  value={item.precio}
                   onChange={(e) => handlePrecioChange(index, e.target.value)}
                   disabled={readOnly}
-                  className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white rounded-lg text-right font-semibold"
+                  className={`w-32 px-3 py-2 border rounded-lg text-right font-semibold ${item.precio === '' || item.precio === null || item.precio === undefined
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : 'border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white'
+                    }`}
                   placeholder="0.00"
                   step="0.01"
                   min="0"
@@ -205,7 +208,7 @@ const ModuloFacturacion = ({
               <div className="w-32 text-right">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
                 <p className="font-bold text-gray-900 dark:text-white">
-                  {formatCurrency((item.precio || 0) * (item.cantidad || 1))}
+                  {formatCurrency((parseFloat(item.precio) || 0) * (parseInt(item.cantidad) || 1))}
                 </p>
               </div>
             </div>
@@ -295,15 +298,18 @@ const ModuloFacturacion = ({
                 <input
                   type="number"
                   value={montoPagado}
-                  onChange={(e) => setMontoPagado(parseFloat(e.target.value) || 0)}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+                  onChange={(e) => setMontoPagado(e.target.value)}
+                  className={`flex-1 px-3 py-2 border rounded-lg ${montoPagado === ''
+                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                    }`}
                   placeholder="0.00"
                   step="0.01"
                   min="0"
                   max={total}
                 />
               </div>
-              
+
               {/* Saldo pendiente */}
               <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                 <div className="flex justify-between items-center">

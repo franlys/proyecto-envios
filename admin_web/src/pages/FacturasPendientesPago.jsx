@@ -28,7 +28,7 @@ const FacturasPendientesPago = () => {
   const [contenedores, setContenedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [resumen, setResumen] = useState({});
-  
+
   // Modal de pago
   const [modalPago, setModalPago] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState(null);
@@ -45,7 +45,7 @@ const FacturasPendientesPago = () => {
   const cargarContenedores = async () => {
     try {
       // Endpoint para contenedores con facturas pendientes (implementación pendiente en backend)
-      const response = await api.get('/contenedores/disponibles'); 
+      const response = await api.get('/contenedores/disponibles');
       setContenedores(response.data.data || []);
     } catch (error) {
       console.error('Error al cargar contenedores:', error);
@@ -55,13 +55,13 @@ const FacturasPendientesPago = () => {
   const cargarFacturasPendientes = async () => {
     setLoading(true);
     try {
-      const url = contenedorFiltro === 'todos' 
-        ? '/facturacion/pendientes' 
+      const url = contenedorFiltro === 'todos'
+        ? '/facturacion/pendientes'
         : `/facturacion/pendientes?contenedorId=${contenedorFiltro}`;
-        
+
       const response = await api.get(url);
       setFacturasPendientes(response.data.data || []);
-      
+
       // Calcular resumen
       const totalFacturado = (response.data.data || []).reduce((sum, f) => sum + (f.facturacion?.totalFactura || 0), 0);
       const totalPagado = (response.data.data || []).reduce((sum, f) => sum + (f.facturacion?.montoPagado || 0), 0);
@@ -98,7 +98,7 @@ const FacturasPendientesPago = () => {
 
     try {
       // Deshabilitar botón de envío (simulado)
-      setLoading(true); 
+      setLoading(true);
 
       await api.post(`/facturacion/recolecciones/${facturaSeleccionada.id}/pago`, {
         montoPago: parseFloat(montoPago),
@@ -232,7 +232,7 @@ const FacturasPendientesPago = () => {
                       {getEstadoBadge(factura.facturacion?.estadoPago || 'pendiente_pago')}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
+                      <button
                         onClick={() => openModalPago(factura)}
                         className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-gray-400"
                         disabled={loading}
@@ -259,26 +259,26 @@ const FacturasPendientesPago = () => {
 
               <div className="space-y-4 mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center">
-                    <FileText className="w-5 h-5 mr-2"/>
-                    Factura: {facturaSeleccionada.codigoTracking || facturaSeleccionada.id}
+                  <FileText className="w-5 h-5 mr-2" />
+                  Factura: {facturaSeleccionada.codigoTracking || facturaSeleccionada.id}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400">Cliente</p>
-                        <p className="font-medium">{facturaSeleccionada.destinatario?.nombre || facturaSeleccionada.cliente || 'N/A'}</p>
-                    </div>
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400">Total a Cobrar</p>
-                        <p className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                            ${(facturaSeleccionada.facturacion?.totalFactura || 0).toLocaleString('es-DO')}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400">Saldo Pendiente</p>
-                        <p className="font-bold text-lg text-red-600 dark:text-red-400">
-                            ${((facturaSeleccionada.facturacion?.totalFactura || 0) - (facturaSeleccionada.facturacion?.montoPagado || 0)).toLocaleString('es-DO')}
-                        </p>
-                    </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Cliente</p>
+                    <p className="font-medium">{facturaSeleccionada.destinatario?.nombre || facturaSeleccionada.cliente || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Total a Cobrar</p>
+                    <p className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                      ${(facturaSeleccionada.facturacion?.totalFactura || 0).toLocaleString('es-DO')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Saldo Pendiente</p>
+                    <p className="font-bold text-lg text-red-600 dark:text-red-400">
+                      ${((facturaSeleccionada.facturacion?.totalFactura || 0) - (facturaSeleccionada.facturacion?.montoPagado || 0)).toLocaleString('es-DO')}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -286,20 +286,6 @@ const FacturasPendientesPago = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Monto del Pago
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={montoPago}
-                    onChange={(e) => setMontoPago(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Método de Pago
                   </label>
                   <select
                     value={metodoPago}

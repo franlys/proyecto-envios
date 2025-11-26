@@ -44,130 +44,77 @@ const PanelRepartidores = () => {
   // ==============================================================================
   // 🎣 ESTADOS GLOBALES Y DE NAVEGACIÓN
   // ==============================================================================
-  const [rutas, setRutas] = useState([]);
+  const [vistaActual, setVistaActual] = useState('lista'); // 'lista', 'ruta', 'factura'
   const [rutaSeleccionada, setRutaSeleccionada] = useState(null);
   const [facturaActual, setFacturaActual] = useState(null);
-  const [vistaActual, setVistaActual] = useState('lista'); // 'lista' | 'ruta' | 'factura'
-
-  // Estados de carga
-  const [loading, setLoading] = useState(false);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [procesando, setProcesando] = useState(false);
 
   // ==============================================================================
-  // 📸 ESTADOS PARA FOTOS DE EVIDENCIA
+  // 🎣 ESTADOS DE MODALES Y FORMULARIOS
   // ==============================================================================
+  // Modal Fotos
   const [showModalFotos, setShowModalFotos] = useState(false);
   const [fotosEvidencia, setFotosEvidencia] = useState([]);
   const [subiendoFotos, setSubiendoFotos] = useState(false);
 
-  // ==============================================================================
-  // 💰 ESTADOS PARA PAGO CONTRAENTREGA
-  // ==============================================================================
+  // Modal Pago
   const [showModalPago, setShowModalPago] = useState(false);
   const [montoPagado, setMontoPagado] = useState('');
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [referenciaPago, setReferenciaPago] = useState('');
   const [notasPago, setNotasPago] = useState('');
 
-  // ==============================================================================
-  // ⚠️ ESTADOS PARA REPORTAR DAÑO
-  // ==============================================================================
+  // Modal Daño
   const [showModalDano, setShowModalDano] = useState(false);
-  const [itemDanado, setItemDanado] = useState(null); // Item seleccionado para daño
+  const [itemDanado, setItemDanado] = useState(null);
   const [descripcionDano, setDescripcionDano] = useState('');
-  const [fotosDano, setFotosDano] = useState([]); // Archivos de fotos de daño
+  const [fotosDano, setFotosDano] = useState([]);
 
-  // ==============================================================================
-  // 🚫 ESTADOS PARA REPORTAR NO ENTREGA
-  // ==============================================================================
+  // Modal No Entrega
   const [showModalNoEntrega, setShowModalNoEntrega] = useState(false);
   const [motivoNoEntrega, setMotivoNoEntrega] = useState('');
   const [descripcionNoEntrega, setDescripcionNoEntrega] = useState('');
   const [fotosNoEntrega, setFotosNoEntrega] = useState([]);
   const [intentarNuevamente, setIntentarNuevamente] = useState(true);
 
-  // ==============================================================================
-  // ✅ ESTADOS PARA ENTREGAR FACTURA FINAL
-  // ==============================================================================
+  // Modal Entregar
   const [showModalEntregar, setShowModalEntregar] = useState(false);
   const [nombreReceptor, setNombreReceptor] = useState('');
   const [notasEntrega, setNotasEntrega] = useState('');
 
-  // ==============================================================================
-  // 🏁 ESTADOS PARA FINALIZAR RUTA
-  // ==============================================================================
+  // Modal Finalizar Ruta
   const [showModalFinalizar, setShowModalFinalizar] = useState(false);
   const [notasFinalizacion, setNotasFinalizacion] = useState('');
 
-
   // ==============================================================================
-  // 🧹 HELPERS Y RESET DE FORMULARIOS
+  // 🔄 EFECTOS Y CARGA DE DATOS
   // ==============================================================================
-  const resetFormPago = () => {
-    setMontoPagado('');
-    setMetodoPago('efectivo');
-    setReferenciaPago('');
-    setNotasPago('');
-  };
-
-  const resetFormDano = () => {
-    setItemDanado(null);
-    setDescripcionDano('');
-    setFotosDano([]);
-  };
-
-  const resetFormEntregar = () => {
-    setNombreReceptor('');
-    setNotasEntrega('');
-  };
-
-  const resetFormNoEntrega = () => {
-    setMotivoNoEntrega('');
-    setDescripcionNoEntrega('');
-    setFotosNoEntrega([]);
-    setIntentarNuevamente(true);
-  };
-
-  const seleccionarFacturaParaGestion = (factura) => {
-    setFacturaActual(factura);
-    setVistaActual('factura');
-    // Cargar datos de pago si ya existen
-    setMontoPagado(factura.pago?.montoPagado?.toString() || '');
-  };
-
-  const calcularProgreso = (factura) => {
-    if (!factura.itemsTotal || factura.itemsTotal === 0) return 0;
-    const entregados = factura.itemsEntregados || 0;
-    // Aseguramos que itemsTotal esté presente para el cálculo
-    const itemsTotal = factura.items?.length || factura.itemsTotal;
-    if (itemsTotal === 0) return 0;
-    return Math.round((entregados / itemsTotal) * 100);
-  };
-
-  // ==============================================================================
-  // 📦 MANEJO DE VISTAS Y RECARGAS
-  // ==============================================================================
-
-  // Sincronizar datos en tiempo real con estado local
+  // Efecto para sincronizar ruta seleccionada con datos realtime
   useEffect(() => {
-    if (rutasRealtime && rutasRealtime.length > 0) {
-      // Añadimos texto de estado simple para el renderizado
-      const rutasConTexto = rutasRealtime.map(r => ({
-        ...r,
-        estadoTexto: r.estado === 'cargada' ? 'Lista' : r.estado === 'en_entrega' ? 'En Entrega' : r.estado
-      }));
-      setRutas(rutasConTexto);
-    } else if (!loadingRutas) {
-      setRutas([]);
+    if (rutaSeleccionada && rutasRealtime) {
+      const rutaActualizada = rutasRealtime.find(r => r.id === rutaSeleccionada.id);
+      if (rutaActualizada) {
+        // Solo actualizamos si hay cambios relevantes para evitar re-renders innecesarios
+        // o si estamos explícitamente buscando nuevos datos
+        if (JSON.stringify(rutaActualizada) !== JSON.stringify(rutaSeleccionada)) {
+          // Mantener la selección actual pero con datos frescos
+          setRutaSeleccionada(prev => ({ ...prev, ...rutaActualizada }));
+        }
+      }
     }
-  }, [rutasRealtime, loadingRutas]);
+  }, [rutasRealtime, rutaSeleccionada]);
 
-  // Helper para recargar la lista de rutas (ahora solo para compatibilidad)
-  const cargarRutasAsignadas = useCallback(async () => {
-    // Los datos ahora vienen del hook en tiempo real
-    // Mantenemos esta función vacía para no romper referencias
-  }, []);
+  // Cargar rutas asignadas (fallback inicial)
+  const cargarRutasAsignadas = async () => {
+    // Esta función ahora es principalmente para la carga inicial si realtime falla
+    // o para forzar un refresco manual
+    try {
+      // La lógica principal está en useMisRutasActivas
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Helper para recargar el detalle de una ruta
   const cargarDetalleRuta = async (rutaId) => {
@@ -195,28 +142,6 @@ const PanelRepartidores = () => {
     }
   };
 
-  // Helper para volver a la vista de lista
-  const volverALista = () => {
-    setVistaActual('lista');
-    setRutaSeleccionada(null);
-    setFacturaActual(null);
-    cargarRutasAsignadas();
-  };
-
-  // Helper para volver a la vista de ruta
-  const volverARuta = async () => {
-    setVistaActual('ruta');
-    setFacturaActual(null);
-    // Recargar para asegurar la sincronización de la lista de facturas de la ruta
-    await cargarDetalleRuta(rutaSeleccionada.id);
-  };
-
-
-  useEffect(() => {
-    cargarRutasAsignadas();
-  }, [cargarRutasAsignadas]);
-
-
   // ==============================================================================
   // ☁️ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) CON THUMBNAILS
   // ==============================================================================
@@ -229,16 +154,11 @@ const PanelRepartidores = () => {
 
     for (let i = 0; i < archivos.length; i++) {
       const archivo = archivos[i];
+      const startTime = Date.now();
 
       try {
-        const startTime = Date.now();
-
-        // Mostrar indicador si tarda más de 500ms
-        const timeoutId = setTimeout(() => {
-          toast.loading(`Procesando imagen ${i + 1}/${archivos.length}...`, { id: `process-${i}` });
-        }, 500);
-
-        // Generar thumbnail (200px) y preview (1024px)
+        // 1. Generar variantes (thumbnail y preview)
+        // Esto sucede en el cliente para ahorrar ancho de banda y procesamiento en servidor
         const variants = await generateImageVariants(archivo, {
           onProgress: (progress) => {
             if (progress.stage === 'thumbnail') {
@@ -249,29 +169,32 @@ const PanelRepartidores = () => {
           }
         });
 
-        clearTimeout(timeoutId);
-        toast.dismiss(`process-${i}`);
+        // 2. Subir Original
+        const originalPath = `repartidores/${carpeta}/${idReferencia}/${Date.now()}_${archivo.name}`;
+        const originalRef = ref(storage, originalPath);
+        await uploadBytes(originalRef, archivo);
+        const originalUrl = await getDownloadURL(originalRef);
 
-        // Paths en Storage
-        const baseNombre = `${carpeta}/${idReferencia}/${Date.now()}_${i}`;
+        // 3. Subir Thumbnail
+        const thumbPath = getStoragePathForVariant(originalPath, 'thumb');
+        const thumbRef = ref(storage, thumbPath);
+        const thumbFile = variantBlobToFile(variants.thumbnail.blob, `thumb_${archivo.name}`);
+        await uploadBytes(thumbRef, thumbFile);
+        const thumbUrl = await getDownloadURL(thumbRef);
 
-        // Subir thumbnail (200px) - carga instantánea en listas
-        const thumbnailFile = variantBlobToFile(variants.thumbnail.blob, archivo.name, 'thumb');
-        const thumbnailPath = `${baseNombre}_thumb.jpg`;
-        const thumbnailRef = ref(storage, thumbnailPath);
-        await uploadBytes(thumbnailRef, thumbnailFile);
-        const thumbnailUrl = await getDownloadURL(thumbnailRef);
-
-        // Subir preview (1024px) - para vista detallada
-        const previewFile = variantBlobToFile(variants.preview.blob, archivo.name, 'preview');
-        const previewPath = `${baseNombre}_preview.jpg`;
+        // 4. Subir Preview (opcional, pero recomendado para móviles)
+        const previewPath = getStoragePathForVariant(originalPath, 'preview');
         const previewRef = ref(storage, previewPath);
+        const previewFile = variantBlobToFile(variants.preview.blob, `preview_${archivo.name}`);
         await uploadBytes(previewRef, previewFile);
         const previewUrl = await getDownloadURL(previewRef);
 
-        // Guardar ambas URLs (el backend debe soportar este formato)
+        toast.dismiss(`process-${i}`);
+
+        // Agregamos el objeto completo de imagen
         urls.push({
-          thumbnail: thumbnailUrl,
+          original: originalUrl,
+          thumbnail: thumbUrl,
           preview: previewUrl,
           metadata: variants.metadata
         });
@@ -292,11 +215,9 @@ const PanelRepartidores = () => {
     return urls;
   };
 
-
   // ==============================================================================
-  // ⚙️ HANDLERS PRINCIPALES DE ACCIÓN
+  // 🎮 HANDLERS DE ACCIÓN
   // ==============================================================================
-
   const handleIniciarEntregas = async () => {
     if (!rutaSeleccionada) return;
     if (!confirm('¿Iniciar entregas de esta ruta? Esto cambiará su estado a "En Entrega".')) return;
@@ -468,6 +389,40 @@ const PanelRepartidores = () => {
     }
   };
 
+  const handleReportarNoEntrega = async () => {
+    if (!facturaActual || !motivoNoEntrega || !descripcionNoEntrega.trim()) {
+      toast.warning('Motivo y descripción son obligatorios');
+      return;
+    }
+
+    try {
+      setProcesando(true);
+
+      const fotosUrls = await subirArchivosAFirebase(fotosNoEntrega, 'reportes_no_entrega');
+
+      const response = await api.post(
+        `/repartidores/facturas/${facturaActual.id}/no-entregada`,
+        {
+          motivo: motivoNoEntrega,
+          descripcion: descripcionNoEntrega.trim(),
+          fotos: fotosUrls,
+          intentarNuevamente
+        }
+      );
+
+      if (response.data.success) {
+        toast.warning('🚫 No entrega reportada');
+        setShowModalNoEntrega(false);
+        resetFormNoEntrega();
+        volverARuta();
+      }
+    } catch (e) {
+      toast.error('Error reportando no entrega');
+      console.error(e);
+    } finally {
+      setProcesando(false);
+    }
+  };
 
   const handleMarcarEntregada = async () => {
     if (!facturaActual) return;
@@ -507,41 +462,6 @@ const PanelRepartidores = () => {
     }
   };
 
-  const handleReportarNoEntrega = async () => {
-    if (!facturaActual || !motivoNoEntrega || !descripcionNoEntrega.trim()) {
-      toast.warning('Motivo y descripción son obligatorios');
-      return;
-    }
-
-    try {
-      setProcesando(true);
-
-      const fotosUrls = await subirArchivosAFirebase(fotosNoEntrega, 'reportes_no_entrega');
-
-      const response = await api.post(
-        `/repartidores/facturas/${facturaActual.id}/no-entregada`,
-        {
-          motivo: motivoNoEntrega,
-          descripcion: descripcionNoEntrega.trim(),
-          fotos: fotosUrls,
-          intentarNuevamente
-        }
-      );
-
-      if (response.data.success) {
-        toast.warning('🚫 No entrega reportada');
-        setShowModalNoEntrega(false);
-        resetFormNoEntrega();
-        volverARuta();
-      }
-    } catch (e) {
-      toast.error('Error reportando no entrega');
-      console.error(e);
-    } finally {
-      setProcesando(false);
-    }
-  };
-
   const handleFinalizarRuta = async () => {
     if (!rutaSeleccionada) return;
     if (!confirm('¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes.')) return;
@@ -575,115 +495,141 @@ const PanelRepartidores = () => {
     }
   };
 
+  // ==============================================================================
+  // 🧹 HELPERS Y RESET DE FORMULARIOS
+  // ==============================================================================
+  const resetFormPago = () => {
+    setMontoPagado('');
+    setMetodoPago('efectivo');
+    setReferenciaPago('');
+    setNotasPago('');
+  };
+
+  const resetFormDano = () => {
+    setItemDanado(null);
+    setDescripcionDano('');
+    setFotosDano([]);
+  };
+
+  const resetFormNoEntrega = () => {
+    setMotivoNoEntrega('');
+    setDescripcionNoEntrega('');
+    setFotosNoEntrega([]);
+    setIntentarNuevamente(true);
+  };
+
+  const resetFormEntregar = () => {
+    setNombreReceptor('');
+    setNotasEntrega('');
+  };
+
+  const seleccionarFacturaParaGestion = (factura) => {
+    setFacturaActual(factura);
+    setVistaActual('factura');
+    // Cargar datos de pago si ya existen
+    setMontoPagado(factura.pago?.montoPagado?.toString() || '');
+  };
+
+  // Helper para volver a la vista de lista
+  const volverALista = () => {
+    setVistaActual('lista');
+    setRutaSeleccionada(null);
+    setFacturaActual(null);
+    cargarRutasAsignadas();
+  };
+
+  // Helper para volver a la vista de ruta
+  const volverARuta = async () => {
+    setVistaActual('ruta');
+    setFacturaActual(null);
+    // Recargar para asegurar la sincronización de la lista de facturas de la ruta
+    await cargarDetalleRuta(rutaSeleccionada.id);
+  };
+
+  const calcularProgreso = (factura) => {
+    if (!factura.itemsTotal || factura.itemsTotal === 0) return 0;
+    const entregados = factura.itemsEntregados || 0;
+    // Aseguramos que itemsTotal esté presente para el cálculo
+    const itemsTotal = factura.items?.length || factura.itemsTotal;
+    if (itemsTotal === 0) return 0;
+    return Math.round((entregados / itemsTotal) * 100);
+  };
 
   // ==============================================================================
-  // 🎨 RENDERIZADO
+  // 📱 RENDER UI
   // ==============================================================================
   return (
-    <div className="p-3 sm:p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Connection Status Indicator (Global) */}
-      <ConnectionStatusIndicator />
-
-      {/* New Data Badge */}
-      {hasNewData && vistaActual === 'lista' && (
-        <NewDataBadge
-          show={hasNewData}
-          count={rutasRealtime?.length || 0}
-          onDismiss={clearNewDataIndicator}
-          message="Nuevas rutas disponibles"
-        />
-      )}
-
-      {/* Header - Mobile First */}
-      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-              Panel de Repartidores
-            </h1>
-            {vistaActual === 'lista' && <LiveIndicator isLive={true} showText={true} />}
-          </div>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-            {vistaActual === 'lista' ? 'Tus rutas asignadas' : rutaSeleccionada?.nombre}
-          </p>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 pb-20">
+      {/* Header con Indicadores de Estado */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          {vistaActual !== 'lista' && (
+            <button onClick={vistaActual === 'ruta' ? volverALista : volverARuta} className="mr-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+              <ArrowLeft size={24} />
+            </button>
+          )}
+          Panel Repartidor
+        </h1>
+        <div className="flex items-center gap-2">
+          <ConnectionStatusIndicator />
+          <LiveIndicator />
         </div>
-
-        {/* Botón Volver Dinámico */}
-        {(vistaActual !== 'lista') && (
-          <button
-            onClick={vistaActual === 'factura' ? volverARuta : volverALista}
-            className="self-start sm:self-auto p-2.5 sm:p-2 bg-white dark:bg-gray-800 rounded-full shadow hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-          >
-            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-300" />
-          </button>
-        )}
       </div>
 
       {/* ==============================================================================
           VISTA: LISTA DE RUTAS
           ============================================================================== */}
       {vistaActual === 'lista' && (
-        <div>
+        <div className="space-y-4">
           {loadingRutas ? (
-            <div className="text-center py-12">
-              <Loader className="animate-spin mx-auto mb-4 text-blue-600" size={48} />
-              <p className="text-gray-600 dark:text-gray-400">Cargando rutas...</p>
+            <div className="text-center py-8">
+              <Loader className="animate-spin mx-auto text-blue-600" size={32} />
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Cargando rutas asignadas...</p>
             </div>
-          ) : rutas.length === 0 ? (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-8 rounded-lg text-center col-span-3 border border-blue-200">
-              <Truck className="mx-auto text-blue-600 mb-4" size={40} />
-              <p className="text-lg font-medium text-blue-800 dark:text-blue-200">No tienes rutas asignadas</p>
+          ) : rutasRealtime?.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md text-center">
+              <Truck className="mx-auto text-gray-400 mb-4" size={48} />
+              <p className="text-gray-600 dark:text-gray-400 text-lg">No tienes rutas activas asignadas.</p>
+              <button onClick={cargarRutasAsignadas} className="mt-4 text-blue-600 hover:underline">Actualizar</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {rutas.map((ruta) => (
-                <div key={ruta.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 hover:shadow-xl transition border-t-4 border-blue-500">
-                  <div className="flex flex-col sm:flex-row justify-between mb-3 sm:mb-4 gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{ruta.nombre}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs self-start h-fit font-medium ${ruta.estado === 'cargada'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                      : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+            rutasRealtime?.map(ruta => (
+              <div
+                key={ruta.id}
+                onClick={() => cargarDetalleRuta(ruta.id)}
+                className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer border-l-4 border-blue-500 relative overflow-hidden"
+              >
+                {/* Badge de nuevos datos si aplica */}
+                <NewDataBadge timestamp={ruta.updatedAt} />
+
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{ruta.nombre}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                      <MapPin size={14} /> {ruta.zona}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(ruta.fechaAsignacion).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${ruta.estado === 'en_entrega' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                       }`}>
-                      {ruta.estadoTexto}
+                      {ruta.estado === 'en_entrega' ? 'En Ruta' : 'Asignada'}
                     </span>
+                    <p className="text-sm font-bold mt-2 text-gray-700 dark:text-gray-300">
+                      {ruta.facturasCompletadas || 0}/{ruta.totalFacturas || 0} Entregas
+                    </p>
                   </div>
-
-                  {/* Estadísticas como cards en móvil */}
-                  <div className="grid grid-cols-3 gap-2 text-xs sm:text-sm mb-3 sm:mb-4">
-                    <div className="text-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-                      <div className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">{ruta.estadisticas?.totalFacturas || 0}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
-                    </div>
-                    <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                      <div className="font-bold text-green-600 text-base sm:text-lg">{ruta.estadisticas?.facturasEntregadas || 0}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Entregadas</div>
-                    </div>
-                    <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
-                      <div className="font-bold text-orange-600 text-base sm:text-lg">{ruta.estadisticas?.facturasPendientes || 0}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Pendientes</div>
-                    </div>
-                  </div>
-
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3 sm:mb-4">
-                    <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${ruta.estadisticas?.porcentajeEntrega || 0}%` }}></div>
-                  </div>
-
-                  <button
-                    onClick={() => cargarDetalleRuta(ruta.id)}
-                    disabled={loadingDetalle}
-                    className="w-full bg-blue-600 text-white py-3 sm:py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base min-h-[48px] sm:min-h-[44px]"
-                  >
-                    {loadingDetalle ? <Loader className="animate-spin mx-auto" size={20} /> : (ruta.estado === 'cargada' ? 'Iniciar Entregas' : 'Continuar Entrega')}
-                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
       )}
 
       {/* ==============================================================================
-          VISTA: DETALLE DE RUTA (Listado de Facturas)
+          VISTA: DETALLE DE RUTA (Lista de Facturas)
           ============================================================================== */}
       {vistaActual === 'ruta' && rutaSeleccionada && (
         <div>
@@ -959,7 +905,10 @@ const PanelRepartidores = () => {
               <input
                 type="number"
                 step="0.01"
-                className="w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 text-base min-h-[48px]"
+                className={`w-full border p-3 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 text-base min-h-[48px] ${!montoPagado || parseFloat(montoPagado) <= 0
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 placeholder="Monto Pagado*"
                 value={montoPagado}
                 onChange={e => setMontoPagado(e.target.value)}

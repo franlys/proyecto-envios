@@ -107,19 +107,19 @@ const PanelAlmacenRD = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('📦 Confirmando recepción del contenedor:', contenedorActivo.id);
-      
+
       const response = await api.post(
         `/almacen-rd/contenedores/${contenedorActivo.id}/confirmar-recepcion`,
         { notas: notasRecepcion }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage('Contenedor recibido exitosamente en RD');
         setModalConfirmarRecepcion(false);
         setNotasRecepcion('');
-        
+
         if (response.data?.data?.contenedor) {
           console.log('✅ Usando contenedor del response');
           setContenedorActivo(response.data.data.contenedor);
@@ -128,7 +128,7 @@ const PanelAlmacenRD = () => {
           const contenedorResponse = await api.get(`/almacen-rd/contenedores/${contenedorActivo.id}`);
           setContenedorActivo(contenedorResponse.data.data);
         }
-        
+
         await cargarContenedores();
       }
     } catch (err) {
@@ -143,26 +143,26 @@ const PanelAlmacenRD = () => {
     if (!contenedorActivo || !facturaSeleccionada) return;
     try {
       setLoading(true);
-      
+
       const facturaId = facturaSeleccionada.id || facturaSeleccionada.facturaId;
-      
+
       const response = await api.post(
         `/almacen-rd/facturas/${facturaId}/items/danado`,
         { itemIndex: itemId, danado, notasDano }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage(danado ? 'Item marcado como dañado' : 'Item marcado como normal');
         setModalMarcarDanado(null);
         setNotasDano('');
-        
+
         if (response.data?.data?.contenedor) {
           setContenedorActivo(response.data.data.contenedor);
         } else {
           const contenedorResponse = await api.get(`/almacen-rd/contenedores/${contenedorActivo.id}`);
           setContenedorActivo(contenedorResponse.data.data);
         }
-        
+
         const facturaActualizada = contenedorActivo.facturas?.find(
           f => (f.id || f.facturaId) === facturaId
         );
@@ -180,19 +180,19 @@ const PanelAlmacenRD = () => {
     if (!contenedorActivo || !modalAsignarRuta || !rutaSeleccionada) return;
     try {
       setLoading(true);
-      
+
       const facturaId = modalAsignarRuta.id || modalAsignarRuta.facturaId;
-      
+
       const response = await api.post(
         `/almacen-rd/facturas/${facturaId}/asignar-ruta`,
         { ruta: rutaSeleccionada }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage(`Factura asignada a ruta ${rutaSeleccionada}`);
         setModalAsignarRuta(null);
         setRutaSeleccionada('');
-        
+
         if (response.data?.data?.contenedor) {
           setContenedorActivo(response.data.data.contenedor);
         } else {
@@ -212,20 +212,20 @@ const PanelAlmacenRD = () => {
     if (!modalReasignarRuta || !rutaSeleccionada) return;
     try {
       setLoading(true);
-      
+
       const facturaId = modalReasignarRuta.id || modalReasignarRuta.facturaId;
-      
+
       const response = await api.put(
         `/almacen-rd/facturas/${facturaId}/reasignar-ruta`,
         { nuevaRuta: rutaSeleccionada, motivo: motivoReasignacion }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage(`Factura reasignada a ${rutaSeleccionada}`);
         setModalReasignarRuta(null);
         setRutaSeleccionada('');
         setMotivoReasignacion('');
-        
+
         if (response.data?.data?.contenedor) {
           setContenedorActivo(response.data.data.contenedor);
         } else {
@@ -245,19 +245,19 @@ const PanelAlmacenRD = () => {
     if (!modalQuitarRuta) return;
     try {
       setLoading(true);
-      
+
       const facturaId = modalQuitarRuta.id || modalQuitarRuta.facturaId;
-      
+
       const response = await api.delete(
         `/almacen-rd/facturas/${facturaId}/ruta`,
         { data: { motivo: motivoQuitar } }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage('Factura quitada de la ruta');
         setModalQuitarRuta(null);
         setMotivoQuitar('');
-        
+
         if (response.data?.data?.contenedor) {
           setContenedorActivo(response.data.data.contenedor);
         } else {
@@ -277,23 +277,23 @@ const PanelAlmacenRD = () => {
     if (!contenedorActivo || !modalReportarIncompleta) return;
     try {
       setLoading(true);
-      
+
       const facturaId = modalReportarIncompleta.id || modalReportarIncompleta.facturaId;
-      
+
       const response = await api.post(
         `/almacen-rd/facturas/${facturaId}/reportar-incompleta`,
-        { 
+        {
           motivo: motivoIncompleta,
           itemsFaltantes: itemsFaltantes.split(',').map(i => i.trim()).filter(i => i)
         }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage('Factura reportada como incompleta');
         setModalReportarIncompleta(null);
         setMotivoIncompleta('');
         setItemsFaltantes('');
-        
+
         if (response.data?.data?.contenedor) {
           setContenedorActivo(response.data.data.contenedor);
         } else {
@@ -340,9 +340,9 @@ const PanelAlmacenRD = () => {
   const handleGuardarInfoPago = async () => {
     try {
       setLoading(true);
-      
+
       const facturaId = facturaSeleccionada.id || facturaSeleccionada.facturaId;
-      
+
       const response = await api.put(
         `/almacen-rd/facturas/${facturaId}/pago`,
         {
@@ -353,20 +353,20 @@ const PanelAlmacenRD = () => {
           notasPago: infoPago.notasPago
         }
       );
-      
+
       if (response.data.success) {
         setSuccessMessage('Información de pago actualizada');
         setModalEditarPago(false);
-        
+
         if (modalDetalleFull) {
           await handleVerDetalleFull(facturaId);
         }
-        
+
         if (contenedorActivo) {
           const contenedorResponse = await api.get(`/almacen-rd/contenedores/${contenedorActivo.id}`);
           setContenedorActivo(contenedorResponse.data.data);
         }
-        
+
         await cargarContenedores();
       }
     } catch (err) {
@@ -472,22 +472,20 @@ const PanelAlmacenRD = () => {
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setTabActiva('en_transito')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${
-                  tabActiva === 'en_transito'
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${tabActiva === 'en_transito'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                  }`}
               >
                 <Truck size={20} />
                 En Tránsito ({contadorEnTransito})
               </button>
               <button
                 onClick={() => setTabActiva('recibidos')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${
-                  tabActiva === 'recibidos'
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${tabActiva === 'recibidos'
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
+                  }`}
               >
                 <CheckCircle size={20} />
                 Recibidos ({contadorRecibidos})
@@ -517,11 +515,10 @@ const PanelAlmacenRD = () => {
                           <h3 className="font-bold text-lg text-gray-900 dark:text-white">
                             {contenedor.numeroContenedor}
                           </h3>
-                          <span className={`text-sm px-2 py-1 rounded ${
-                            contenedor.estado === 'en_transito_rd'
+                          <span className={`text-sm px-2 py-1 rounded ${contenedor.estado === 'en_transito_rd'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-green-100 text-green-800'
-                          }`}>
+                            }`}>
                             {contenedor.estado === 'en_transito_rd' ? 'En Tránsito' : 'Recibido'}
                           </span>
                         </div>
@@ -580,11 +577,10 @@ const PanelAlmacenRD = () => {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                       {contenedorActivo.numeroContenedor}
                     </h2>
-                    <span className={`text-sm px-3 py-1 rounded inline-block mt-1 ${
-                      contenedorActivo.estado === 'en_transito_rd'
+                    <span className={`text-sm px-3 py-1 rounded inline-block mt-1 ${contenedorActivo.estado === 'en_transito_rd'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
-                    }`}>
+                      }`}>
                       {contenedorActivo.estado === 'en_transito_rd' ? 'En Tránsito' : 'Recibido en RD'}
                     </span>
                   </div>
@@ -636,11 +632,11 @@ const PanelAlmacenRD = () => {
                 <div className="space-y-3">
                   {contenedorActivo.facturas.map(factura => {
                     const facturaId = getFacturaId(factura);
-                    
+
                     // ✅✅✅ CORRECCIÓN PRINCIPAL: Usar estadoItems primero ✅✅✅
                     const estadoFactura = factura.estadoItems || factura.estadoFactura || factura.estado || 'pendiente';
                     const esCompleta = estadoFactura === 'completo' || estadoFactura === 'completa';
-                    
+
                     return (
                       <div key={facturaId} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -649,21 +645,20 @@ const PanelAlmacenRD = () => {
                               <h4 className="font-semibold text-gray-900 dark:text-white">
                                 {factura.numeroFactura || factura.codigoTracking}
                               </h4>
-                              
+
                               {/* ✅✅✅ BADGE DE ESTADO CORREGIDO ✅✅✅ */}
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                esCompleta
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${esCompleta
                                   ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                   : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-                              }`}>
+                                }`}>
                                 {esCompleta ? '✅ Completa' : '⚠️ Incompleta'}
                               </span>
-                              
+
                               {/* ✅ CONTADOR DE ITEMS */}
                               <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
                                 📦 {factura.itemsMarcados || 0}/{factura.itemsTotal || factura.items?.length || 0}
                               </span>
-                              
+
                               {factura.rutaAsignada && (
                                 <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium flex items-center gap-1">
                                   <MapPin size={14} />
@@ -764,11 +759,10 @@ const PanelAlmacenRD = () => {
                     facturaSeleccionada.items.map((item, index) => (
                       <div
                         key={index}
-                        className={`border rounded-lg p-4 ${
-                          item.danado
+                        className={`border rounded-lg p-4 ${item.danado
                             ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                             : 'border-gray-200 dark:border-gray-700'
-                        }`}
+                          }`}
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -795,11 +789,10 @@ const PanelAlmacenRD = () => {
                           {contenedorActivo.estado === 'recibido_rd' && (
                             <button
                               onClick={() => setModalMarcarDanado({ item, itemIndex: index, danado: !item.danado })}
-                              className={`px-3 py-1 rounded transition text-sm ${
-                                item.danado
+                              className={`px-3 py-1 rounded transition text-sm ${item.danado
                                   ? 'bg-green-600 text-white hover:bg-green-700'
                                   : 'bg-red-600 text-white hover:bg-red-700'
-                              }`}
+                                }`}
                             >
                               {item.danado ? '✓ Marcar Normal' : '⚠️ Marcar Dañado'}
                             </button>
@@ -822,7 +815,7 @@ const PanelAlmacenRD = () => {
       {/* ========================================
           MODALES
           ======================================== */}
-      
+
       {/* Modal Confirmar Recepción */}
       {modalConfirmarRecepcion && contenedorActivo && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -910,11 +903,10 @@ const PanelAlmacenRD = () => {
               <button
                 onClick={() => handleMarcarDanado(modalMarcarDanado.itemIndex, modalMarcarDanado.danado)}
                 disabled={loading || (modalMarcarDanado.danado && !notasDano)}
-                className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 ${
-                  modalMarcarDanado.danado
+                className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 ${modalMarcarDanado.danado
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-green-600 hover:bg-green-700'
-                }`}
+                  }`}
               >
                 {loading ? 'Guardando...' : 'Confirmar'}
               </button>
@@ -1422,7 +1414,10 @@ const PanelAlmacenRD = () => {
                     step="0.01"
                     value={infoPago.montoPago}
                     onChange={(e) => setInfoPago({ ...infoPago, montoPago: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+                    className={`w-full px-3 py-2 border dark:bg-gray-700 dark:text-white rounded-lg ${!infoPago.montoPago || infoPago.montoPago === ''
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                      }`}
                     placeholder="0.00"
                   />
                 </div>
