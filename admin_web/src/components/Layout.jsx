@@ -167,12 +167,16 @@ const Layout = ({ children }) => {
     return roles[rol] || 'Usuario';
   };
 
+  // ✅ Roles que tienen acceso a notificaciones de facturas
+  const rolesConNotificaciones = ['admin_general', 'super_admin', 'almacen_rd', 'secretaria', 'repartidor'];
+  const mostrarNotificaciones = userData?.rol && rolesConNotificaciones.includes(userData.rol);
+
   return (
     // CAMBIO 1: El div principal ahora es 'h-screen' (altura de pantalla completa),
     // 'flex flex-col' (para apilar header y contenido) y 'overflow-hidden' (para evitar el scroll de la página).
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* Listener de notificaciones (si existe) */}
-      {NotificationListener && (
+      {/* Listener de notificaciones (solo para roles con acceso a facturas) */}
+      {NotificationListener && mostrarNotificaciones && (
         <NotificationListener
           onNewNotification={addNotification}
           onLoadExisting={loadExistingNotifications}
