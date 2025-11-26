@@ -1,12 +1,16 @@
 // admin_web/src/pages/NuevaRecoleccion.jsx
-// ✅ INTEGRACIÓN COMPLETA CON SELECTOR DE SECTOR DINÁMICO
+// ✅ INTEGRACIÓN COMPLETA CON SELECTOR DE SECTOR DINÁMICO Y SUBIDA DE FOTOS OPTIMIZADA
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ModuloFacturacion from '../components/ModuloFacturacion';
-import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle, Loader } from 'lucide-react';
+import { toast } from 'sonner';
+import { storage } from '../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { generateImageVariants, variantBlobToFile } from '../utils/thumbnailGenerator';
 
 // ✅ CATÁLOGO DE SECTORES POR ZONA
 const SECTORES_POR_ZONA = {
@@ -42,18 +46,18 @@ const NuevaRecoleccion = () => {
   const [remitenteEmail, setRemitenteEmail] = useState('');
   const [remitenteTelefono, setRemitenteTelefono] = useState('');
   const [remitenteDireccion, setRemitenteDireccion] = useState('');
-  
+
   // Estados del destinatario
   const [destinatario, setDestinatario] = useState('');
   const [destinatarioEmail, setDestinatarioEmail] = useState('');
   const [destinatarioTelefono, setDestinatarioTelefono] = useState('');
   const [destinatarioDireccion, setDestinatarioDireccion] = useState('');
-  
+
   // ✅ Estados de zona y sector
   const [zona, setZona] = useState('');
   const [sector, setSector] = useState('');
   const [sectoresDisponibles, setSectoresDisponibles] = useState([]);
-  
+
   const [notas, setNotas] = useState('');
   const [items, setItems] = useState([{ id: 1, descripcion: '', cantidad: 1, precio: 0 }]);
   const [fotos, setFotos] = useState([]);
@@ -100,7 +104,7 @@ const NuevaRecoleccion = () => {
 
   const handleRemoveItem = (index) => {
     if (items.length <= 1) {
-      alert('Debe haber al menos un item.');
+      toast.warning('Debe haber al menos un item.');
       return;
     }
     const newItems = items.filter((_, i) => i !== index);
@@ -111,12 +115,12 @@ const NuevaRecoleccion = () => {
     const files = Array.from(e.target.files);
 
     if (fotos.length + files.length > 10) {
-      alert('Puedes subir un máximo de 10 fotos.');
+      toast.warning('Puedes subir un máximo de 10 fotos.');
       return;
     }
-    
+
     setFotos(prevFotos => [...prevFotos, ...files]);
-    
+
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -124,13 +128,76 @@ const NuevaRecoleccion = () => {
       };
       reader.readAsDataURL(file);
     });
-    
+
     e.target.value = null;
   };
-  
+
   const handleRemovePhoto = (index) => {
     setFotos(fotos.filter((_, i) => i !== index));
     setFotoPreviews(previews => previews.filter((_, i) => i !== index));
+  };
+
+  // ✅ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) CON THUMBNAILS
+  const subirArchivosAFirebase = async (archivos) => {
+    const urls = [];
+    if (!archivos || archivos.length === 0) return urls;
+
+    // Usamos un ID temporal o timestamp para la carpeta
+    const idReferencia = `temp_${Date.now()}`;
+
+    for (let i = 0; i < archivos.length; i++) {
+      const archivo = archivos[i];
+
+      try {
+        // Mostrar indicador si tarda más de 500ms
+        const timeoutId = setTimeout(() => {
+          toast.loading(`Procesando imagen ${i + 1}/${archivos.length}...`, { id: `process-${i}` });
+        }, 500);
+
+        // Generar thumbnail (200px) y preview (1024px)
+        const variants = await generateImageVariants(archivo, {
+          onProgress: (progress) => {
+            if (progress.stage === 'thumbnail') {
+              toast.loading(`Generando thumbnail ${i + 1}...`, { id: `process-${i}` });
+            } else if (progress.stage === 'preview') {
+              toast.loading(`Generando preview ${i + 1}...`, { id: `process-${i}` });
+            }
+          }
+        });
+
+        clearTimeout(timeoutId);
+        toast.dismiss(`process-${i}`);
+
+        // Paths en Storage
+        const baseNombre = `recolecciones/${idReferencia}/${Date.now()}_${i}`;
+
+        // Subir thumbnail (200px)
+        const thumbnailFile = variantBlobToFile(variants.thumbnail.blob, archivo.name, 'thumb');
+        const thumbnailPath = `${baseNombre}_thumb.jpg`;
+        const thumbnailRef = ref(storage, thumbnailPath);
+        await uploadBytes(thumbnailRef, thumbnailFile);
+        const thumbnailUrl = await getDownloadURL(thumbnailRef);
+
+        // Subir preview (1024px)
+        const previewFile = variantBlobToFile(variants.preview.blob, archivo.name, 'preview');
+        const previewPath = `${baseNombre}_preview.jpg`;
+        const previewRef = ref(storage, previewPath);
+        await uploadBytes(previewRef, previewFile);
+        const previewUrl = await getDownloadURL(previewRef);
+
+        // Guardar ambas URLs
+        urls.push({
+          thumbnail: thumbnailUrl,
+          preview: previewUrl,
+          metadata: variants.metadata
+        });
+
+      } catch (error) {
+        console.error(`Error procesando archivo ${archivo.name}:`, error);
+        toast.error(`Error al procesar ${archivo.name}`);
+      }
+    }
+    return urls;
   };
 
   const handleSubmit = async (e) => {
@@ -139,12 +206,12 @@ const NuevaRecoleccion = () => {
 
     // ✅ VALIDACIONES
     if (!remitente || !remitenteTelefono || !remitenteDireccion) {
-      setError('Los datos del remitente (Nombre, Teléfono y Dirección) son obligatorios.');
+      toast.error('Los datos del remitente son obligatorios.');
       return;
     }
-    
+
     if (!destinatario || !destinatarioTelefono || !destinatarioDireccion || !zona) {
-      setError('Los datos del destinatario (Nombre, Teléfono, Dirección y Zona) son obligatorios.');
+      toast.error('Los datos del destinatario y zona son obligatorios.');
       return;
     }
 
@@ -153,9 +220,9 @@ const NuevaRecoleccion = () => {
       const confirmar = confirm('No has seleccionado un sector. ¿Deseas continuar sin especificar el sector?');
       if (!confirmar) return;
     }
-    
+
     if (items.length === 0 || items.some(item => !item.descripcion.trim())) {
-      setError('Debes agregar al menos un item con descripción.');
+      toast.error('Debes agregar al menos un item con descripción.');
       return;
     }
 
@@ -168,10 +235,13 @@ const NuevaRecoleccion = () => {
         precio: parseFloat(item.precio) || 0
       }));
 
-      if (itemsLimpios.some(item => !item.descripcion)) {
-        setError('Todos los items deben tener descripción.');
-        setIsSubmitting(false);
-        return;
+      // 1. Subir fotos primero (si hay)
+      let fotosUrls = [];
+      if (fotos.length > 0) {
+        fotosUrls = await subirArchivosAFirebase(fotos);
+        if (fotosUrls.length === 0) {
+          toast.warning('No se pudieron subir las fotos, pero se creará la recolección.');
+        }
       }
 
       // ✅ INCLUIR SECTOR EN EL PAYLOAD
@@ -180,66 +250,44 @@ const NuevaRecoleccion = () => {
         remitenteEmail: remitenteEmail.trim(),
         remitenteTelefono: remitenteTelefono.trim(),
         remitenteDireccion: remitenteDireccion.trim(),
-        
+
         destinatarioNombre: destinatario.trim(),
         destinatarioEmail: destinatarioEmail.trim(),
         destinatarioTelefono: destinatarioTelefono.trim(),
         destinatarioDireccion: destinatarioDireccion.trim(),
         destinatarioZona: zona,
-        destinatarioSector: sector || null, // ✅ NUEVO CAMPO
-        
+        destinatarioSector: sector || null,
+
         items: itemsLimpios,
-        
+
         subtotal: parseFloat(facturacion.subtotal) || 0,
         itbis: parseFloat(facturacion.impuestos) || 0,
         total: parseFloat(facturacion.total) || 0,
         estadoPago: facturacion.estadoPago || 'pendiente',
         metodoPago: facturacion.metodoPago || '',
         montoPagado: parseFloat(facturacion.montoPagado) || 0,
-        
+
         notas: notas.trim(),
-        tipoServicio: 'standard'
+        tipoServicio: 'standard',
+        fotos: fotosUrls // ✅ Enviamos las URLs procesadas
       };
 
-      console.log('📤 Enviando recolección con sector:', recoleccionData);
+      console.log('📤 Enviando recolección:', recoleccionData);
 
       const response = await api.post('/recolecciones', recoleccionData);
 
       if (response.data.success) {
         const codigoTracking = response.data.data?.codigoTracking || 'N/A';
-        const recoleccionId = response.data.data?.id;
-        
-        if (fotos.length > 0 && recoleccionId) {
-          try {
-            const formData = new FormData();
-            fotos.forEach((foto) => {
-              formData.append('fotos', foto);
-            });
-            
-            await api.post(`/recolecciones/${recoleccionId}/upload-fotos`, formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data',
-              },
-            });
-          } catch (fotoError) {
-            console.warn('⚠️ Error subiendo fotos (no crítico):', fotoError);
-          }
-        }
-
-        alert(`✅ ¡Recolección creada exitosamente!\n\nCódigo de Tracking: ${codigoTracking}\nZona: ${zona}\nSector: ${sector || 'No especificado'}`);
+        toast.success(`✅ Recolección creada: ${codigoTracking}`);
         navigate('/recolecciones');
       } else {
-        setError(response.data.message || response.data.error || 'Error desconocido al crear la recolección.');
+        setError(response.data.message || 'Error desconocido al crear la recolección.');
       }
     } catch (err) {
       console.error('❌ Error completo:', err);
-      const errorMsg = err.response?.data?.message 
-        || err.response?.data?.error 
-        || err.response?.data?.hint
-        || err.message 
-        || 'Error de conexión con el servidor.';
-      
+      const errorMsg = err.response?.data?.message || err.message || 'Error de conexión.';
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -259,9 +307,9 @@ const NuevaRecoleccion = () => {
           Volver
         </button>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        
+
         {/* REMITENTE */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-green-500">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
@@ -273,37 +321,37 @@ const NuevaRecoleccion = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nombre Completo *
               </label>
-              <input 
-                type="text" 
-                value={remitente} 
-                onChange={(e) => setRemitente(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500" 
+              <input
+                type="text"
+                value={remitente}
+                onChange={(e) => setRemitente(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="Juan Pérez"
-                required 
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Teléfono *
               </label>
-              <input 
-                type="tel" 
-                value={remitenteTelefono} 
-                onChange={(e) => setRemitenteTelefono(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500" 
+              <input
+                type="tel"
+                value={remitenteTelefono}
+                onChange={(e) => setRemitenteTelefono(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="(809) 123-4567"
-                required 
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email (Opcional)
               </label>
-              <input 
-                type="email" 
-                value={remitenteEmail} 
-                onChange={(e) => setRemitenteEmail(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500" 
+              <input
+                type="email"
+                value={remitenteEmail}
+                onChange={(e) => setRemitenteEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="remitente@ejemplo.com"
               />
             </div>
@@ -311,13 +359,13 @@ const NuevaRecoleccion = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Dirección de Recogida *
               </label>
-              <input 
-                type="text" 
-                value={remitenteDireccion} 
-                onChange={(e) => setRemitenteDireccion(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500" 
+              <input
+                type="text"
+                value={remitenteDireccion}
+                onChange={(e) => setRemitenteDireccion(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="Calle, Número, Sector, Ciudad..."
-                required 
+                required
               />
             </div>
           </div>
@@ -334,37 +382,37 @@ const NuevaRecoleccion = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Nombre Completo *
               </label>
-              <input 
-                type="text" 
-                value={destinatario} 
-                onChange={(e) => setDestinatario(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
+              <input
+                type="text"
+                value={destinatario}
+                onChange={(e) => setDestinatario(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="María López"
-                required 
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Teléfono *
               </label>
-              <input 
-                type="tel" 
-                value={destinatarioTelefono} 
-                onChange={(e) => setDestinatarioTelefono(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
+              <input
+                type="tel"
+                value={destinatarioTelefono}
+                onChange={(e) => setDestinatarioTelefono(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="(809) 987-6543"
-                required 
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email (Opcional)
               </label>
-              <input 
-                type="email" 
-                value={destinatarioEmail} 
-                onChange={(e) => setDestinatarioEmail(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
+              <input
+                type="email"
+                value={destinatarioEmail}
+                onChange={(e) => setDestinatarioEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="destinatario@ejemplo.com"
               />
             </div>
@@ -372,13 +420,13 @@ const NuevaRecoleccion = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Dirección de Entrega *
               </label>
-              <input 
-                type="text" 
-                value={destinatarioDireccion} 
-                onChange={(e) => setDestinatarioDireccion(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
-                placeholder="Calle, Número, Sector, Ciudad..." 
-                required 
+              <input
+                type="text"
+                value={destinatarioDireccion}
+                onChange={(e) => setDestinatarioDireccion(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Calle, Número, Sector, Ciudad..."
+                required
               />
             </div>
 
@@ -387,10 +435,10 @@ const NuevaRecoleccion = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Zona de Entrega *
               </label>
-              <select 
-                value={zona} 
-                onChange={(e) => setZona(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
+              <select
+                value={zona}
+                onChange={(e) => setZona(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">-- Seleccionar Zona --</option>
@@ -406,9 +454,9 @@ const NuevaRecoleccion = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Sector {sectoresDisponibles.length > 0 && '(Recomendado)'}
               </label>
-              <select 
-                value={sector} 
-                onChange={(e) => setSector(e.target.value)} 
+              <select
+                value={sector}
+                onChange={(e) => setSector(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                 disabled={!zona}
               >
@@ -440,29 +488,29 @@ const NuevaRecoleccion = () => {
             {items.map((item, index) => (
               <div key={item.id} className="flex items-center gap-2">
                 <div className="flex-1">
-                  <input 
-                    type="text" 
-                    placeholder={`Descripción del item ${index + 1}`} 
-                    value={item.descripcion} 
-                    onChange={(e) => handleItemChange(index, 'descripcion', e.target.value)} 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
-                    required 
+                  <input
+                    type="text"
+                    placeholder={`Descripción del item ${index + 1}`}
+                    value={item.descripcion}
+                    onChange={(e) => handleItemChange(index, 'descripcion', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
                   />
                 </div>
                 <div className="w-24">
-                  <input 
-                    type="number" 
-                    min="1" 
-                    value={item.cantidad} 
-                    onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 1)} 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-center" 
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.cantidad}
+                    onChange={(e) => handleItemChange(index, 'cantidad', parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-center"
                     title="Cantidad"
                   />
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => handleRemoveItem(index)} 
-                  disabled={items.length <= 1} 
+                <button
+                  type="button"
+                  onClick={() => handleRemoveItem(index)}
+                  disabled={items.length <= 1}
                   className="px-3 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50 hover:bg-red-700 transition"
                   title="Eliminar item"
                 >
@@ -471,9 +519,9 @@ const NuevaRecoleccion = () => {
               </div>
             ))}
           </div>
-          <button 
-            type="button" 
-            onClick={handleAddItem} 
+          <button
+            type="button"
+            onClick={handleAddItem}
             className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
           >
             <Plus size={18} /> Agregar Otro Item
@@ -493,7 +541,7 @@ const NuevaRecoleccion = () => {
         {/* FOTOS */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-            Fotos de Recolección 
+            Fotos de Recolección
             <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
               (Opcional)
             </span>
@@ -509,15 +557,15 @@ const NuevaRecoleccion = () => {
                 Máximo 10 fotos (JPG, PNG)
               </p>
             </div>
-            <input 
-              type="file" 
-              multiple 
-              accept="image/*" 
-              onChange={handleFileChange} 
-              className="hidden" 
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
             />
           </label>
-          
+
           {fotoPreviews.length > 0 && (
             <div className="mt-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -526,10 +574,10 @@ const NuevaRecoleccion = () => {
               <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                 {fotoPreviews.map((previewUrl, index) => (
                   <div key={index} className="relative group">
-                    <img 
-                      src={previewUrl} 
-                      alt={`Vista previa ${index + 1}`} 
-                      className="w-full h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-600" 
+                    <img
+                      src={previewUrl}
+                      alt={`Vista previa ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                     />
                     <button
                       type="button"
@@ -551,12 +599,12 @@ const NuevaRecoleccion = () => {
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
             Notas Adicionales
           </h2>
-          <textarea 
-            value={notas} 
-            onChange={(e) => setNotas(e.target.value)} 
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500" 
-            placeholder="Notas internas, detalles de pago, instrucciones especiales..." 
-            rows="3" 
+          <textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Notas internas, detalles de pago, instrucciones especiales..."
+            rows="3"
           />
         </div>
 
@@ -571,9 +619,9 @@ const NuevaRecoleccion = () => {
         )}
 
         {/* SUBMIT */}
-        <button 
-          type="submit" 
-          disabled={isSubmitting} 
+        <button
+          type="submit"
+          disabled={isSubmitting}
           className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (

@@ -3,11 +3,16 @@ import { toast } from 'sonner';
 import api from '../services/api';
 import { storage } from '../services/firebase.js';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { 
-  Truck, 
-  Package, 
-  CheckCircle, 
-  AlertTriangle, 
+import { compressImageFile, needsCompression } from '../utils/imageCompression'; // Compresión de imágenes
+import { useMisRutasPendientesCarga, useOptimisticAction } from '../hooks/useRealtimeOptimized'; // Real-time hooks
+import { LiveIndicator, NewDataBadge, ConnectionStatusIndicator } from '../components/RealtimeIndicator'; // Visual indicators
+import { generateImageVariants, variantBlobToFile, getStoragePathForVariant } from '../utils/thumbnailGenerator.jsx'; // Thumbnail system
+import SmartImage, { useImageLightbox } from '../components/common/SmartImage'; // Smart Image
+import {
+  Truck,
+  Package,
+  CheckCircle,
+  AlertTriangle,
   Box,
   Loader,
   MapPin,
@@ -18,12 +23,25 @@ import {
 
 const PanelCargadores = () => {
   // ==============================================================================
+  // 🎣 HOOKS DE TIEMPO REAL Y OPTIMISTIC UI
+  // ==============================================================================
+  const {
+    data: rutasRealtime,
+    loading: loadingRutas,
+    hasNewData,
+    clearNewDataIndicator
+  } = useMisRutasPendientesCarga();
+
+  const { executeWithOptimism } = useOptimisticAction();
+  const { openLightbox, LightboxComponent } = useImageLightbox();
+
+  // ==============================================================================
   // 🎣 ESTADOS
   // ==============================================================================
   const [rutas, setRutas] = useState([]);
   const [rutaSeleccionada, setRutaSeleccionada] = useState(null);
   const [vistaActual, setVistaActual] = useState('lista'); // 'lista' | 'detalle'
-  
+
   // Estados de carga y procesamiento
   const [loading, setLoading] = useState(false);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
@@ -50,30 +68,21 @@ const PanelCargadores = () => {
   const [facturaDetalleSeleccionada, setFacturaDetalleSeleccionada] = useState(null);
 
   // ==============================================================================
-  // 🔄 EFECTOS Y CARGA INICIAL
+  // 🔄 EFECTOS Y SINCRONIZACIÓN EN TIEMPO REAL
   // ==============================================================================
+  // Sincronizar datos en tiempo real con estado local
   useEffect(() => {
-    cargarRutasAsignadas();
-  }, []);
-
-  const cargarRutasAsignadas = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/cargadores/rutas');
-      
-      if (response.data.success) {
-        setRutas(response.data.data || []);
-        
-        if (response.data.total === 0) {
-          toast.info('No tienes rutas asignadas por el momento');
-        }
-      }
-    } catch (error) {
-      console.error('Error cargando rutas:', error);
-      toast.error('Error de conexión al cargar las rutas');
-    } finally {
-      setLoading(false);
+    if (rutasRealtime && rutasRealtime.length > 0) {
+      setRutas(rutasRealtime);
+    } else if (!loadingRutas) {
+      setRutas([]);
     }
+  }, [rutasRealtime, loadingRutas]);
+
+  // Helper para recargar la lista de rutas (ahora solo para compatibilidad)
+  const cargarRutasAsignadas = async () => {
+    // Los datos ahora vienen del hook en tiempo real
+    // Mantenemos esta función vacía para no romper referencias
   };
 
   // ==============================================================================
@@ -126,25 +135,74 @@ const PanelCargadores = () => {
   };
 
   const handleConfirmarItem = async (facturaId, itemIndex) => {
-    try {
-      setProcesando(true);
-      
-      const response = await api.post(
-        `/cargadores/rutas/${rutaSeleccionada.id}/facturas/${facturaId}/items/confirmar`,
-        { itemIndex }
-      );
-      
-      if (response.data.success) {
-        toast.success('Item marcado como cargado');
-        // Recarga silenciosa del detalle para ver el check
+    if (!rutaSeleccionada) return;
+
+    // Encontrar la factura y el item para el rollback
+    const factura = rutaSeleccionada.facturas?.find(f => f.id === facturaId);
+    if (!factura || !factura.items || !factura.items[itemIndex]) return;
+
+    const estadoPrevio = {
+      cargado: factura.items[itemIndex].cargado
+    };
+
+    await executeWithOptimism({
+      // 1. Actualización optimista INMEDIATA (latencia 0ms)
+      optimisticUpdate: () => {
+        setRutaSeleccionada(prev => {
+          const facturas = [...(prev.facturas || [])];
+          const facturaIdx = facturas.findIndex(f => f.id === facturaId);
+
+          if (facturaIdx !== -1) {
+            facturas[facturaIdx] = {
+              ...facturas[facturaIdx],
+              items: facturas[facturaIdx].items.map((item, idx) =>
+                idx === itemIndex
+                  ? { ...item, cargado: true, _optimistic: true }
+                  : item
+              )
+            };
+          }
+
+          return { ...prev, facturas };
+        });
+      },
+
+      // 2. Acción real en servidor (en background)
+      serverAction: async () => {
+        const response = await api.post(
+          `/cargadores/rutas/${rutaSeleccionada.id}/facturas/${facturaId}/items/confirmar`,
+          { itemIndex }
+        );
+        // Recargar el detalle en segundo plano para sincronizar el progreso global
         await cargarDetalleRuta(rutaSeleccionada.id);
-      }
-    } catch (error) {
-      console.error('Error confirmando item:', error);
-      toast.error(error.response?.data?.message || 'No se pudo confirmar el item');
-    } finally {
-      setProcesando(false);
-    }
+        return response;
+      },
+
+      // 3. Rollback si falla
+      rollback: () => {
+        setRutaSeleccionada(prev => {
+          const facturas = [...(prev.facturas || [])];
+          const facturaIdx = facturas.findIndex(f => f.id === facturaId);
+
+          if (facturaIdx !== -1) {
+            facturas[facturaIdx] = {
+              ...facturas[facturaIdx],
+              items: facturas[facturaIdx].items.map((item, idx) =>
+                idx === itemIndex
+                  ? { ...item, cargado: estadoPrevio.cargado, _optimistic: false }
+                  : item
+              )
+            };
+          }
+
+          return { ...prev, facturas };
+        });
+      },
+
+      // 4. Mensajes
+      successMessage: '✅ Item marcado como cargado',
+      errorMessage: '❌ Error al confirmar item'
+    });
   };
 
   const handleFinalizarCarga = async () => {
@@ -182,27 +240,76 @@ const PanelCargadores = () => {
   };
 
   // ==============================================================================
-  // ⚠️ MANEJO DE DAÑOS Y FOTOS
+  // ⚠️ MANEJO DE DAÑOS Y FOTOS CON THUMBNAILS
   // ==============================================================================
   const subirFotosAFirebase = async (archivos, facturaId) => {
     const urls = [];
-    
+
     for (let i = 0; i < archivos.length; i++) {
       const archivo = archivos[i];
-      const timestamp = Date.now();
-      const nombreArchivo = `danos/${facturaId}/${timestamp}_${i}_${archivo.name}`;
-      const storageRef = ref(storage, nombreArchivo);
-      
+
       try {
-        await uploadBytes(storageRef, archivo);
-        const url = await getDownloadURL(storageRef);
-        urls.push(url);
+        const startTime = Date.now();
+
+        // Mostrar indicador si tarda más de 500ms
+        const timeoutId = setTimeout(() => {
+          toast.loading(`Procesando imagen ${i + 1}/${archivos.length}...`, { id: `process-${i}` });
+        }, 500);
+
+        // Generar thumbnail (200px) y preview (1024px)
+        const variants = await generateImageVariants(archivo, {
+          onProgress: (progress) => {
+            if (progress.stage === 'thumbnail') {
+              toast.loading(`Generando thumbnail ${i + 1}...`, { id: `process-${i}` });
+            } else if (progress.stage === 'preview') {
+              toast.loading(`Generando preview ${i + 1}...`, { id: `process-${i}` });
+            }
+          }
+        });
+
+        clearTimeout(timeoutId);
+        toast.dismiss(`process-${i}`);
+
+        // Paths en Storage
+        const timestamp = Date.now();
+        const baseNombre = `danos/${facturaId}/${timestamp}_${i}`;
+
+        // Subir thumbnail (200px) - carga instantánea en listas
+        const thumbnailFile = variantBlobToFile(variants.thumbnail.blob, archivo.name, 'thumb');
+        const thumbnailPath = `${baseNombre}_thumb.jpg`;
+        const thumbnailRef = ref(storage, thumbnailPath);
+        await uploadBytes(thumbnailRef, thumbnailFile);
+        const thumbnailUrl = await getDownloadURL(thumbnailRef);
+
+        // Subir preview (1024px) - para vista detallada
+        const previewFile = variantBlobToFile(variants.preview.blob, archivo.name, 'preview');
+        const previewPath = `${baseNombre}_preview.jpg`;
+        const previewRef = ref(storage, previewPath);
+        await uploadBytes(previewRef, previewFile);
+        const previewUrl = await getDownloadURL(previewRef);
+
+        // Guardar ambas URLs (el backend debe soportar este formato)
+        urls.push({
+          thumbnail: thumbnailUrl,
+          preview: previewUrl,
+          metadata: variants.metadata
+        });
+
+        // Mostrar estadísticas
+        const duration = Date.now() - startTime;
+        if (duration > 500) {
+          toast.success(
+            `Imagen ${i + 1}: ${variants.metadata.originalSizeKB}KB → Thumb: ${variants.metadata.thumbnailSizeKB}KB + Preview: ${variants.metadata.previewSizeKB}KB`,
+            { duration: 3000 }
+          );
+        }
       } catch (error) {
-        console.error('Error subiendo foto:', error);
-        throw new Error('Fallo al subir imagen');
+        console.error('Error procesando foto:', error);
+        toast.error(`Error al procesar ${archivo.name}`);
+        throw new Error(`Fallo al procesar imagen ${i + 1}`);
       }
     }
-    
+
     return urls;
   };
 
@@ -271,7 +378,20 @@ const PanelCargadores = () => {
   // ==============================================================================
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      
+
+      {/* Connection Status Indicator (Global) */}
+      <ConnectionStatusIndicator />
+
+      {/* New Data Badge */}
+      {hasNewData && vistaActual === 'lista' && (
+        <NewDataBadge
+          show={hasNewData}
+          count={rutasRealtime?.length || 0}
+          onDismiss={clearNewDataIndicator}
+          message="Nuevas rutas para cargar disponibles"
+        />
+      )}
+
       {/* Header General */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -286,11 +406,14 @@ const PanelCargadores = () => {
             )}
             <Truck size={32} className="text-blue-600" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Panel de Cargadores
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Panel de Cargadores
+                </h1>
+                {vistaActual === 'lista' && <LiveIndicator isLive={true} showText={true} />}
+              </div>
               <p className="text-gray-600 dark:text-gray-400">
-                {vistaActual === 'lista' 
+                {vistaActual === 'lista'
                   ? 'Selecciona una ruta para comenzar'
                   : rutaSeleccionada?.nombre || 'Detalle de Ruta'}
               </p>
@@ -304,7 +427,7 @@ const PanelCargadores = () => {
          ============================================================================== */}
       {vistaActual === 'lista' && (
         <div className="space-y-4">
-          {loading ? (
+          {loadingRutas ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="animate-spin text-blue-600" size={40} />
             </div>
@@ -701,10 +824,12 @@ const PanelCargadores = () => {
               <X size={32} />
             </button>
 
-            <img
+            <SmartImage
               src={fotosGaleria[fotoActual]}
               alt={`Foto ${fotoActual + 1}`}
               className="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
+              showOptimizedBadge={true}
+              showZoomIcon={false}
             />
 
             {fotosGaleria.length > 1 && (

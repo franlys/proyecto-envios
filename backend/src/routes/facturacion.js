@@ -14,7 +14,9 @@ import {
   getFacturasPorContenedor,
   // ✅ CORRECCIÓN: Se importa la nueva función del controller
   getFacturasNoEntregadas,
-  reasignarFactura // <-- Nueva importación
+  reasignarFactura, // <-- Nueva importación
+  debugEstadosFacturas, // <-- Debug temporal
+  repararFacturasHuerfanas // <-- Reparación temporal
 } from '../controllers/facturacionController.js';
 
 const router = express.Router();
@@ -67,6 +69,20 @@ router.post('/reasignar', reasignarFactura); // <-- Nueva ruta POST
  * Roles: admin_general, secretaria, almacen_rd
  */
 router.get('/no-entregadas', getFacturasNoEntregadas);
+
+/**
+ * GET /api/facturacion/debug-estados
+ * DEBUG: Ver todos los estados de facturas
+ * Temporal para debugging
+ */
+router.get('/debug-estados', debugEstadosFacturas);
+
+/**
+ * POST /api/facturacion/reparar-huerfanas
+ * REPARACIÓN: Marcar facturas huérfanas como no_entregada
+ * Temporal para reparar facturas que quedaron sin estado
+ */
+router.post('/reparar-huerfanas', repararFacturasHuerfanas);
 
 /**
  * GET /api/facturacion/contenedores/:contenedorId

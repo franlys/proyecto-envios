@@ -53,7 +53,7 @@ export const createRecoleccion = async (req, res) => {
       remitenteTelefono,
       remitenteEmail,
       remitenteDireccion,
-      
+
       // Datos del destinatario
       destinatarioNombre,
       destinatarioTelefono,
@@ -61,20 +61,20 @@ export const createRecoleccion = async (req, res) => {
       destinatarioDireccion,
       destinatarioZona,
       destinatarioSector,
-      
+
       // Items
       items,
-      
+
       // Facturación
       subtotal,
       itbis,
       total,
-      
+
       // Pago
       metodoPago,
       estadoPago,
       montoPagado,
-      
+
       // Otros
       notas,
       tipoServicio
@@ -82,7 +82,7 @@ export const createRecoleccion = async (req, res) => {
 
     // ✅ VALIDACIÓN CRÍTICA: Verificar y parsear items
     let itemsArray;
-    
+
     if (typeof items === 'string') {
       console.log('⚠️ Items recibido como string, parseando...');
       try {
@@ -142,7 +142,7 @@ export const createRecoleccion = async (req, res) => {
     // Obtener datos del usuario y empresa
     const usuarioId = req.userData?.uid;
     const userDoc = await db.collection('usuarios').doc(usuarioId).get();
-    
+
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
@@ -168,7 +168,7 @@ export const createRecoleccion = async (req, res) => {
 
     const contadorRef = db.collection('contadores').doc(companyId);
     const contadorDoc = await contadorRef.get();
-    
+
     let siguienteNumero = 1;
     if (contadorDoc.exists) {
       siguienteNumero = (contadorDoc.data().recolecciones || 0) + 1;
@@ -184,14 +184,14 @@ export const createRecoleccion = async (req, res) => {
       codigoTracking,
       companyId,
       sucursalId: userData.sucursalId || null,
-      
+
       remitente: {
         nombre: remitenteNombre || '',
         telefono: remitenteTelefono || '',
         email: remitenteEmail || '',
         direccion: remitenteDireccion || ''
       },
-      
+
       destinatario: {
         nombre: destinatarioNombre || '',
         telefono: destinatarioTelefono || '',
@@ -200,20 +200,20 @@ export const createRecoleccion = async (req, res) => {
         zona: destinatarioZona || '',
         sector: destinatarioSector || ''
       },
-      
+
       items: itemsArray.map(item => ({
         cantidad: parseInt(item.cantidad) || 1,
         descripcion: item.descripcion || '',
         precio: parseFloat(item.precio) || 0
       })),
-      
+
       facturacion: {
         subtotal: parseFloat(subtotal) || 0,
         itbis: parseFloat(itbis) || 0,
         total: parseFloat(total) || 0,
         moneda: 'USD'
       },
-      
+
       pago: {
         estado: estadoPago || 'pendiente',
         metodoPago: metodoPago || null,
@@ -224,29 +224,31 @@ export const createRecoleccion = async (req, res) => {
         notasPago: '',
         historialPagos: []
       },
-      
+
       estado: 'pendiente',
       estadoItems: 'completo',
       estadoGeneral: 'sin_confirmar',
-      
+
       contenedorId: null,
       numeroContenedor: null,
-      
+
       rutaId: null,
       repartidorId: null,
       fechaAsignacionRuta: null,
-      
+
       notas: notas || '',
       tipoServicio: tipoServicio || 'standard',
-      fotos: [],
-      
+      notas: notas || '',
+      tipoServicio: tipoServicio || 'standard',
+      fotos: Array.isArray(req.body.fotos) ? req.body.fotos : [], // ✅ Aceptamos fotos directamente
+
       historial: [{
         accion: 'creacion',
         descripcion: 'Recolección creada',
         usuario: usuarioId,
         fecha: new Date().toISOString()
       }],
-      
+
       fechaCreacion: FieldValue.serverTimestamp(),
       fechaActualizacion: FieldValue.serverTimestamp(),
       creadoPor: usuarioId
@@ -416,15 +418,15 @@ export const actualizarEstado = async (req, res) => {
     const { estado, notas } = req.body;
 
     const estadosPermitidos = [
-      'pendiente', 
-      'en_contenedor', 
-      'en_transito', 
-      'recibido_rd', 
-      'en_ruta', 
-      'entregado', 
+      'pendiente',
+      'en_contenedor',
+      'en_transito',
+      'recibido_rd',
+      'en_ruta',
+      'entregado',
       'cancelado'
     ];
-    
+
     if (!estadosPermitidos.includes(estado)) {
       return res.status(400).json({
         success: false,
@@ -559,7 +561,7 @@ export const actualizarRecoleccion = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    
+
     console.log(`🔍 Actualizando recolección ${id}...`);
 
     const recoleccionRef = db.collection('recolecciones').doc(id);
@@ -583,7 +585,7 @@ export const actualizarRecoleccion = async (req, res) => {
     }
 
     const dataToUpdate = {};
-    
+
     const camposPermitidos = [
       'remitente.nombre',
       'remitente.telefono',
@@ -626,7 +628,7 @@ export const actualizarRecoleccion = async (req, res) => {
       const total = recoleccionActual.facturacion?.total || 0;
       const montoPagado = parseFloat(dataToUpdate['pago.montoPagado']) || 0;
       dataToUpdate['pago.montoPendiente'] = total - montoPagado;
-      
+
       if (montoPagado >= total) {
         dataToUpdate['pago.estado'] = 'pagada';
       } else if (montoPagado > 0) {
@@ -637,7 +639,7 @@ export const actualizarRecoleccion = async (req, res) => {
     }
 
     dataToUpdate.fechaActualizacion = FieldValue.serverTimestamp();
-    
+
     const historialEntry = {
       accion: 'actualizacion',
       descripcion: 'Datos de recolección actualizados',
@@ -691,9 +693,9 @@ export const actualizarRecoleccion = async (req, res) => {
 export const deleteRecoleccion = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const doc = await db.collection('recolecciones').doc(id).get();
-    
+
     if (!doc.exists) {
       return res.status(404).json({
         success: false,
@@ -702,7 +704,7 @@ export const deleteRecoleccion = async (req, res) => {
     }
 
     const data = doc.data();
-    
+
     if (data.contenedorId) {
       return res.status(400).json({
         success: false,
@@ -760,7 +762,7 @@ export const getEstadisticas = async (req, res) => {
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      
+
       if (estadisticas.porEstado[data.estado] !== undefined) {
         estadisticas.porEstado[data.estado]++;
       }

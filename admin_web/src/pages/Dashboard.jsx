@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { useRealtimeRutasActivas, useRealtimeUsuarios } from '../hooks/useRealtimeCollection';
+import MonitorCargadores from '../components/monitoring/MonitorCargadores';
+import MonitorRepartidores from '../components/monitoring/MonitorRepartidores';
 
 const Dashboard = () => {
   const { userData, loading: authLoading } = useAuth();
@@ -11,6 +14,10 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // 🔥 Datos en tiempo real con Firestore listeners
+  const { data: rutasActivas } = useRealtimeRutasActivas();
+  const { data: usuarios } = useRealtimeUsuarios();
 
   // Redireccionar según rol específico
   useEffect(() => {
@@ -180,7 +187,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Estadísticas principales */}
+      {/* Estadísticas principales - TIEMPO REAL */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
         <StatCard
           title="Embarques Activos"
@@ -188,6 +195,7 @@ const Dashboard = () => {
           subtitle={`Total: ${stats.totalEmbarques || 0}`}
           icon="📦"
           color="blue"
+          realtime={false}
         />
         <StatCard
           title="Recolecciones Hoy"
@@ -195,20 +203,23 @@ const Dashboard = () => {
           subtitle={`Total: ${stats.totalRecolecciones || 0}`}
           icon="🚚"
           color="green"
+          realtime={false}
         />
         <StatCard
           title="Rutas en Curso"
-          value={stats.rutasEnCurso}
-          subtitle={`Total: ${stats.totalRutas || 0}`}
+          value={rutasActivas.length}
+          subtitle={`Backend: ${stats.totalRutas || 0}`}
           icon="🚗"
           color="yellow"
+          realtime={true}
         />
         <StatCard
-          title="Facturas Pendientes"
-          value={stats.facturasPendientes}
-          subtitle={`Entregadas: ${stats.facturasEntregadas || 0}`}
-          icon="📄"
-          color="red"
+          title="Usuarios Activos"
+          value={usuarios.length}
+          subtitle={`Total: ${stats.totalUsuarios || 0}`}
+          icon="👥"
+          color="purple"
+          realtime={true}
         />
       </div>
 
@@ -263,6 +274,12 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Monitores en Tiempo Real */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+        <MonitorCargadores />
+        <MonitorRepartidores />
+      </div>
+
       {/* Accesos rápidos */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mb-3 sm:mb-4">Accesos Rápidos</h2>
@@ -298,7 +315,7 @@ const Dashboard = () => {
 };
 
 // Componente StatCard
-const StatCard = ({ title, value, subtitle, icon, color }) => {
+const StatCard = ({ title, value, subtitle, icon, color, realtime = false }) => {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
     green: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
@@ -308,7 +325,13 @@ const StatCard = ({ title, value, subtitle, icon, color }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 relative">
+      {realtime && (
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-xs text-gray-400">En vivo</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1 truncate">{title}</p>

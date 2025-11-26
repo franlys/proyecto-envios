@@ -25,6 +25,11 @@ export const getAllRutas = async (req, res) => {
       query = query.where('companyId', '==', userData.companyId);
     }
 
+    // Si es repartidor, solo mostrar sus rutas asignadas
+    if (userData.rol === 'repartidor') {
+      query = query.where('repartidorId', '==', req.user.uid);
+    }
+
     // Intentamos consulta ordenada
     try {
       const snapshot = await query.orderBy('createdAt', 'desc').limit(50).get();
@@ -213,20 +218,39 @@ export const finalizarRuta = async (req, res) => {
 
         // 1. Procesar todas las facturas de la ruta
         for (const facturaRuta of facturasEnRuta) {
-            // Se asume que si el estado NO es 'entregada' (sino 'asignado', 'no_encontrado', etc.), 
+            // Se asume que si el estado NO es 'entregada' (sino 'asignado', 'no_encontrado', etc.),
             // debe ser reasignada.
             if (facturaRuta.estado !== 'entregada') {
                 facturasNoEntregadasCount++;
                 const facturaId = facturaRuta.facturaId || facturaRuta.id; // El ID de la recolección
                 const recoleccionRef = db.collection('recolecciones').doc(facturaId);
 
+                // Crear reporte de no entrega
+                const reporteNoEntrega = {
+                    motivo: 'ruta_cerrada_sin_entregar',
+                    descripcion: 'Factura no entregada al cerrar la ruta',
+                    reportadoPor: req.user?.uid || 'sistema',
+                    nombreReportador: 'Sistema',
+                    intentarNuevamente: true,
+                    fecha: now
+                };
+
+                const historialEntry = {
+                    accion: 'factura_no_entregada',
+                    descripcion: 'Ruta cerrada sin entregar esta factura',
+                    motivo: 'ruta_cerrada_sin_entregar',
+                    fecha: now
+                };
+
                 // 1.1. Actualizar el documento de la recolección (la factura)
                 batch.update(recoleccionRef, {
                     estado: 'no_entregada', // Estado para que aparezca en el panel de reasignación
+                    reporteNoEntrega, // Agregar reporte para que aparezca en facturas no entregadas
                     rutaId: FieldValue.delete(), // Desvincular de la ruta
                     repartidorId: FieldValue.delete(),
                     repartidorNombre: FieldValue.delete(),
-                    // Puedes añadir más lógica de historial aquí si lo necesitas
+                    historial: FieldValue.arrayUnion(historialEntry),
+                    fechaActualizacion: now
                 });
             }
         }
@@ -264,31 +288,60 @@ export const getContenedoresDisponibles = async (req, res) => {
     const userData = await getUserDataSafe(req.user.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
+    console.log('📦 Buscando contenedores disponibles para crear rutas...');
+
     try {
-      // Intento 1: Consulta Óptima (Requiere Índice)
+      // Buscar contenedores recibidos en RD (estado: recibido_rd)
       const snapshot = await db.collection('contenedores')
         .where('companyId', '==', userData.companyId)
-        .where('estado', 'in', ['abierto', 'en_proceso', 'cerrado'])
-        .orderBy('fechaCreacion', 'desc')
+        .where('estado', '==', 'recibido_rd')
+        .orderBy('fechaRecepcion', 'desc')
         .limit(20)
         .get();
-      res.json({ success: true, data: snapshot.docs.map(d => ({id: d.id, ...d.data()})) });
+
+      const contenedores = snapshot.docs.map(doc => ({
+        id: doc.id,
+        numeroContenedor: doc.data().numeroContenedor,
+        estado: doc.data().estado,
+        facturas: doc.data().facturas || [],
+        estadisticas: doc.data().estadisticas || {},
+        fechaRecepcion: doc.data().fechaRecepcion?.toDate?.() || null
+      }));
+
+      console.log(`✅ Encontrados ${contenedores.length} contenedores recibidos en RD`);
+      res.json({ success: true, data: contenedores });
     } catch (indexError) {
-      console.warn("⚠️ Error índices Contenedores. Usando fallback simple.", indexError.message);
-      // Intento 2: Consulta Simple (Sin Ordenar)
+      console.warn("⚠️ Error con índice de fecha, intentando sin orderBy...", indexError.message);
+
+      // Fallback: sin orderBy
       const snapshot = await db.collection('contenedores')
         .where('companyId', '==', userData.companyId)
-        .where('estado', 'in', ['abierto', 'en_proceso', 'cerrado'])
+        .where('estado', '==', 'recibido_rd')
         .limit(20)
         .get();
-      
+
+      const contenedores = snapshot.docs.map(doc => ({
+        id: doc.id,
+        numeroContenedor: doc.data().numeroContenedor,
+        estado: doc.data().estado,
+        facturas: doc.data().facturas || [],
+        estadisticas: doc.data().estadisticas || {},
+        fechaRecepcion: doc.data().fechaRecepcion?.toDate?.() || null
+      }));
+
       // Ordenar en memoria
-      const data = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-      data.sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
-      
-      res.json({ success: true, data });
+      contenedores.sort((a, b) => {
+        const dateA = a.fechaRecepcion || new Date(0);
+        const dateB = b.fechaRecepcion || new Date(0);
+        return dateB - dateA;
+      });
+
+      res.json({ success: true, data: contenedores });
     }
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.error('❌ Error obteniendo contenedores:', e);
+    res.status(500).json({ error: e.message });
+  }
 };
 
 export const getFacturasDisponibles = async (req, res) => {
@@ -297,15 +350,66 @@ export const getFacturasDisponibles = async (req, res) => {
     const userData = await getUserDataSafe(req.user.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
+    console.log('📦 Buscando facturas disponibles para rutas...');
+    console.log(`   Company: ${userData.companyId}`);
+    console.log(`   Contenedor: ${contenedorId || 'Todos'}`);
+
+    // Buscar TODAS las facturas de la compañía (o del contenedor si se especifica)
     let query = db.collection('recolecciones')
-      .where('companyId', '==', userData.companyId)
-      .where('estado', 'in', ['confirmada', 'confirmada_secretaria', 'pendiente_ruta']);
-    
-    if (contenedorId) query = query.where('contenedorId', '==', contenedorId);
-    
-    const snapshot = await query.limit(100).get();
-    res.json({ success: true, data: snapshot.docs.map(d => ({id: d.id, ...d.data()})) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+      .where('companyId', '==', userData.companyId);
+
+    if (contenedorId) {
+      query = query.where('contenedorId', '==', contenedorId);
+    }
+
+    const snapshot = await query.limit(500).get();
+
+    // Estados que NO deben aparecer como disponibles:
+    const estadosExcluidos = ['entregada', 'completada', 'cancelada', 'en_ruta'];
+
+    // Filtrar en memoria:
+    // 1. NO debe tener rutaId asignada
+    // 2. NO debe estar en estados excluidos
+    // 3. Debe estar confirmada por secretaria (confirmada_secretaria) O en estados posteriores
+    const facturas = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const estado = data.estado || '';
+
+      // Solo incluir si:
+      // - NO tiene ruta asignada
+      // - NO está en estados excluidos
+      // - Ya fue confirmada por secretaria (o estados posteriores)
+      const tieneRutaAsignada = data.rutaId || data.rutaAsignada;
+      const estadoExcluido = estadosExcluidos.includes(estado);
+      const noConfirmada = estado === 'pendiente' || estado === 'en_transito' || estado === '';
+
+      if (!tieneRutaAsignada && !estadoExcluido && !noConfirmada) {
+        facturas.push({
+          id: doc.id,
+          codigoTracking: data.codigoTracking || doc.id,
+          cliente: data.destinatario?.nombre || 'Sin nombre',
+          direccion: data.destinatario?.direccion || 'Sin dirección',
+          sector: data.destinatario?.sector || data.sector || 'Sin Sector',
+          zona: data.destinatario?.zona || data.zona || 'Sin Zona',
+          telefono: data.destinatario?.telefono || '',
+          items: data.items || [],
+          itemsTotal: data.itemsTotal || data.items?.length || 0,
+          facturacion: data.facturacion || {},
+          pago: data.pago || {},
+          estado: data.estado,
+          contenedorId: data.contenedorId,
+          numeroContenedor: data.numeroContenedor
+        });
+      }
+    });
+
+    console.log(`✅ Encontradas ${facturas.length} facturas disponibles (de ${snapshot.size} total)`);
+    res.json({ success: true, data: facturas });
+  } catch (e) {
+    console.error('❌ Error obteniendo facturas disponibles:', e);
+    res.status(500).json({ error: e.message });
+  }
 };
 
 export const getRepartidoresDisponibles = async (req, res) => {

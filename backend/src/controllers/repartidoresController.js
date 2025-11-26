@@ -42,16 +42,19 @@ export const getRutasAsignadas = async (req, res) => {
     console.log('🚛 Repartidor buscando rutas:', repartidorId, 'Empresa:', companyId);
 
     // Buscar rutas asignadas
-    // ✅ CORRECCIÓN 4: Incluir 'asignada' para planificación inmediata
+    // ✅ CORRECCIÓN 5: Incluir TODOS los estados relevantes
     // Estados visibles:
     // - 'asignada': Rutas recién creadas, listas para planificación
-    // - 'carga_finalizada': Carga terminada, listo para salir
+    // - 'cargada': Carga terminada en sistema legacy, listo para salir
+    // - 'carga_finalizada': Carga terminada en sistema nuevo, listo para salir
     // - 'en_entrega': Ruta en proceso
+    // NOTA: No podemos usar .orderBy() con .where('estado', 'in') debido a limitación de Firestore
+    // Ver: https://firebase.google.com/docs/firestore/query-data/queries#limitations
+    // Ordenaremos manualmente en memoria después (es eficiente para < 100 rutas)
     const snapshot = await db.collection('rutas')
       .where('companyId', '==', companyId)
       .where('repartidorId', '==', repartidorId)
-      .where('estado', 'in', ['asignada', 'carga_finalizada', 'en_entrega'])
-      .orderBy('fechaCreacion', 'desc')
+      .where('estado', 'in', ['asignada', 'cargada', 'carga_finalizada', 'en_entrega'])
       .get();
 
     const rutas = snapshot.docs.map(doc => {
@@ -72,7 +75,7 @@ export const getRutasAsignadas = async (req, res) => {
       if (data.estado === 'asignada') {
         estadoTexto = 'Planificada';
         estadoCliente = 'asignada';
-      } else if (data.estado === 'carga_finalizada') {
+      } else if (data.estado === 'cargada' || data.estado === 'carga_finalizada') {
         estadoTexto = 'Lista para Salir';
         estadoCliente = 'cargada'; // El frontend espera 'cargada'
       } else if (data.estado === 'en_entrega') {
@@ -106,10 +109,17 @@ export const getRutasAsignadas = async (req, res) => {
 
     console.log(`✅ Encontradas ${rutas.length} rutas activas para el repartidor`);
 
+    // Ordenar rutas manualmente por fechaCreacion (más recientes primero)
+    const rutasOrdenadas = rutas.sort((a, b) => {
+      const fechaA = new Date(a.fechaCreacion);
+      const fechaB = new Date(b.fechaCreacion);
+      return fechaB - fechaA; // Orden descendente
+    });
+
     res.json({
       success: true,
-      data: rutas,
-      total: rutas.length
+      data: rutasOrdenadas,
+      total: rutasOrdenadas.length
     });
 
   } catch (error) {
@@ -237,7 +247,7 @@ export const getDetalleRuta = async (req, res) => {
 
     // Traducir estado para el frontend
     let estadoCliente = data.estado;
-    if (data.estado === 'carga_finalizada') {
+    if (data.estado === 'carga_finalizada' || data.estado === 'cargada') {
       estadoCliente = 'cargada';
     }
 
@@ -305,11 +315,11 @@ export const iniciarEntregas = async (req, res) => {
       });
     }
 
-    // Validar estado
-    if (data.estado !== 'carga_finalizada') {
+    // Validar estado - aceptar tanto 'cargada' como 'carga_finalizada'
+    if (data.estado !== 'carga_finalizada' && data.estado !== 'cargada') {
       return res.status(400).json({
         success: false,
-        message: `La ruta no está lista para iniciar (estado actual: ${data.estado})`
+        message: `La ruta no está lista para iniciar (estado actual: ${data.estado}). Debe estar en estado 'cargada' o 'carga_finalizada'`
       });
     }
 

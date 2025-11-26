@@ -19,7 +19,22 @@
       "Bash(nul)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(cat:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(exit:*)",
+      "Bash(node:*)",
+      "Bash(del c:Userselmaeproyecto-enviosbackendtest-stats.js)",
+      "Bash(if exist test-stats.js del test-stats.js)",
+      "Bash(firebase firestore:indexes:*)",
+      "Bash(firestore-indexes-actual.json)",
+      "Bash(firestore.indexes.json)",
+      "Bash(firebase --version:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(npm run build:*)",
+      "Bash(move:*)"
     ],
     "deny": [],
     "ask": []

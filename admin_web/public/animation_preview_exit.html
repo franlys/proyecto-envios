@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProLogix Exit Animation Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #111827;
+            /* gray-900 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The Login Form Card */
+        .login-card {
+            width: 400px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.5s ease;
+        }
+
+        .logo-circle {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        .dummy-input {
+            width: 100%;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to right, #2563EB, #7C3AED);
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: transform 0.1s;
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Animation Classes */
+        .animating .login-card {
+            animation: collapseToBox 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        .animating .dummy-input,
+        .animating .login-btn,
+        .animating h1 {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* The "Truck/Box" zooming out */
+        @keyframes collapseToBox {
+            0% {
+                width: 400px;
+                height: 500px;
+                transform: scale(1);
+                border-radius: 20px;
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            40% {
+                width: 120px;
+                height: 120px;
+                transform: scale(1.1);
+                /* Anticipation */
+                border-radius: 20px;
+                /* Becomes a box */
+                background: white;
+                border: 4px solid #3B82F6;
+            }
+
+            50% {
+                transform: scale(0.9) translateX(-20px);
+                /* Wind up */
+            }
+
+            100% {
+                width: 120px;
+                height: 120px;
+                border-radius: 20px;
+                background: white;
+                border: 4px solid #3B82F6;
+                transform: translateX(200vw) scale(1) skewX(-20deg);
+                /* Zoom out */
+                opacity: 0;
+            }
+        }
+
+        /* Speed lines effect */
+        .speed-lines {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100vw;
+            height: 200px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .animating .speed-lines {
+            animation: showLines 0.5s 0.4s forwards;
+        }
+
+        .line {
+            position: absolute;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 2px;
+            animation: moveLine 0.5s linear infinite;
+        }
+
+        @keyframes showLines {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes moveLine {
+            0% {
+                transform: translateX(100vw);
+            }
+
+            100% {
+                transform: translateX(-100vw);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container" id="container">
+        <div class="speed-lines">
+            <div class="line" style="top: 20%; width: 200px; animation-duration: 0.3s; animation-delay: 0.1s;"></div>
+            <div class="line" style="top: 50%; width: 300px; animation-duration: 0.4s; animation-delay: 0s;"></div>
+            <div class="line" style="top: 80%; width: 150px; animation-duration: 0.2s; animation-delay: 0.2s;"></div>
+        </div>
+
+        <div class="login-card" id="card">
+            <div class="logo-circle">
+                <img src="/assets/logo.png" class="logo-img" alt="ProLogix">
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-8">ProLogix</h1>
+
+            <div class="dummy-input"></div>
+            <div class="dummy-input"></div>
+
+            <button class="login-btn" onclick="startExit()">Iniciar Sesión</button>
+        </div>
+    </div>
+
+    <script>
+        function startExit() {
+            const container = document.getElementById('container');
+            container.classList.add('animating');
+
+            // Reset for demo purposes
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+    </script>
+
+</body>
+
+</html>

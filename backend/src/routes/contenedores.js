@@ -263,6 +263,46 @@ router.post('/upload-from-drive', async (req, res) => {
 });
 
 /**
+ * GET /api/contenedores/disponibles
+ * Listar contenedores disponibles para facturas pendientes
+ */
+router.get('/disponibles', async (req, res) => {
+  try {
+    const { companyId } = req.query;
+
+    let query = db.collection('contenedores');
+
+    if (companyId) {
+      query = query.where('companyId', '==', companyId);
+    }
+
+    const snapshot = await query.get();
+    const contenedores = [];
+
+    snapshot.forEach(doc => {
+      contenedores.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    res.json({
+      success: true,
+      data: contenedores,
+      count: contenedores.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo contenedores disponibles:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener contenedores disponibles',
+      details: error.message
+    });
+  }
+});
+
+/**
  * GET /api/contenedores
  * Listar contenedores disponibles
  */

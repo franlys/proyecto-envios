@@ -1,9 +1,9 @@
 // admin_web/src/components/DetalleRecoleccion.jsx
-// ✅ VERSIÓN CORREGIDA - Compatible con helpers existentes
+// ✅ VERSIÓN CORREGIDA - Compatible con helpers existentes y SmartImage
 
 import React from 'react';
-import { 
-  getDestinatario, 
+import {
+  getDestinatario,
   getRemitente,
   getResumenItems,
   getFotosRecoleccion,
@@ -12,6 +12,7 @@ import {
   contarItems
 } from '../utils/recoleccionHelpers';
 import { X, Package, MapPin, User, Phone, Mail, Home, Calendar } from 'lucide-react';
+import SmartImage, { useImageLightbox } from './common/SmartImage';
 
 const DetalleRecoleccion = ({ recoleccion, onClose }) => {
   if (!recoleccion) return null;
@@ -22,6 +23,9 @@ const DetalleRecoleccion = ({ recoleccion, onClose }) => {
   const resumenItems = getResumenItems(recoleccion);
   const fotos = getFotosRecoleccion(recoleccion);
   const estado = formatearEstado(recoleccion.estadoGeneral || recoleccion.estado);
+
+  // ✅ Hook para lightbox de imágenes
+  const { openLightbox, LightboxComponent } = useImageLightbox();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -218,34 +222,34 @@ const DetalleRecoleccion = ({ recoleccion, onClose }) => {
             </div>
           )}
 
-          {/* Sección de Fotos */}
+          {/* Sección de Fotos con SmartImage */}
           {fotos.length > 0 && (
             <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                 Fotos de Recolección ({fotos.length})
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {fotos.map((url, index) => (
-                  <a 
+                {fotos.map((foto, index) => (
+                  <div
                     key={index}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block aspect-square rounded-lg overflow-hidden hover:opacity-80 transition border border-gray-200 dark:border-gray-600"
+                    className="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer"
                   >
-                    <img 
-                      src={url} 
-                      alt={`Foto ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/150?text=Sin+Imagen';
-                      }}
+                    <SmartImage
+                      src={foto}
+                      alt={`Foto de recolección ${index + 1}`}
+                      className="w-full h-full"
+                      onClick={openLightbox}
+                      showOptimizedBadge={true}
+                      showZoomIcon={true}
                     />
-                  </a>
+                  </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Lightbox para vista ampliada */}
+          {LightboxComponent}
 
           {/* Notas */}
           {recoleccion.notas && recoleccion.notas !== '' && (

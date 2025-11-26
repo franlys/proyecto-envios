@@ -96,9 +96,11 @@ export const getStatsSuperAdmin = async (req, res) => {
 
     // Contar rutas totales
     const totalRutas = rutasSnapshot.size;
-    const rutasActivas = rutasSnapshot.docs.filter(doc => 
-      doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
-    ).length;
+    // Estados de rutas activas: asignada, cargada, en_entrega
+    const rutasActivas = rutasSnapshot.docs.filter(doc => {
+      const estado = doc.data().estado;
+      return estado === 'asignada' || estado === 'cargada' || estado === 'en_entrega';
+    }).length;
     const rutasEnCurso = rutasActivas;
 
     // Contar facturas totales
@@ -299,11 +301,21 @@ export const getStatsAdminGeneral = async (req, res) => {
 
     // Contar rutas de la empresa
     const totalRutas = rutasSnapshot.size;
-    const rutasActivas = rutasSnapshot.docs.filter(doc => 
-      doc.data().estado === 'activa' || doc.data().estado === 'en_proceso'
-    ).length;
+    // Estados de rutas activas: asignada, cargada, en_entrega
+    const rutasActivas = rutasSnapshot.docs.filter(doc => {
+      const estado = doc.data().estado;
+      return estado === 'asignada' || estado === 'cargada' || estado === 'en_entrega';
+    }).length;
     const rutasEnCurso = rutasActivas;
     const rutasCompletadas = rutasSnapshot.docs.filter(doc => doc.data().estado === 'completada').length;
+
+    // DEBUG: Ver qué rutas se están contando
+    console.log(`🔍 DEBUG - Total rutas: ${totalRutas}, Activas: ${rutasActivas}, En curso: ${rutasEnCurso}`);
+    rutasSnapshot.docs.forEach(doc => {
+      const estado = doc.data().estado;
+      const companyIdRuta = doc.data().companyId;
+      console.log(`  - Ruta ${doc.id}: estado="${estado}", companyId="${companyIdRuta}"`);
+    });
 
     // Contar facturas de la empresa
     const totalFacturas = facturasSnapshot.size;

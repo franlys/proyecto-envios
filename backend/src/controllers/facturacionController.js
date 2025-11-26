@@ -193,7 +193,7 @@ export const getFacturasPorContenedor = async (req, res) => {
 export const getFacturasNoEntregadas = async (req, res) => {
   try {
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
-    
+
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
@@ -204,23 +204,53 @@ export const getFacturasNoEntregadas = async (req, res) => {
     const userData = userDoc.data();
     const companyId = userData.companyId;
 
-    // ✅ CORRECCIÓN: Filtra por estados que indican que la factura debe ser reasignada.
-    const estadosAFiltrar = ['no_entregada', 'pendiente_ruta', 'pendiente'];
+    console.log('🔍 Buscando facturas no entregadas para companyId:', companyId);
 
+    // Obtener TODAS las recolecciones de la compañía y filtrar en memoria
+    // Esto es necesario porque necesitamos facturas que:
+    // 1. Tengan estado 'no_entregada'
+    // 2. Tengan un reporteNoEntrega (independientemente del estado)
+    // 3. No estén entregadas ni completadas
     const snapshot = await db.collection('recolecciones')
       .where('companyId', '==', companyId)
-      .where('estado', 'in', estadosAFiltrar) 
       .get();
 
     const facturasNoEntregadas = [];
-    
+
     snapshot.forEach(doc => {
       const data = doc.data();
-      facturasNoEntregadas.push({
-        id: doc.id,
-        ...data,
-        facturacion: data.facturacion || {} 
-      });
+
+      // Filtrar: debe tener reporte de no entrega O estar en estado no_entregada
+      // Y NO debe estar en estado entregada o completada
+      const tieneReporteNoEntrega = !!data.reporteNoEntrega;
+      const esNoEntregada = data.estado === 'no_entregada';
+      const noEstaEntregada = data.estado !== 'entregada' && data.estado !== 'completada';
+
+      // Debug: log facturas candidatas
+      if (esNoEntregada) {
+        console.log(`   📦 Candidata ${doc.id}: estado="${data.estado}", reporte=${tieneReporteNoEntrega}, rutaId="${data.rutaId || 'ninguna'}", tracking="${data.codigoTracking || 'sin codigo'}"`);
+      }
+
+      if ((tieneReporteNoEntrega || esNoEntregada) && noEstaEntregada) {
+        // Mapear campos para el frontend
+        facturasNoEntregadas.push({
+          id: doc.id,
+          numeroFactura: data.codigoTracking || data.numeroFactura || doc.id,
+          cliente: data.destinatario?.nombre || data.cliente || 'Sin nombre',
+          direccion: data.destinatario?.direccion || data.direccion || 'Sin dirección',
+          sector: data.destinatario?.sector || data.sector || '-',
+          rutaId: data.rutaId || null,
+          rutaNombre: data.rutaNombre || (data.rutaId ? `Ruta ${data.rutaId.substring(0, 8)}` : 'Sin asignar'),
+          motivoNoEntrega: data.reporteNoEntrega?.motivo || data.motivoNoEntrega || 'Sin motivo especificado',
+          fechaIntento: data.reporteNoEntrega?.fecha || data.fechaIntento || data.fechaActualizacion || null,
+          estado: data.estado,
+          // Incluir datos completos para el modal de reasignación
+          destinatario: data.destinatario || {},
+          items: data.items || [],
+          facturacion: data.facturacion || {},
+          reporteNoEntrega: data.reporteNoEntrega || null
+        });
+      }
     });
 
     console.log(`✅ ${facturasNoEntregadas.length} facturas no entregadas encontradas`);
@@ -239,6 +269,115 @@ export const getFacturasNoEntregadas = async (req, res) => {
   }
 };
 
+// ============================================================
+// 🔍 DEBUG: VER TODOS LOS ESTADOS DE FACTURAS
+// ============================================================
+export const debugEstadosFacturas = async (req, res) => {
+  try {
+    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const companyId = userDoc.data()?.companyId;
+
+    const snapshot = await db.collection('recolecciones')
+      .where('companyId', '==', companyId)
+      .limit(50)
+      .get();
+
+    const facturas = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      facturas.push({
+        id: doc.id,
+        codigoTracking: data.codigoTracking || 'sin codigo',
+        estado: data.estado,
+        rutaId: data.rutaId || null,
+        tieneReporteNoEntrega: !!data.reporteNoEntrega,
+        cliente: data.destinatario?.nombre || data.cliente || 'sin nombre'
+      });
+    });
+
+    console.log(`📊 DEBUG: ${facturas.length} facturas encontradas`);
+    facturas.forEach(f => {
+      console.log(`   - ${f.id}: estado="${f.estado}", ruta=${f.rutaId || 'ninguna'}, reporte=${f.tieneReporteNoEntrega}`);
+    });
+
+    return res.json({ success: true, data: facturas });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ============================================================
+// 🔧 REPARAR FACTURAS HUÉRFANAS (Temporal)
+// ============================================================
+export const repararFacturasHuerfanas = async (req, res) => {
+  try {
+    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const companyId = userDoc.data()?.companyId;
+
+    console.log('🔧 Reparando facturas huérfanas...');
+
+    const snapshot = await db.collection('recolecciones')
+      .where('companyId', '==', companyId)
+      .get();
+
+    const facturasReparadas = [];
+    const batch = db.batch();
+    const now = new Date().toISOString();
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+
+      // Buscar facturas sin rutaId que no estén en estados finales
+      const sinRuta = !data.rutaId;
+      const noEstaEntregada = data.estado !== 'entregada' && data.estado !== 'completada';
+      const noTieneEstadoClaro = !data.estado || data.estado === '' || data.estado === 'pendiente';
+
+      if (sinRuta && (noEstaEntregada || noTieneEstadoClaro)) {
+        const reporteNoEntrega = {
+          motivo: 'factura_huerfana_reparada',
+          descripcion: 'Factura huérfana detectada y marcada para reasignación',
+          reportadoPor: req.user?.uid || 'sistema',
+          nombreReportador: 'Sistema - Reparación',
+          intentarNuevamente: true,
+          fecha: now
+        };
+
+        batch.update(doc.ref, {
+          estado: 'no_entregada',
+          reporteNoEntrega,
+          fechaActualizacion: now,
+          historial: FieldValue.arrayUnion({
+            accion: 'reparacion_factura_huerfana',
+            descripcion: 'Factura marcada como no entregada por reparación del sistema',
+            fecha: now
+          })
+        });
+
+        facturasReparadas.push({
+          id: doc.id,
+          codigoTracking: data.codigoTracking,
+          estadoAnterior: data.estado || 'sin estado'
+        });
+      }
+    });
+
+    if (facturasReparadas.length > 0) {
+      await batch.commit();
+      console.log(`✅ ${facturasReparadas.length} facturas reparadas`);
+    } else {
+      console.log('✅ No se encontraron facturas que reparar');
+    }
+
+    return res.json({
+      success: true,
+      message: `${facturasReparadas.length} facturas reparadas`,
+      data: facturasReparadas
+    });
+  } catch (error) {
+    console.error('❌ Error reparando facturas:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
 
 // ============================================================
 // 🔄 REASIGNAR FACTURA (Nueva función que resuelve el 404)
@@ -267,20 +406,21 @@ export const reasignarFactura = async (req, res) => {
 
     if (accion === 'pendiente') {
       // 1. Marcar como pendiente para ser reasignada más tarde
-      nuevoEstado = 'pendiente_ruta'; 
+      nuevoEstado = 'pendiente_ruta';
       updateData = {
         estado: nuevoEstado,
         rutaId: FieldValue.delete(), // Desvincular de cualquier ruta
         repartidorId: FieldValue.delete(),
         repartidorNombre: FieldValue.delete(),
         fechaAsignacionRuta: FieldValue.delete(),
+        reporteNoEntrega: FieldValue.delete(), // ✅ Eliminar el reporte para que no aparezca más en "No Entregadas"
       };
       mensaje = 'Factura marcada como pendiente para nueva asignación.';
 
     } else if (accion === 'nueva_ruta' && nuevaRutaId) {
       // 2. Asignar a una ruta activa existente
       nuevoEstado = 'asignada';
-      
+
       const rutaDoc = await db.collection('rutas').doc(nuevaRutaId).get();
       if (!rutaDoc.exists || rutaDoc.data().estado !== 'asignada') {
         return res.status(400).json({ success: false, error: 'Ruta de destino inválida o inactiva.' });
@@ -297,6 +437,7 @@ export const reasignarFactura = async (req, res) => {
         repartidorId,
         repartidorNombre,
         fechaAsignacionRuta: now,
+        reporteNoEntrega: FieldValue.delete(), // ✅ Eliminar el reporte para que no aparezca más en "No Entregadas"
       };
       
       // Actualizar el arreglo de facturas dentro del documento de la ruta

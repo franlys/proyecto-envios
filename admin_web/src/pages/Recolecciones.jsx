@@ -1,54 +1,55 @@
 // admin_web/src/pages/Recolecciones.jsx
-// ✅ VERSIÓN CORREGIDA - Usa helpers para mostrar datos correctamente
+// ✅ VERSIÓN ACTUALIZADA - Tiempo Real + SmartImage
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Eye, Package, Calendar, MapPin, User, Phone, Camera, X, Home, Mail } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { 
-  getDestinatario, 
-  getRemitente, 
-  getNombreCliente, 
-  getTelefonoCliente, 
-  getDireccionCliente 
+import {
+  getDestinatario,
+  getRemitente,
+  getNombreCliente,
+  getTelefonoCliente,
+  getDireccionCliente
 } from '../utils/recoleccionHelpers';
+import { useRealtimeCollectionOptimized } from '../hooks/useRealtimeOptimized';
+import { LiveIndicator, ConnectionStatusIndicator } from '../components/RealtimeIndicator';
+import SmartImage, { useImageLightbox } from '../components/common/SmartImage';
 
 const Recolecciones = () => {
   const { userData } = useAuth();
   const navigate = useNavigate();
+
+  // ✅ Hook de Tiempo Real
+  const {
+    data: recoleccionesRealtime,
+    loading,
+    error
+  } = useRealtimeCollectionOptimized({
+    collectionName: 'recolecciones',
+    orderBy: ['fechaCreacion', 'desc']
+  });
+
+  // ✅ Hook para lightbox de imágenes
+  const { openLightbox, LightboxComponent } = useImageLightbox();
+
+  // Estados locales
   const [recolecciones, setRecolecciones] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todas');
   const [filtroZona, setFiltroZona] = useState('todas');
   const [showModal, setShowModal] = useState(false);
   const [recoleccionSeleccionada, setRecoleccionSeleccionada] = useState(null);
 
+  // Sincronizar datos en tiempo real con estado local
   useEffect(() => {
-    loadRecolecciones();
-  }, []);
-
-  const loadRecolecciones = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await api.get('/recolecciones');
-      console.log('📦 Respuesta del servidor:', response.data);
-      
-      if (response.data.success) {
-        setRecolecciones(response.data.data || []);
-      } else {
-        throw new Error(response.data.error || 'Error al cargar recolecciones');
-      }
-    } catch (error) {
-      console.error('❌ Error cargando recolecciones:', error);
+    if (recoleccionesRealtime && recoleccionesRealtime.length > 0) {
+      setRecolecciones(recoleccionesRealtime);
+    } else if (!loading) {
       setRecolecciones([]);
-      alert('Error al cargar recolecciones: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [recoleccionesRealtime, loading]);
 
   const handleVerDetalle = (recoleccion) => {
     console.log('🔍 Ver detalle de recolección:', recoleccion);
@@ -150,17 +151,23 @@ const Recolecciones = () => {
 
   return (
     <div className="space-y-6">
+      {/* Connection Status Indicator (Global) */}
+      <ConnectionStatusIndicator />
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Recolecciones</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">Recolecciones</h1>
+            <LiveIndicator isLive={true} showText={true} />
+          </div>
           <p className="text-gray-600 mt-1">
             Gestiona todas las recolecciones del sistema
           </p>
         </div>
-        
-        {(userData?.rol === 'recolector' || 
-          userData?.rol === 'admin_general' || 
+
+        {(userData?.rol === 'recolector' ||
+          userData?.rol === 'admin_general' ||
           userData?.rol === 'super_admin') && (
           <button
             onClick={handleNuevaRecoleccion}
@@ -525,7 +532,7 @@ const Recolecciones = () => {
                   </div>
                 </div>
 
-                {/* Fotos */}
+                {/* Fotos con SmartImage */}
                 {recoleccionSeleccionada.fotos && recoleccionSeleccionada.fotos.length > 0 && (
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -533,26 +540,26 @@ const Recolecciones = () => {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {recoleccionSeleccionada.fotos.map((foto, index) => (
-                        <a
+                        <div
                           key={index}
-                          href={foto.url || foto}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="relative group"
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
                         >
-                          <img
+                          <SmartImage
                             src={foto.url || foto}
-                            alt={`Foto ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-gray-200 group-hover:opacity-75 transition"
+                            alt={`Foto de recolección ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onClick={openLightbox}
+                            showOptimizedBadge={true}
+                            showZoomIcon={true}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <Eye className="text-white" size={24} />
-                          </div>
-                        </a>
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {/* Lightbox para vista ampliada */}
+                {LightboxComponent}
 
                 {/* Notas */}
                 {recoleccionSeleccionada.notas && (

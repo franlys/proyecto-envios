@@ -696,6 +696,64 @@ export const getContenedorById = async (req, res) => {
 };
 
 // ========================================
+// MARCAR CONTENEDOR COMO TRABAJADO
+// ========================================
+export const marcarTrabajado = async (req, res) => {
+  try {
+    const { id: contenedorId } = req.params;
+    const companyId = req.userData?.companyId;
+    const usuarioId = req.userData?.uid;
+
+    const contenedorRef = db.collection('contenedores').doc(contenedorId);
+    const contenedorDoc = await contenedorRef.get();
+
+    if (!contenedorDoc.exists) {
+      return res.status(404).json({ success: false, message: 'Contenedor no encontrado' });
+    }
+    const contenedor = contenedorDoc.data();
+
+    if (contenedor.companyId !== companyId) {
+      return res.status(403).json({ success: false, message: 'No tiene permisos' });
+    }
+
+    const historialEntry = {
+      accion: 'marcar_trabajado',
+      descripcion: `Contenedor marcado como trabajado`,
+      usuario: usuarioId,
+      fecha: new Date().toISOString()
+    };
+
+    await contenedorRef.update({
+      estado: ESTADOS_CONTENEDOR.TRABAJADO,
+      fechaTrabajado: FieldValue.serverTimestamp(),
+      fechaActualizacion: FieldValue.serverTimestamp(),
+      trabajadoPor: usuarioId,
+      historial: FieldValue.arrayUnion(historialEntry)
+    });
+
+    console.log(`✅ Contenedor ${contenedorId} marcado como trabajado`);
+
+    res.json({
+      success: true,
+      message: 'Contenedor marcado como trabajado exitosamente',
+      data: {
+        contenedorId,
+        numeroContenedor: contenedor.numeroContenedor,
+        estado: ESTADOS_CONTENEDOR.TRABAJADO
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error marcando contenedor como trabajado:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al marcar el contenedor como trabajado',
+      error: error.message
+    });
+  }
+};
+
+// ========================================
 // OBTENER ESTADÍSTICAS DEL ALMACÉN USA
 // ========================================
 export const getEstadisticasAlmacen = async (req, res) => {
