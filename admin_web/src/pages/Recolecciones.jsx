@@ -21,19 +21,29 @@ const Recolecciones = () => {
   const { userData } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ Hook de Tiempo Real
+  // 🔍 DEBUG: Log del usuario actual
+  console.log('🔍 Usuario en Recolecciones:', {
+    rol: userData?.rol,
+    uid: userData?.uid,
+    nombre: userData?.nombre
+  });
+
+  // ✅ Filtro condicional: Recolectores ven solo sus recolecciones, Admin y AlmacénUSA ven todas
+  const filtrosAdicionales = userData?.rol === 'recolector' && userData?.uid
+    ? [['userId', '==', userData.uid]]
+    : [];
+
+  // ✅ Hook de Tiempo Real - FIRMA CORRECTA: (collectionName, additionalFilters, orderByFields, options)
   const {
     data: recoleccionesRealtime,
     loading,
     error
-  } = useRealtimeCollectionOptimized({
-    collectionName: 'recolecciones',
-    orderBy: ['fechaCreacion', 'desc'],
-    // ✅ Filtro condicional: Recolectores ven solo sus recolecciones, Admin y AlmacénUSA ven todas
-    ...(userData?.rol === 'recolector' && userData?.uid && {
-      where: [['userId', '==', userData.uid]]
-    })
-  });
+  } = useRealtimeCollectionOptimized(
+    'recolecciones',           // collectionName
+    filtrosAdicionales,        // additionalFilters
+    [['fechaCreacion', 'desc']], // orderByFields
+    {}                         // options
+  );
 
   // ✅ Hook para lightbox de imágenes
   const { openLightbox, LightboxComponent } = useImageLightbox();
@@ -48,6 +58,12 @@ const Recolecciones = () => {
 
   // Sincronizar datos en tiempo real con estado local
   useEffect(() => {
+    console.log('🔍 Datos recibidos del hook:', {
+      cantidad: recoleccionesRealtime?.length || 0,
+      loading,
+      datos: recoleccionesRealtime
+    });
+
     if (recoleccionesRealtime && recoleccionesRealtime.length > 0) {
       setRecolecciones(recoleccionesRealtime);
     } else if (!loading) {

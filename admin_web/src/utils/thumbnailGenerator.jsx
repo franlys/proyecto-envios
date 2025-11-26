@@ -10,6 +10,7 @@
  * - Original: Nunca se sube (siempre comprimido)
  */
 
+import React from 'react';
 import { compressImageFile } from './imageCompression';
 
 /**

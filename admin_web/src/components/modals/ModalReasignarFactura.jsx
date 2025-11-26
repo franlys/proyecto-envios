@@ -3,9 +3,7 @@ import { useState, useEffect } from 'react';
 import api from "../../services/api";
 
 const ModalReasignarFactura = ({ factura, onClose, onSuccess }) => {
-  // ✅ CORRECCIÓN 1: Cláusula de guardia para evitar el crash (si la factura es nula)
-  if (!factura) return null; 
-
+  // ✅ Todos los hooks DEBEN ir antes de cualquier return condicional
   const [loading, setLoading] = useState(false);
   const [accion, setAccion] = useState('pendiente'); // 'pendiente' o 'nueva_ruta'
   const [observaciones, setObservaciones] = useState('');
@@ -14,17 +12,21 @@ const ModalReasignarFactura = ({ factura, onClose, onSuccess }) => {
 
   useEffect(() => {
     // Si la factura cambia y ya estaba en el modal, resetea la acción
-    if (factura.id) {
+    if (factura?.id) {
         setAccion('pendiente');
         setRutaSeleccionada('');
     }
-  }, [factura.id]);
+  }, [factura?.id]);
 
   useEffect(() => {
     if (accion === 'nueva_ruta') {
       fetchRutasActivas();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accion]);
+
+  // ✅ Cláusula de guardia DESPUÉS de todos los hooks
+  if (!factura) return null;
 
   const fetchRutasActivas = async () => {
     try {

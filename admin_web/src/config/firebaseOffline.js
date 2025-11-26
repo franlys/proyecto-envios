@@ -5,6 +5,7 @@
  * Los datos se sincronizan automáticamente cuando vuelve internet.
  */
 
+import React from 'react';
 import { db } from '../services/firebase';
 import { enableIndexedDbPersistence, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { toast } from 'sonner';

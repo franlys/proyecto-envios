@@ -8,6 +8,8 @@
  * - Proporcionar imágenes legibles como evidencia
  */
 
+import React from 'react';
+
 /**
  * Configuración de compresión por defecto
  */

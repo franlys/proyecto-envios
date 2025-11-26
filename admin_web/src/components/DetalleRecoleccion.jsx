@@ -15,6 +15,9 @@ import { X, Package, MapPin, User, Phone, Mail, Home, Calendar } from 'lucide-re
 import SmartImage, { useImageLightbox } from './common/SmartImage';
 
 const DetalleRecoleccion = ({ recoleccion, onClose }) => {
+  // ✅ Hook para lightbox de imágenes - DEBE ir antes de cualquier return condicional
+  const { openLightbox, LightboxComponent } = useImageLightbox();
+
   if (!recoleccion) return null;
 
   // ✅ Usar helpers existentes
@@ -23,9 +26,6 @@ const DetalleRecoleccion = ({ recoleccion, onClose }) => {
   const resumenItems = getResumenItems(recoleccion);
   const fotos = getFotosRecoleccion(recoleccion);
   const estado = formatearEstado(recoleccion.estadoGeneral || recoleccion.estado);
-
-  // ✅ Hook para lightbox de imágenes
-  const { openLightbox, LightboxComponent } = useImageLightbox();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -10,17 +10,12 @@ import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import logo from '../assets/logo.png';
 
-// Importar componentes de notificaciones (si existen)
-let NotificationListener, NotificationPanel, NotificationToast, ModalDetalleFactura, useNotifications;
-try {
-  NotificationListener = require('./notifications/NotificationListener').default;
-  NotificationPanel = require('./notifications/NotificationPanel').default;
-  NotificationToast = require('./notifications/NotificationToast').default;
-  ModalDetalleFactura = require('./modals/ModalDetalleFactura').default;
-  useNotifications = require('../hooks/useNotifications').useNotifications;
-} catch (error) {
-  console.log('Componentes de notificaciones no encontrados, usando versiones básicas');
-}
+// ✅ Importar componentes de notificaciones con imports estáticos
+import NotificationListener from './notifications/NotificationListener';
+import NotificationPanel from './notifications/NotificationPanel';
+import NotificationToast from './notifications/NotificationToast';
+import ModalDetalleFactura from './modals/ModalDetalleFactura';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -31,20 +26,7 @@ const Layout = ({ children }) => {
   const [showDetalleModal, setShowDetalleModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // Estado para controlar el sidebar en móvil
 
-  // Hook de notificaciones (si existe)
-  const notificationHook = useNotifications ? useNotifications() : {
-    notifications: [],
-    showPanel: false,
-    currentToast: null,
-    unreadCount: 0,
-    addNotification: () => { },
-    loadExistingNotifications: () => { },
-    markAsRead: () => { },
-    closeToast: () => { },
-    togglePanel: () => { },
-    setShowPanel: () => { }
-  };
-
+  // ✅ Hook de notificaciones - SIEMPRE se debe llamar
   const {
     notifications,
     showPanel,
@@ -56,7 +38,7 @@ const Layout = ({ children }) => {
     closeToast,
     togglePanel,
     setShowPanel
-  } = notificationHook;
+  } = useNotifications();
 
   const handleLogout = async () => {
     try {

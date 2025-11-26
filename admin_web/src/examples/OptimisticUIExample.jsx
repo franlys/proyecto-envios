@@ -5,7 +5,7 @@
  * una experiencia de usuario instantánea y sin latencia.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, Loader, Package } from 'lucide-react';
 import { useOptimisticAction, useMisRutasActivas } from '../hooks/useRealtimeOptimized';
 import { LiveIndicator, DataChangePulse } from '../components/RealtimeIndicator';
