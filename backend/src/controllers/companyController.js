@@ -3,7 +3,7 @@ import { auth, db } from '../config/firebase.js';
 // Crear nueva compañía (solo super_admin)
 export const createCompany = async (req, res) => {
   try {
-    const { nombre, adminEmail, adminPassword, telefono, direccion, plan } = req.body;
+    const { nombre, adminEmail, adminPassword, telefono, direccion, plan, emailConfig, invoiceDesign } = req.body;
 
     // Validar que el usuario sea super_admin
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
@@ -70,6 +70,28 @@ export const createCompany = async (req, res) => {
       createdBy: req.user.uid
     };
 
+    // Agregar emailConfig si se proporciona
+    if (emailConfig) {
+      companyData.emailConfig = {
+        service: emailConfig.service || 'gmail',
+        user: emailConfig.user || '',
+        pass: emailConfig.pass || '',
+        from: emailConfig.from || emailConfig.user || ''
+      };
+    }
+
+    // Agregar invoiceDesign si se proporciona
+    if (invoiceDesign) {
+      companyData.invoiceDesign = {
+        logoUrl: invoiceDesign.logoUrl || '',
+        primaryColor: invoiceDesign.primaryColor || '#1976D2',
+        secondaryColor: invoiceDesign.secondaryColor || '#f5f5f5',
+        template: invoiceDesign.template || 'modern',
+        headerText: invoiceDesign.headerText || 'Gracias por su preferencia',
+        footerText: invoiceDesign.footerText || ''
+      };
+    }
+
     await db.collection('companies').doc(companyId).set(companyData);
 
     res.status(201).json({
@@ -102,22 +124,32 @@ export const getAllCompanies = async (req, res) => {
     // Validar que el usuario sea super_admin
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
-      return res.status(403).json({ error: 'No tienes permisos para ver compañías' });
+      return res.status(403).json({
+        success: false,
+        error: 'No tienes permisos para ver compañías'
+      });
     }
 
     const snapshot = await db.collection('companies')
       .orderBy('createdAt', 'desc')
       .get();
-    
+
     const companies = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
 
-    res.json(companies);
+    res.json({
+      success: true,
+      count: companies.length,
+      data: companies
+    });
   } catch (error) {
     console.error('Error obteniendo compañías:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
@@ -154,8 +186,8 @@ export const getCompanyById = async (req, res) => {
 export const updateCompany = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, telefono, direccion, plan, activo } = req.body;
-    
+    const { nombre, telefono, direccion, plan, activo, emailConfig, invoiceDesign } = req.body;
+
     // Validar que el usuario sea super_admin
     const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
@@ -168,6 +200,29 @@ export const updateCompany = async (req, res) => {
     if (direccion !== undefined) updates.direccion = direccion;
     if (plan !== undefined) updates.plan = plan;
     if (activo !== undefined) updates.activo = activo;
+
+    // Actualización parcial de emailConfig
+    if (emailConfig !== undefined) {
+      updates.emailConfig = {
+        service: emailConfig.service || 'gmail',
+        user: emailConfig.user || '',
+        pass: emailConfig.pass || '',
+        from: emailConfig.from || emailConfig.user || ''
+      };
+    }
+
+    // Actualización parcial de invoiceDesign
+    if (invoiceDesign !== undefined) {
+      updates.invoiceDesign = {
+        logoUrl: invoiceDesign.logoUrl || '',
+        primaryColor: invoiceDesign.primaryColor || '#1976D2',
+        secondaryColor: invoiceDesign.secondaryColor || '#f5f5f5',
+        template: invoiceDesign.template || 'modern',
+        headerText: invoiceDesign.headerText || 'Gracias por su preferencia',
+        footerText: invoiceDesign.footerText || ''
+      };
+    }
+
     updates.updatedAt = new Date().toISOString();
 
     await db.collection('companies').doc(id).update(updates);

@@ -142,7 +142,7 @@ const Reportes = () => {
       case 'facturas':
         nombreArchivo = 'reporte_facturas';
         datosExcel = datosReporte.facturas.map(factura => ({
-          'Número Factura': factura.numeroFactura,
+          'Código Tracking': factura.codigoTracking || factura.numeroFactura || '-',
           'Cliente': factura.cliente,
           'Dirección': factura.direccion,
           'Monto': factura.monto,
@@ -201,9 +201,9 @@ const Reportes = () => {
 
       case 'facturas':
         titulo = 'Reporte de Facturas';
-        columnas = ['Número', 'Cliente', 'Estado', 'Ruta', 'Monto'];
+        columnas = ['Tracking', 'Cliente', 'Estado', 'Ruta', 'Monto'];
         filas = datosReporte.facturas.map(factura => [
-          factura.numeroFactura,
+          factura.codigoTracking || factura.numeroFactura || '-',
           factura.cliente,
           factura.estado,
           factura.rutaNombre || 'Sin asignar',
@@ -376,7 +376,7 @@ const Reportes = () => {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Número</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Tracking</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Cliente</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Dirección</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
@@ -387,7 +387,7 @@ const Reportes = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {datosReporte.facturas.map((factura, idx) => (
                 <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{factura.numeroFactura}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{factura.codigoTracking || factura.numeroFactura || '-'}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{factura.cliente}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{factura.direccion}</td>
                   <td className="px-4 py-3 text-sm text-center">

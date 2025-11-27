@@ -351,6 +351,9 @@ export const getContenedoresDisponibles = async (req, res) => {
         cargadorId: cargadoresIds[0],
         cargadorNombre: cargadoresData.find(c => c.id === cargadoresIds[0])?.nombre || cargadoresIds[0],
 
+        // ✅ CORRECCIÓN 4: AGREGAR ARRAY DE CARGADORES PARA BÚSQUEDA POR ARRAY-CONTAINS
+        cargadoresIds: cargadoresIds, // Array de IDs de cargadores para queries
+
         cargadores: cargadoresData,
         facturas: facturasConOrden,
         configuracion: {

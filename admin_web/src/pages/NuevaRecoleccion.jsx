@@ -59,7 +59,7 @@ const NuevaRecoleccion = () => {
   const [sectoresDisponibles, setSectoresDisponibles] = useState([]);
 
   const [notas, setNotas] = useState('');
-  const [items, setItems] = useState([{ id: 1, descripcion: '', cantidad: 1, precio: 0 }]);
+  const [items, setItems] = useState([{ id: 1, producto: '', cantidad: 1, precio: 0 }]);
   const [fotos, setFotos] = useState([]);
   const [fotoPreviews, setFotoPreviews] = useState([]);
 
@@ -99,7 +99,7 @@ const NuevaRecoleccion = () => {
   };
 
   const handleAddItem = () => {
-    setItems([...items, { id: Date.now(), descripcion: '', cantidad: 1, precio: 0 }]);
+    setItems([...items, { id: Date.now(), producto: '', cantidad: 1, precio: 0 }]);
   };
 
   const handleRemoveItem = (index) => {
@@ -221,7 +221,7 @@ const NuevaRecoleccion = () => {
       if (!confirmar) return;
     }
 
-    if (items.length === 0 || items.some(item => !item.descripcion.trim())) {
+    if (items.length === 0 || items.some(item => !item.producto.trim())) {
       toast.error('Debes agregar al menos un item con descripción.');
       return;
     }
@@ -236,7 +236,7 @@ const NuevaRecoleccion = () => {
 
     try {
       const itemsLimpios = items.map(item => ({
-        descripcion: item.descripcion.trim(),
+        producto: item.producto.trim(),
         cantidad: parseInt(item.cantidad) || 1,
         precio: parseFloat(item.precio) || 0
       }));
@@ -497,8 +497,8 @@ const NuevaRecoleccion = () => {
                   <input
                     type="text"
                     placeholder={`Descripción del item ${index + 1}`}
-                    value={item.descripcion}
-                    onChange={(e) => handleItemChange(index, 'descripcion', e.target.value)}
+                    value={item.producto}
+                    onChange={(e) => handleItemChange(index, 'producto', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />

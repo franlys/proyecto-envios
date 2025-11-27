@@ -23,6 +23,7 @@ import repartidoresRoutes from './routes/repartidores.js';
 import facturacionRoutes from './routes/facturacion.js';
 import dashboardRoutes from './routes/dashboard.js';
 import sectoresRoutes from './routes/sectores.js'; // ✅ NUEVO - Sistema de Sectores
+import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión de Gastos de Ruta
 
 const app = express();
 
@@ -121,6 +122,7 @@ app.use('/api/repartidores', repartidoresRoutes);
 app.use('/api/facturacion', facturacionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sectores', sectoresRoutes); // ✅ NUEVO - Sistema de Sectores
+app.use('/api/gastos-ruta', gastosRutaRoutes); // ✅ NUEVO - Gestión de Gastos de Ruta
 
 // =====================================================
 // RUTA RAÍZ

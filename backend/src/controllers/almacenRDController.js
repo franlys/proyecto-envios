@@ -4,6 +4,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { sendEmail } from '../services/notificationService.js';
 
 // ========================================
 // CONSTANTES DE ESTADOS
@@ -381,9 +382,65 @@ export const confirmarRecepcion = async (req, res) => {
       resultado.errores = erroresDetallados;
     }
 
+    // ✅ ENVIAR NOTIFICACIÓN A TODOS LOS REMITENTES (en segundo plano)
+    if (Array.isArray(contenedor.facturas) && contenedor.facturas.length > 0) {
+      // Obtener configuración de la compañía
+      let companyConfig = null;
+      try {
+        const companyDoc = await db.collection('companies').doc(companyId).get();
+        if (companyDoc.exists) {
+          companyConfig = companyDoc.data();
+        }
+      } catch (error) {
+        console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+      }
+
+      for (const factura of contenedor.facturas) {
+        const facturaId = normalizeFacturaRef(factura);
+        if (!facturaId) continue;
+
+        try {
+          const recoleccionDoc = await db.collection('recolecciones').doc(facturaId.trim()).get();
+          if (!recoleccionDoc.exists) continue;
+
+          const facturaData = recoleccionDoc.data();
+          const remitenteEmail = facturaData.remitente?.email;
+
+          if (remitenteEmail) {
+            const subject = `🏭 Recibido en Almacén RD - ${facturaData.codigoTracking}`;
+            const html = `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #1976D2;">🏭 Recibido en Almacén RD</h2>
+                <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
+                <p>Tu paquete ha llegado a nuestro almacén en República Dominicana y está siendo procesado.</p>
+
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Detalles del Envío</h3>
+                  <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                  <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
+                  <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+                  <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+                </div>
+
+                <p>Puedes rastrear tu envío en cualquier momento usando el código: <strong>${facturaData.codigoTracking}</strong></p>
+                <p>Pronto será asignado a una ruta para su entrega final.</p>
+                <p>Gracias por confiar en nosotros.</p>
+              </div>
+            `;
+
+            sendEmail(remitenteEmail, subject, html, [], companyConfig)
+              .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Recibido en RD`))
+              .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
+          }
+        } catch (error) {
+          console.error(`❌ Error enviando notificación para factura ${facturaId}:`, error.message);
+        }
+      }
+    }
+
     res.json({
       success: true,
-      message: facturasConError > 0 
+      message: facturasConError > 0
         ? `Recepción confirmada con ${facturasConError} error(es)`
         : 'Recepción confirmada exitosamente',
       data: resultado

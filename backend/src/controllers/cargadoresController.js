@@ -23,15 +23,26 @@ export const getRutasAsignadas = async (req, res) => {
     const rutasRef = db.collection('rutas');
     let rutasDocs = [];
 
+    // DIAGNÓSTICO: Ver TODAS las rutas de la compañía
+    const todasRutas = await rutasRef
+      .where('companyId', '==', companyId)
+      .get();
+    console.log(`📊 Total rutas en compañía: ${todasRutas.size}`);
+    todasRutas.docs.forEach(doc => {
+      const d = doc.data();
+      console.log(`   - Ruta ${doc.id}: estado="${d.estado}", cargadorId="${d.cargadorId}", cargadoresIds=${JSON.stringify(d.cargadoresIds)}`);
+    });
+
     // ESTRATEGIA DE BÚSQUEDA HÍBRIDA
     // 1. Intentar búsqueda avanzada por array 'cargadoresIds'
     try {
+      console.log('🔍 Intentando búsqueda con array-contains...');
       const snapshotArray = await rutasRef
         .where('companyId', '==', companyId)
         .where('cargadoresIds', 'array-contains', cargadorId)
         .where('estado', 'in', ['asignada', 'en_carga'])
         .get();
-      
+
       rutasDocs = [...snapshotArray.docs];
       console.log(`✅ Búsqueda array: ${rutasDocs.length} rutas`);
     } catch (e) {
@@ -39,23 +50,22 @@ export const getRutasAsignadas = async (req, res) => {
     }
 
     // 2. Búsqueda fallback por campo simple 'cargadorId'
-    if (rutasDocs.length === 0) {
-      const snapshotSimple = await rutasRef
-        .where('companyId', '==', companyId)
-        .where('cargadorId', '==', cargadorId)
-        .where('estado', 'in', ['asignada', 'en_carga'])
-        .get();
-      
-      // Evitar duplicados si la primera búsqueda funcionó parcialmente
-      const idsExistentes = new Set(rutasDocs.map(d => d.id));
-      snapshotSimple.docs.forEach(doc => {
-        if (!idsExistentes.has(doc.id)) {
-          rutasDocs.push(doc);
-        }
-      });
-      
-      console.log(`✅ Búsqueda simple: ${snapshotSimple.docs.length} rutas adicionales`);
-    }
+    console.log('🔍 Intentando búsqueda con cargadorId simple...');
+    const snapshotSimple = await rutasRef
+      .where('companyId', '==', companyId)
+      .where('cargadorId', '==', cargadorId)
+      .where('estado', 'in', ['asignada', 'en_carga'])
+      .get();
+
+    console.log(`✅ Búsqueda simple: ${snapshotSimple.docs.length} rutas`);
+
+    // Evitar duplicados si la primera búsqueda funcionó parcialmente
+    const idsExistentes = new Set(rutasDocs.map(d => d.id));
+    snapshotSimple.docs.forEach(doc => {
+      if (!idsExistentes.has(doc.id)) {
+        rutasDocs.push(doc);
+      }
+    });
 
     // 3. Procesar y formatear datos
     const rutas = rutasDocs.map(doc => {

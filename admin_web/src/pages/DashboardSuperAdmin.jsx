@@ -32,8 +32,8 @@ const DashboardSuperAdmin = () => {
 
   const fetchSystemHealth = async () => {
     try {
-      // ✅ FIX: Usar la variable de entorno en lugar de localhost hardcodeado
-      const response = await fetch(`${API_URL}/api/health`);
+      // ✅ FIX: API_URL ya incluye /api, solo agregar /health
+      const response = await fetch(`${API_URL}/health`);
       const data = await response.json();
       setSystemHealth(data);
     } catch (error) {

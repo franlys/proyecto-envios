@@ -19,8 +19,10 @@ import {
   FileText,
   Filter,
   Download,
-  Clock
+  Clock,
+  Edit // Importar icono de edición
 } from 'lucide-react';
+import ModalFacturacion from '../components/modals/ModalFacturacion'; // Importar el nuevo modal
 
 const FacturasPendientesPago = () => {
   const [facturasPendientes, setFacturasPendientes] = useState([]);
@@ -36,6 +38,10 @@ const FacturasPendientesPago = () => {
   const [metodoPago, setMetodoPago] = useState('');
   const [referencia, setReferencia] = useState('');
   const [notasPago, setNotasPago] = useState('');
+
+  // Modal de facturación completa
+  const [modalFacturacion, setModalFacturacion] = useState(false);
+  const [facturaParaEditar, setFacturaParaEditar] = useState(null);
 
   useEffect(() => {
     cargarFacturasPendientes();
@@ -86,6 +92,11 @@ const FacturasPendientesPago = () => {
     setReferencia('');
     setNotasPago('');
     setModalPago(true);
+  };
+
+  const openModalFacturacion = (factura) => {
+    setFacturaParaEditar(factura);
+    setModalFacturacion(true);
   };
 
   const handleRegistrarPago = async () => {
@@ -231,7 +242,14 @@ const FacturasPendientesPago = () => {
                     <td className="px-4 py-4 whitespace-nowrap text-sm">
                       {getEstadoBadge(factura.facturacion?.estadoPago || 'pendiente_pago')}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                      <button
+                        onClick={() => openModalFacturacion(factura)}
+                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition"
+                        title="Gestionar Factura"
+                      >
+                        <Edit size={18} />
+                      </button>
                       <button
                         onClick={() => openModalPago(factura)}
                         className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-gray-400"
@@ -345,6 +363,15 @@ const FacturasPendientesPago = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Facturación Completa */}
+      {modalFacturacion && facturaParaEditar && (
+        <ModalFacturacion
+          factura={facturaParaEditar}
+          onClose={() => setModalFacturacion(false)}
+          onUpdate={cargarFacturasPendientes}
+        />
       )}
     </div>
   );

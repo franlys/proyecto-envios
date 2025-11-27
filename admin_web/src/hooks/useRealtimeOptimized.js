@@ -61,6 +61,10 @@ export const useRealtimeCollectionOptimized = (
         setLoading(true);
         setError(null);
 
+        console.log('🔍 [useRealtime] Iniciando listener para:', collectionName);
+        console.log('👤 [useRealtime] User Company:', userData.companyId);
+        console.log('🛡️ [useRealtime] Filtros:', JSON.stringify(additionalFilters));
+
         const collectionRef = collection(db, collectionName);
         let q = query(collectionRef);
 
@@ -113,6 +117,8 @@ export const useRealtimeCollectionOptimized = (
                 ...doc.data()
               });
             });
+
+            console.log(`✅ [useRealtime] ${collectionName}: ${documents.length} docs encontrados`);
 
             // Detectar nuevos documentos (solo después de la carga inicial)
             if (!isFirstLoadRef.current && changes.added.length > 0) {
@@ -195,7 +201,7 @@ export const useMisRutasActivas = () => {
       ['repartidorId', '==', userData?.uid || ''],
       ['estado', 'in', ['asignada', 'cargada', 'carga_finalizada', 'en_entrega']]
     ],
-    [['fechaCreacion', 'desc']],
+    [['createdAt', 'desc']],
     {
       enableNotifications: true,
       notificationMessage: '📦 Nueva ruta asignada',
@@ -206,6 +212,7 @@ export const useMisRutasActivas = () => {
 
 /**
  * Hook para Cargadores - Solo MIS rutas pendientes de carga
+ * ✅ CORRECCIÓN: Usa array-contains en cargadoresIds
  */
 export const useMisRutasPendientesCarga = () => {
   const { userData } = useAuth();
@@ -213,7 +220,7 @@ export const useMisRutasPendientesCarga = () => {
   return useRealtimeCollectionOptimized(
     'rutas',
     [
-      ['cargadorId', '==', userData?.uid || ''],
+      ['cargadoresIds', 'array-contains', userData?.uid || ''],
       ['estado', 'in', ['asignada', 'en_carga']]
     ],
     [['fechaAsignacion', 'desc']],

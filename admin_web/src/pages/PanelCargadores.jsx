@@ -4,8 +4,7 @@ import api from '../services/api';
 import { storage } from '../services/firebase.js';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImageFile, needsCompression } from '../utils/imageCompression'; // Compresión de imágenes
-import { useMisRutasPendientesCarga, useOptimisticAction } from '../hooks/useRealtimeOptimized'; // Real-time hooks
-import { LiveIndicator, NewDataBadge, ConnectionStatusIndicator } from '../components/RealtimeIndicator'; // Visual indicators
+import { useOptimisticAction } from '../hooks/useRealtimeOptimized'; // Optimistic UI
 import { generateImageVariants, variantBlobToFile, getStoragePathForVariant } from '../utils/thumbnailGenerator.jsx'; // Thumbnail system
 import SmartImage, { useImageLightbox } from '../components/common/SmartImage'; // Smart Image
 import {
@@ -23,15 +22,8 @@ import {
 
 const PanelCargadores = () => {
   // ==============================================================================
-  // 🎣 HOOKS DE TIEMPO REAL Y OPTIMISTIC UI
+  // 🎣 HOOKS Y ESTADOS
   // ==============================================================================
-  const {
-    data: rutasRealtime,
-    loading: loadingRutas,
-    hasNewData,
-    clearNewDataIndicator
-  } = useMisRutasPendientesCarga();
-
   const { executeWithOptimism } = useOptimisticAction();
   const { openLightbox, LightboxComponent } = useImageLightbox();
 
@@ -43,7 +35,7 @@ const PanelCargadores = () => {
   const [vistaActual, setVistaActual] = useState('lista'); // 'lista' | 'detalle'
 
   // Estados de carga y procesamiento
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
   const [procesando, setProcesando] = useState(false);
 
@@ -68,21 +60,29 @@ const PanelCargadores = () => {
   const [facturaDetalleSeleccionada, setFacturaDetalleSeleccionada] = useState(null);
 
   // ==============================================================================
-  // 🔄 EFECTOS Y SINCRONIZACIÓN EN TIEMPO REAL
+  // 🔄 EFECTOS Y CARGA DE DATOS
   // ==============================================================================
-  // Sincronizar datos en tiempo real con estado local
+  // Cargar rutas asignadas al montar el componente
   useEffect(() => {
-    if (rutasRealtime && rutasRealtime.length > 0) {
-      setRutas(rutasRealtime);
-    } else if (!loadingRutas) {
-      setRutas([]);
-    }
-  }, [rutasRealtime, loadingRutas]);
+    cargarRutasAsignadas();
+  }, []);
 
-  // Helper para recargar la lista de rutas (ahora solo para compatibilidad)
+  // Cargar lista de rutas desde el backend
   const cargarRutasAsignadas = async () => {
-    // Los datos ahora vienen del hook en tiempo real
-    // Mantenemos esta función vacía para no romper referencias
+    try {
+      setLoading(true);
+      const response = await api.get('/cargadores/rutas');
+
+      if (response.data.success) {
+        setRutas(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error cargando rutas:', error);
+      toast.error('Error al cargar las rutas asignadas');
+      setRutas([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ==============================================================================
@@ -92,7 +92,7 @@ const PanelCargadores = () => {
     try {
       setLoadingDetalle(true);
       const response = await api.get(`/cargadores/rutas/${rutaId}`);
-      
+
       if (response.data.success) {
         setRutaSeleccionada(response.data.data);
         setVistaActual('detalle');
@@ -120,7 +120,7 @@ const PanelCargadores = () => {
     try {
       setProcesando(true);
       const response = await api.post(`/cargadores/rutas/${rutaSeleccionada.id}/iniciar-carga`);
-      
+
       if (response.data.success) {
         toast.success('Carga iniciada exitosamente');
         // Recargar detalle para actualizar estado local
@@ -210,12 +210,12 @@ const PanelCargadores = () => {
 
     try {
       setProcesando(true);
-      
+
       const response = await api.post(
         `/cargadores/rutas/${rutaSeleccionada.id}/finalizar-carga`,
         { notas: notasCarga }
       );
-      
+
       if (response.data.success) {
         toast.success('Carga finalizada correctamente', {
           description: 'La ruta ahora está lista para el repartidor'
@@ -226,7 +226,7 @@ const PanelCargadores = () => {
       }
     } catch (error) {
       console.error('Error finalizando carga:', error);
-      
+
       if (error.response?.data?.requiereConfirmacion) {
         toast.error('Carga incompleta', {
           description: `Hay ${error.response.data.facturasIncompletas?.length || 0} facturas con items pendientes.`
@@ -335,7 +335,7 @@ const PanelCargadores = () => {
         toast.info(`Subiendo ${archivosFotos.length} foto(s)...`);
         urlsFotos = await subirFotosAFirebase(archivosFotos, itemDanado.facturaId);
       }
-      
+
       const response = await api.post(
         `/cargadores/facturas/${itemDanado.facturaId}/items/danado`,
         {
@@ -344,7 +344,7 @@ const PanelCargadores = () => {
           fotos: urlsFotos
         }
       );
-      
+
       if (response.data.success) {
         toast.success('Daño reportado exitosamente');
         setShowModalDano(false);
@@ -379,19 +379,6 @@ const PanelCargadores = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
 
-      {/* Connection Status Indicator (Global) */}
-      <ConnectionStatusIndicator />
-
-      {/* New Data Badge */}
-      {hasNewData && vistaActual === 'lista' && (
-        <NewDataBadge
-          show={hasNewData}
-          count={rutasRealtime?.length || 0}
-          onDismiss={clearNewDataIndicator}
-          message="Nuevas rutas para cargar disponibles"
-        />
-      )}
-
       {/* Header General */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -410,7 +397,6 @@ const PanelCargadores = () => {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   Panel de Cargadores
                 </h1>
-                {vistaActual === 'lista' && <LiveIndicator isLive={true} showText={true} />}
               </div>
               <p className="text-gray-600 dark:text-gray-400">
                 {vistaActual === 'lista'
@@ -427,7 +413,7 @@ const PanelCargadores = () => {
          ============================================================================== */}
       {vistaActual === 'lista' && (
         <div className="space-y-4">
-          {loadingRutas ? (
+          {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="animate-spin text-blue-600" size={40} />
             </div>
@@ -441,7 +427,7 @@ const PanelCargadores = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {rutas.map(ruta => (
-                <div 
+                <div
                   key={ruta.id}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition border-l-4 border-blue-500"
                 >
@@ -451,17 +437,16 @@ const PanelCargadores = () => {
                         {ruta.nombre}
                       </h3>
                       <div className="flex gap-2 mt-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          ruta.estado === 'asignada' 
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${ruta.estado === 'asignada'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                        }`}>
+                          }`}>
                           {ruta.estado === 'asignada' ? 'Asignada' : 'En Proceso'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   {ruta.zona && (
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-4">
                       <MapPin size={16} />
@@ -498,7 +483,7 @@ const PanelCargadores = () => {
                   </div>
 
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
-                    <div 
+                    <div
                       className="bg-blue-600 h-2 rounded-full transition-all duration-500"
                       style={{ width: `${ruta.estadisticas?.porcentajeCarga || 0}%` }}
                     />
@@ -549,7 +534,7 @@ const PanelCargadores = () => {
                     disabled={procesando}
                     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
                   >
-                    {procesando ? <Loader className="animate-spin" size={18}/> : <CheckCircle size={18} />}
+                    {procesando ? <Loader className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                     Iniciar Proceso de Carga
                   </button>
                 ) : (
@@ -569,7 +554,7 @@ const PanelCargadores = () => {
           <div className="space-y-4">
             {rutaSeleccionada.facturas && rutaSeleccionada.facturas.length > 0 ? (
               rutaSeleccionada.facturas.map((factura, fIndex) => (
-                <div 
+                <div
                   key={factura.id || fIndex}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden"
                 >
@@ -580,9 +565,8 @@ const PanelCargadores = () => {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                           {factura.codigoTracking}
                         </h3>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          factura.estadoCarga === 'cargada' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${factura.estadoCarga === 'cargada' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'
+                          }`}>
                           {factura.estadoCarga === 'cargada' ? 'COMPLETADA' : 'PENDIENTE'}
                         </span>
                         <button
@@ -605,13 +589,12 @@ const PanelCargadores = () => {
                   {/* Items de la Factura */}
                   <div className="p-4 space-y-3">
                     {factura.items && factura.items.map((item, iIndex) => (
-                      <div 
+                      <div
                         key={iIndex}
-                        className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-lg border-2 transition ${
-                          item.cargado
+                        className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-lg border-2 transition ${item.cargado
                             ? 'bg-green-50 dark:bg-green-900/10 border-green-500'
                             : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'
-                        }`}
+                          }`}
                       >
                         <div className="flex-1 w-full mb-3 md:mb-0">
                           <div className="flex items-center gap-3">
@@ -628,11 +611,11 @@ const PanelCargadores = () => {
                                 Cantidad: {item.cantidad}
                               </p>
                               {item.fotos && item.fotos.length > 0 && (
-                                <button 
+                                <button
                                   onClick={() => abrirGaleriaFotos(item.fotos)}
                                   className="mt-1 text-xs text-blue-600 hover:underline flex items-center gap-1"
                                 >
-                                  <ImageIcon size={12}/> Ver fotos del item
+                                  <ImageIcon size={12} /> Ver fotos del item
                                 </button>
                               )}
                             </div>
@@ -660,7 +643,7 @@ const PanelCargadores = () => {
                             </button>
                           </div>
                         )}
-                        
+
                         {item.cargado && (
                           <div className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg font-medium flex items-center gap-2">
                             <CheckCircle size={16} /> Cargado
@@ -669,22 +652,22 @@ const PanelCargadores = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Visualización de daños reportados en esta factura */}
                   {factura.itemsDanados && factura.itemsDanados.length > 0 && (
-                     <div className="bg-orange-50 dark:bg-orange-900/20 p-3 border-t border-orange-200 dark:border-orange-800">
-                        <p className="text-sm font-bold text-orange-700 dark:text-orange-300 flex items-center gap-2">
-                           <AlertTriangle size={14}/> Reportes de Daño:
-                        </p>
-                        {factura.itemsDanados.map((dano, idx) => (
-                           <div key={idx} className="text-xs text-orange-800 dark:text-orange-200 ml-5 mt-1">
-                              • {dano.item?.descripcion}: {dano.descripcionDano}
-                              {dano.fotos?.length > 0 && (
-                                <button onClick={() => abrirGaleriaFotos(dano.fotos)} className="ml-2 text-blue-600 underline">Ver fotos</button>
-                              )}
-                           </div>
-                        ))}
-                     </div>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-3 border-t border-orange-200 dark:border-orange-800">
+                      <p className="text-sm font-bold text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                        <AlertTriangle size={14} /> Reportes de Daño:
+                      </p>
+                      {factura.itemsDanados.map((dano, idx) => (
+                        <div key={idx} className="text-xs text-orange-800 dark:text-orange-200 ml-5 mt-1">
+                          • {dano.item?.descripcion}: {dano.descripcionDano}
+                          {dano.fotos?.length > 0 && (
+                            <button onClick={() => abrirGaleriaFotos(dano.fotos)} className="ml-2 text-blue-600 underline">Ver fotos</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               ))
@@ -700,7 +683,7 @@ const PanelCargadores = () => {
       {/* ==============================================================================
           MODALES
          ============================================================================== */}
-      
+
       {/* Modal Reportar Daño */}
       {showModalDano && itemDanado && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -764,7 +747,7 @@ const PanelCargadores = () => {
                 disabled={procesando || !descripcionDano.trim()}
                 className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
               >
-                {subiendoFotos ? <Loader className="animate-spin" size={18} /> : <AlertTriangle size={18}/>}
+                {subiendoFotos ? <Loader className="animate-spin" size={18} /> : <AlertTriangle size={18} />}
                 {subiendoFotos ? 'Subiendo...' : 'Reportar'}
               </button>
             </div>
@@ -780,7 +763,7 @@ const PanelCargadores = () => {
               <CheckCircle className="text-green-600" />
               Finalizar Carga
             </h2>
-            
+
             <div className="mb-4 bg-green-50 dark:bg-green-900/20 p-3 rounded text-sm text-green-800 dark:text-green-200">
               <p>Al finalizar, la ruta cambiará a estado "Cargada" y estará disponible para el repartidor.</p>
             </div>
@@ -806,7 +789,7 @@ const PanelCargadores = () => {
                 disabled={procesando}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex justify-center items-center gap-2"
               >
-                {procesando ? <Loader className="animate-spin" size={18}/> : 'Confirmar'}
+                {procesando ? <Loader className="animate-spin" size={18} /> : 'Confirmar'}
               </button>
             </div>
           </div>
@@ -947,7 +930,7 @@ const PanelCargadores = () => {
                             onClick={() => abrirGaleriaFotos(item.fotos)}
                             className="mt-1 text-xs text-blue-600 hover:underline flex items-center gap-1"
                           >
-                            <ImageIcon size={12}/> Ver {item.fotos.length} foto(s)
+                            <ImageIcon size={12} /> Ver {item.fotos.length} foto(s)
                           </button>
                         )}
                       </div>

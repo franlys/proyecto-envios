@@ -3,21 +3,16 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Regla para fotos de la recolección inicial (subidas por Recolector)
-    match /recolecciones/{recoleccionId}/recoleccion/{imageId} {
-      // Permitir lectura a usuarios autenticados
+    // Regla para fotos de recolecciones (subidas por Recolector y Repartidor)
+    // Incluye carpetas temporales, de recolección y de entrega
+    match /recolecciones/{recoleccionId}/{allImages=**} {
       allow read: if request.auth != null;
-      // Permitir escritura (subida) solo a usuarios autenticados
-      // TODO: Podrías restringir más, ej: solo si el usuario es el creador o tiene rol 'Recolector'
       allow write: if request.auth != null;
     }
 
-    // Regla para fotos de la entrega (subidas por Repartidor)
-    match /recolecciones/{recoleccionId}/entrega/{imageId} {
-      // Permitir lectura a usuarios autenticados
+    // Regla para evidencias de repartidores (fotos de entrega, daños, etc.)
+    match /repartidores/{allPaths=**} {
       allow read: if request.auth != null;
-      // Permitir escritura (subida) solo a usuarios autenticados
-      // TODO: Restringir más, ej: solo si el usuario es el repartidor asignado a la ruta
       allow write: if request.auth != null;
     }
 

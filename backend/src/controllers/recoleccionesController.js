@@ -5,6 +5,7 @@ import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import multer from 'multer';
 import path from 'path';
+import { sendEmail } from '../services/notificationService.js';
 
 // ========================================
 // CONFIGURACIÓN DE MULTER
@@ -262,6 +263,52 @@ export const createRecoleccion = async (req, res) => {
 
     console.log(`✅ Recolección creada: ${codigoTracking} (ID: ${recoleccionId})`);
 
+    // Obtener configuración de la compañía para envío de correo
+    let companyConfig = null;
+    try {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      }
+    } catch (error) {
+      console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    // Enviar notificación por correo al remitente (en segundo plano)
+    if (remitenteEmail) {
+      const subject = `Recolección Confirmada - ${codigoTracking}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1976D2;">Recolección Creada Exitosamente</h2>
+          <p>Hola <strong>${remitenteNombre}</strong>,</p>
+          <p>Tu recolección ha sido registrada correctamente.</p>
+
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Detalles de la Recolección</h3>
+            <p><strong>Código de Tracking:</strong> ${codigoTracking}</p>
+            <p><strong>Destinatario:</strong> ${destinatarioNombre}</p>
+            <p><strong>Dirección:</strong> ${destinatarioDireccion}</p>
+            <p><strong>Total:</strong> $${parseFloat(total).toFixed(2)} USD</p>
+            <p><strong>Estado de Pago:</strong> ${estadoPago === 'pagada' ? 'Pagada' : 'Pendiente'}</p>
+          </div>
+
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h4 style="margin-top: 0;">Items:</h4>
+            <ul>
+              ${itemsArray.map(item => `<li>${item.cantidad}x ${item.descripcion} - $${parseFloat(item.precio).toFixed(2)}</li>`).join('')}
+            </ul>
+          </div>
+
+          <p>Puedes rastrear tu envío usando el código: <strong>${codigoTracking}</strong></p>
+          <p>Gracias por confiar en nosotros.</p>
+        </div>
+      `;
+
+      sendEmail(remitenteEmail, subject, html, [], companyConfig)
+        .then(() => console.log(`📧 Correo de confirmación enviado a ${remitenteEmail}`))
+        .catch(err => console.error(`❌ Error enviando correo a ${remitenteEmail}:`, err.message));
+    }
+
     res.status(201).json({
       success: true,
       message: 'Recolección creada exitosamente',
@@ -462,6 +509,100 @@ export const actualizarEstado = async (req, res) => {
       historial: FieldValue.arrayUnion(historialEntry)
     });
 
+    // Obtener datos completos de la recolección para notificación
+    const recoleccionData = doc.data();
+    const companyId = recoleccionData.companyId;
+
+    // Obtener configuración de la compañía
+    let companyConfig = null;
+    try {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      }
+    } catch (error) {
+      console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    // Enviar notificación por correo al remitente (en segundo plano)
+    const remitenteEmail = recoleccionData.remitente?.email;
+    if (remitenteEmail) {
+      const estadosMensajes = {
+        'pendiente': {
+          titulo: 'Recolección Pendiente',
+          mensaje: 'Tu recolección está pendiente de procesamiento.',
+          emoji: '⏳'
+        },
+        'en_contenedor': {
+          titulo: 'En Contenedor - Almacén USA',
+          mensaje: 'Tu paquete ha sido colocado en un contenedor en nuestro almacén de USA y pronto será enviado.',
+          emoji: '📦'
+        },
+        'en_transito': {
+          titulo: 'En Tránsito a República Dominicana',
+          mensaje: 'Tu paquete está en camino hacia República Dominicana.',
+          emoji: '🚢'
+        },
+        'recibido_rd': {
+          titulo: 'Recibido en Almacén RD',
+          mensaje: 'Tu paquete ha llegado a nuestro almacén en República Dominicana y está siendo procesado.',
+          emoji: '🏭'
+        },
+        'en_ruta': {
+          titulo: 'En Ruta de Entrega',
+          mensaje: 'Tu paquete está en camino hacia su destino final.',
+          emoji: '🚚'
+        },
+        'entregado': {
+          titulo: '¡Entregado Exitosamente!',
+          mensaje: 'Tu paquete ha sido entregado al destinatario.',
+          emoji: '✅'
+        },
+        'cancelado': {
+          titulo: 'Recolección Cancelada',
+          mensaje: 'Tu recolección ha sido cancelada.',
+          emoji: '❌'
+        }
+      };
+
+      const estadoInfo = estadosMensajes[estado] || {
+        titulo: 'Actualización de Estado',
+        mensaje: `El estado de tu envío ha cambiado a: ${estado}`,
+        emoji: '📬'
+      };
+
+      const subject = `${estadoInfo.emoji} ${estadoInfo.titulo} - ${recoleccionData.codigoTracking}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1976D2;">${estadoInfo.emoji} ${estadoInfo.titulo}</h2>
+          <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
+          <p>${estadoInfo.mensaje}</p>
+
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Detalles del Envío</h3>
+            <p><strong>Código de Tracking:</strong> ${recoleccionData.codigoTracking}</p>
+            <p><strong>Destinatario:</strong> ${recoleccionData.destinatario?.nombre}</p>
+            <p><strong>Dirección de Entrega:</strong> ${recoleccionData.destinatario?.direccion}</p>
+            <p><strong>Estado Actual:</strong> ${estadoInfo.titulo}</p>
+          </div>
+
+          ${notas ? `
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h4 style="margin-top: 0;">Nota Adicional:</h4>
+            <p>${notas}</p>
+          </div>
+          ` : ''}
+
+          <p>Puedes rastrear tu envío en cualquier momento usando el código: <strong>${recoleccionData.codigoTracking}</strong></p>
+          <p>Gracias por confiar en nosotros.</p>
+        </div>
+      `;
+
+      sendEmail(remitenteEmail, subject, html, [], companyConfig)
+        .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail} - Estado: ${estado}`))
+        .catch(err => console.error(`❌ Error enviando notificación de estado:`, err.message));
+    }
+
     res.json({
       success: true,
       message: 'Estado actualizado exitosamente',
@@ -531,6 +672,50 @@ export const actualizarPago = async (req, res) => {
       ...pagoUpdate,
       'pago.historialPagos': FieldValue.arrayUnion(historialPago)
     });
+
+    // Obtener datos de la recolección para notificación
+    const recoleccionData = doc.data();
+    const companyId = recoleccionData.companyId;
+
+    // Obtener configuración de la compañía
+    let companyConfig = null;
+    try {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      }
+    } catch (error) {
+      console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    // Enviar notificación si el pago fue completado
+    const remitenteEmail = recoleccionData.remitente?.email;
+    if (remitenteEmail && estadoPago === 'pagada') {
+      const subject = `💰 Pago Confirmado - ${recoleccionData.codigoTracking}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4CAF50;">💰 Pago Confirmado</h2>
+          <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
+          <p>Hemos confirmado el pago de tu envío.</p>
+
+          <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Detalles del Pago</h3>
+            <p><strong>Código de Tracking:</strong> ${recoleccionData.codigoTracking}</p>
+            <p><strong>Monto Pagado:</strong> $${nuevoMontoPagado.toFixed(2)} USD</p>
+            <p><strong>Método de Pago:</strong> ${metodoPago || 'No especificado'}</p>
+            ${referenciaPago ? `<p><strong>Referencia:</strong> ${referenciaPago}</p>` : ''}
+            <p><strong>Estado:</strong> Pagada ✅</p>
+          </div>
+
+          <p>Gracias por tu pago. Tu envío será procesado pronto.</p>
+          <p>Código de tracking: <strong>${recoleccionData.codigoTracking}</strong></p>
+        </div>
+      `;
+
+      sendEmail(remitenteEmail, subject, html, [], companyConfig)
+        .then(() => console.log(`📧 Notificación de pago enviada a ${remitenteEmail}`))
+        .catch(err => console.error(`❌ Error enviando notificación de pago:`, err.message));
+    }
 
     res.json({
       success: true,

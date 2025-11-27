@@ -34,7 +34,15 @@
       "Bash(firebase projects:list:*)",
       "Bash(firebase deploy:*)",
       "Bash(npm run build:*)",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(npm run lint)",
+      "Bash(del backendtemp-check-recolecciones.js)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(npm run migrate:rutas-cargadores:*)",
+      "Bash(if exist admin_webnul del admin_webnul)",
+      "Bash(if exist nul del nul)",
+      "Bash(del admin_webnul)"
     ],
     "deny": [],
     "ask": []

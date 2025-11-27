@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { DollarSign, CreditCard, Wallet, Calculator, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, CreditCard, Wallet, Calculator, AlertCircle, CheckCircle, Clock, Upload, FileText, Send, Mail, MessageCircle } from 'lucide-react';
 
 const ModuloFacturacion = ({
   items = [],
@@ -13,13 +13,19 @@ const ModuloFacturacion = ({
   facturacion = {},
   onFacturacionChange,
   readOnly = false,
-  mostrarPagos = true
+  mostrarPagos = true,
+  recoleccionId = null // ✅ Nuevo prop para identificar la recolección
 }) => {
   const [itemsConPrecios, setItemsConPrecios] = useState(items);
   const [estadoPago, setEstadoPago] = useState(facturacion.estadoPago || 'pendiente_pago');
   const [metodoPago, setMetodoPago] = useState(facturacion.metodoPago || '');
   const [montoPagado, setMontoPagado] = useState(facturacion.montoPagado || 0);
   const [notas, setNotas] = useState(facturacion.notas || '');
+
+  // Estado para archivo y envío
+  const [facturaUrl, setFacturaUrl] = useState(facturacion.archivoUrl || null);
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Calcular totales
   const [subtotal, setSubtotal] = useState(0);
@@ -80,7 +86,8 @@ const ModuloFacturacion = ({
         metodoPago,
         montoPagado: montoPagadoActual,
         saldoPendiente: Math.max(0, nuevoSaldoPendiente),
-        notas
+        notas,
+        archivoUrl: facturaUrl // Incluir la URL del archivo en la notificación
       });
     }
   };
@@ -149,6 +156,78 @@ const ModuloFacturacion = ({
     return `USD$ ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  // Manejadores de Archivo y Envío
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !recoleccionId) return;
+
+    const formData = new FormData();
+    formData.append('factura', file);
+
+    setUploading(true);
+    try {
+      const token = localStorage.getItem('token');
+      // Usar URL relativa si hay proxy, o absoluta si no. Asumimos /api base.
+      // Ajustar según configuración real de API.
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+      const response = await fetch(`${apiUrl}/facturacion/recolecciones/${recoleccionId}/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFacturaUrl(data.url);
+        alert('Factura subida exitosamente');
+        if (onFacturacionChange) {
+          onFacturacionChange({ ...facturacion, archivoUrl: data.url });
+        }
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Error subiendo factura:', error);
+      alert('Error al subir la factura');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSendInvoice = async (metodo) => {
+    if (!recoleccionId) return;
+
+    setSending(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+      const response = await fetch(`${apiUrl}/facturacion/recolecciones/${recoleccionId}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ metodo })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`Factura enviada por ${metodo} exitosamente`);
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo enviar'));
+      }
+    } catch (error) {
+      console.error('Error enviando factura:', error);
+      alert('Error al enviar la factura');
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-6">
       {/* Header */}
@@ -196,8 +275,8 @@ const ModuloFacturacion = ({
                   onChange={(e) => handlePrecioChange(index, e.target.value)}
                   disabled={readOnly}
                   className={`w-32 px-3 py-2 border rounded-lg text-right font-semibold ${item.precio === '' || item.precio === null || item.precio === undefined
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white'
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white'
                     }`}
                   placeholder="0.00"
                   step="0.01"
@@ -249,7 +328,24 @@ const ModuloFacturacion = ({
             Gestión de Pago
           </h4>
 
-          {/* Estado de pago */}
+          {/* Alerta si la factura ya está pagada por completo */}
+          {estadoPago === 'pagada' && (
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={20} />
+                <div>
+                  <p className="font-medium text-green-800 dark:text-green-200">
+                    Factura Pagada por Completo
+                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                    Esta factura ya ha sido pagada en su totalidad. No se pueden hacer modificaciones al pago.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Estado de pago - DESHABILITADO SI YA ESTÁ PAGADA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Estado de Pago *
@@ -257,7 +353,8 @@ const ModuloFacturacion = ({
             <select
               value={estadoPago}
               onChange={(e) => handleEstadoPagoChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+              disabled={estadoPago === 'pagada'}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="pendiente_pago">Pendiente de Pago</option>
               <option value="pago_parcial">Pago Parcial</option>
@@ -266,28 +363,27 @@ const ModuloFacturacion = ({
             </select>
           </div>
 
-          {/* Método de pago */}
-          {(estadoPago === 'pagada' || estadoPago === 'pago_parcial') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Método de Pago
-              </label>
-              <select
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
-              >
-                <option value="">Seleccionar...</option>
-                <option value="efectivo">Efectivo</option>
-                <option value="transferencia">Transferencia Bancaria</option>
-                <option value="tarjeta">Tarjeta de Crédito/Débito</option>
-                <option value="cheque">Cheque</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-          )}
+          {/* Método de pago - SIEMPRE VISIBLE, DESHABILITADO SI YA ESTÁ PAGADA */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Método de Pago
+            </label>
+            <select
+              value={metodoPago}
+              onChange={(e) => setMetodoPago(e.target.value)}
+              disabled={estadoPago === 'pagada'}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Seleccionar...</option>
+              <option value="efectivo">💵 Efectivo</option>
+              <option value="transferencia">🏦 Transferencia Bancaria</option>
+              <option value="tarjeta">💳 Tarjeta de Crédito/Débito</option>
+              <option value="cheque">📝 Cheque</option>
+              <option value="otro">📋 Otro</option>
+            </select>
+          </div>
 
-          {/* Monto pagado (solo para pago parcial) */}
+          {/* Monto pagado (solo para pago parcial) - DESHABILITADO SI YA ESTÁ PAGADA */}
           {estadoPago === 'pago_parcial' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -299,9 +395,10 @@ const ModuloFacturacion = ({
                   type="number"
                   value={montoPagado}
                   onChange={(e) => setMontoPagado(e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-lg ${montoPagado === ''
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                  disabled={estadoPago === 'pagada'}
+                  className={`flex-1 px-3 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${montoPagado === ''
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                     }`}
                   placeholder="0.00"
                   step="0.01"
@@ -324,7 +421,7 @@ const ModuloFacturacion = ({
             </div>
           )}
 
-          {/* Notas */}
+          {/* Notas - SIEMPRE SE PUEDEN AGREGAR NOTAS */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Notas / Observaciones
@@ -380,6 +477,74 @@ const ModuloFacturacion = ({
               </p>
             </div>
           )}
+        </div>
+      )}
+      {/* Gestión de Archivo de Factura */}
+      {recoleccionId && (
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <FileText size={20} className="text-blue-600" />
+            Documento de Factura
+          </h4>
+
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            {facturaUrl ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-600 rounded border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                    <CheckCircle size={18} />
+                    <span className="font-medium">Factura Disponible</span>
+                  </div>
+                  <a
+                    href={facturaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    Ver Documento
+                  </a>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSendInvoice('email')}
+                    disabled={sending}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+                  >
+                    <Mail size={16} />
+                    {sending ? 'Enviando...' : 'Enviar Email'}
+                  </button>
+                  <button
+                    onClick={() => handleSendInvoice('whatsapp')}
+                    disabled={sending}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                  >
+                    <MessageCircle size={16} />
+                    {sending ? 'Enviando...' : 'Enviar WhatsApp'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  No hay factura adjunta. Sube el PDF o imagen de la factura.
+                </p>
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-500 transition">
+                  <Upload size={18} className="text-gray-600 dark:text-gray-300" />
+                  <span className="text-gray-700 dark:text-gray-200">
+                    {uploading ? 'Subiendo...' : 'Subir Factura'}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -21,6 +21,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { sendEmail } from '../services/notificationService.js';
 
 // ==========================================================================
 // 🚚 OBTENER RUTAS ASIGNADAS AL REPARTIDOR
@@ -835,6 +836,75 @@ export const entregarFactura = async (req, res) => {
     }
 
     console.log('✅ Factura marcada como entregada');
+
+    // 📧 ENVIAR EMAIL AL REMITENTE CON FOTOS DE EVIDENCIA
+    const remitenteEmail = data.remitente?.email || data.remitenteEmail;
+    if (remitenteEmail) {
+      try {
+        // Obtener configuración de la compañía para email
+        const companyDoc = await db.collection('companies').doc(data.companyId).get();
+        const companyConfig = companyDoc.exists ? companyDoc.data() : null;
+
+        // Preparar las imágenes como adjuntos
+        const fotosEvidencia = data.fotosEntrega || [];
+        const attachments = fotosEvidencia.map((url, index) => ({
+          filename: `evidencia_${index + 1}.jpg`,
+          path: url
+        }));
+
+        const subject = `✅ ¡Entregado Exitosamente! - ${data.codigoTracking}`;
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">✅ ¡Paquete Entregado Exitosamente!</h2>
+            <p>Hola <strong>${data.remitente?.nombre || 'Cliente'}</strong>,</p>
+            <p>Tu paquete ha sido entregado exitosamente.</p>
+
+            <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #166534;">📦 Detalles de Entrega</h3>
+              <p><strong>Código de Tracking:</strong> ${data.codigoTracking}</p>
+              <p><strong>Destinatario:</strong> ${data.destinatario?.nombre || 'N/A'}</p>
+              <p><strong>Dirección:</strong> ${data.destinatario?.direccion || 'N/A'}</p>
+              <p><strong>Recibido por:</strong> ${nombreReceptor || data.destinatario?.nombre || 'N/A'}</p>
+              <p><strong>Fecha de Entrega:</strong> ${new Date().toLocaleString('es-DO', {
+                timeZone: 'America/Santo_Domingo',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</p>
+              <p><strong>Entregado por:</strong> ${nombreRepartidor}</p>
+              ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
+            </div>
+
+            ${fotosEvidencia.length > 0 ? `
+              <div style="margin: 20px 0;">
+                <h3 style="color: #1976D2;">📸 Fotos de Evidencia</h3>
+                <p style="color: #666;">Se adjuntan ${fotosEvidencia.length} foto(s) de evidencia de la entrega.</p>
+              </div>
+            ` : ''}
+
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+              Gracias por confiar en nuestros servicios de envío.
+            </p>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
+              <p>Este es un correo automático, por favor no responder.</p>
+              ${companyConfig?.nombre ? `<p>${companyConfig.nombre}</p>` : ''}
+            </div>
+          </div>
+        `;
+
+        // Enviar email con las fotos adjuntas
+        sendEmail(remitenteEmail, subject, html, attachments, companyConfig)
+          .then(() => console.log(`📧 Email de entrega enviado a ${remitenteEmail} con ${attachments.length} fotos`))
+          .catch(err => console.error(`❌ Error enviando email de entrega:`, err.message));
+
+      } catch (emailError) {
+        console.error('❌ Error preparando email de entrega:', emailError.message);
+        // No fallar la operación si el email falla
+      }
+    }
 
     res.json({
       success: true,

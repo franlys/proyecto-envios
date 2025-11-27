@@ -25,6 +25,7 @@ const PanelSecretarias = () => {
   const [zona, setZona] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [estadoPago, setEstadoPago] = useState('pago_recibir');
+  const [estadoPagoOriginal, setEstadoPagoOriginal] = useState(''); // Estado original para validación
   const [contenedoresRecibidos, setContenedoresRecibidos] = useState([]);
   const [contenedorSeleccionado, setContenedorSeleccionado] = useState('');
   const [rutaFiltro, setRutaFiltro] = useState('todas');
@@ -285,7 +286,7 @@ const PanelSecretarias = () => {
 
   const openConfirmModal = (factura, esContenedor = false, edicion = false) => {
     setModoEdicion(edicion); // Settear si es modo edición
-    
+
     if (esContenedor) {
       setFacturaContenedorSeleccionada(factura);
       setTelefono(factura.destinatario?.telefono || factura.telefono || '');
@@ -293,7 +294,9 @@ const PanelSecretarias = () => {
       setSector(factura.destinatario?.sector || factura.sector || '');
       setZona(factura.destinatario?.zona || factura.zona || '');
       setObservaciones(factura.notasSecretaria || factura.observaciones || ''); // Usar notasSecretaria
-      setEstadoPago(factura.pago?.estado || 'pago_recibir');
+      const estadoActual = factura.pago?.estado || 'pago_recibir';
+      setEstadoPago(estadoActual);
+      setEstadoPagoOriginal(estadoActual); // Guardar estado original
     } else {
       setSelectedFactura(factura);
       setTelefono(factura.telefono || '');
@@ -301,9 +304,11 @@ const PanelSecretarias = () => {
       setSector(factura.sector || '');
       setZona(factura.zona || '');
       setObservaciones(factura.observaciones || '');
-      setEstadoPago(factura.estadoPago || 'pago_recibir');
+      const estadoActual = factura.estadoPago || 'pago_recibir';
+      setEstadoPago(estadoActual);
+      setEstadoPagoOriginal(estadoActual); // Guardar estado original
     }
-    
+
     setShowConfirmModal(true);
   };
 
@@ -397,6 +402,7 @@ const PanelSecretarias = () => {
     setZona('');
     setObservaciones('');
     setEstadoPago('pago_recibir');
+    setEstadoPagoOriginal(''); // Resetear estado original
     setModoEdicion(false); // Resetear modo edición
   };
 
@@ -943,7 +949,7 @@ const PanelSecretarias = () => {
                         <div className="flex-1 min-w-[250px]">
                           <div className="flex items-center gap-3 mb-2">
                             <span className="text-lg font-bold text-gray-900 dark:text-white">
-                              #{factura.numeroFactura}
+                              #{factura.codigoTracking || factura.numeroFactura || '-'}
                             </span>
                             
                             {factura.zona && (
@@ -1259,10 +1265,31 @@ const PanelSecretarias = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Estado del Pago *
                     </label>
+
+                    {/* Alerta si ya está pagada */}
+                    {estadoPagoOriginal === 'pagado' && (
+                      <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={18} />
+                          <div>
+                            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                              Factura Ya Pagada
+                            </p>
+                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                              Esta factura ya fue pagada. No se puede modificar el estado de pago.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <select
                       value={estadoPago}
                       onChange={(e) => setEstadoPago(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={estadoPagoOriginal === 'pagado'}
+                      className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        estadoPagoOriginal === 'pagado' ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       <option value="pago_recibir">💵 Pago al recibir</option>
                       <option value="pagado">✅ Ya pagado</option>

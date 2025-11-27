@@ -15,7 +15,21 @@ const Companies = () => {
     adminPassword: '',
     telefono: '',
     direccion: '',
-    plan: 'basic'
+    plan: 'basic',
+    emailConfig: {
+      service: 'gmail',
+      user: '',
+      pass: '',
+      from: ''
+    },
+    invoiceDesign: {
+      logoUrl: '',
+      primaryColor: '#1976D2',
+      secondaryColor: '#f5f5f5',
+      template: 'modern',
+      headerText: 'Gracias por su preferencia',
+      footerText: ''
+    }
   });
 
   // Estados para eliminación
@@ -69,13 +83,15 @@ const Companies = () => {
 
   const handleUpdateCompany = async (e) => {
     e.preventDefault();
-    
+
     try {
       await api.put(`/companies/${selectedCompany.id}`, {
         nombre: formData.nombre,
         telefono: formData.telefono,
         direccion: formData.direccion,
-        plan: formData.plan
+        plan: formData.plan,
+        emailConfig: formData.emailConfig,
+        invoiceDesign: formData.invoiceDesign
       });
 
       alert('Compañía actualizada exitosamente');
@@ -172,7 +188,21 @@ const Companies = () => {
       adminPassword: '',
       telefono: company.telefono || '',
       direccion: company.direccion || '',
-      plan: company.plan || 'basic'
+      plan: company.plan || 'basic',
+      emailConfig: company.emailConfig || {
+        service: 'gmail',
+        user: '',
+        pass: '',
+        from: ''
+      },
+      invoiceDesign: company.invoiceDesign || {
+        logoUrl: '',
+        primaryColor: '#1976D2',
+        secondaryColor: '#f5f5f5',
+        template: 'modern',
+        headerText: 'Gracias por su preferencia',
+        footerText: ''
+      }
     });
     setShowModal(true);
   };
@@ -190,7 +220,21 @@ const Companies = () => {
       adminPassword: '',
       telefono: '',
       direccion: '',
-      plan: 'basic'
+      plan: 'basic',
+      emailConfig: {
+        service: 'gmail',
+        user: '',
+        pass: '',
+        from: ''
+      },
+      invoiceDesign: {
+        logoUrl: '',
+        primaryColor: '#1976D2',
+        secondaryColor: '#f5f5f5',
+        template: 'modern',
+        headerText: 'Gracias por su preferencia',
+        footerText: ''
+      }
     });
     setSelectedCompany(null);
   };
@@ -355,8 +399,8 @@ const Companies = () => {
 
       {/* Modal Create/Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
               {modalMode === 'create' ? 'Crear Nueva Compañía' : 'Editar Compañía'}
             </h2>
@@ -455,6 +499,157 @@ const Companies = () => {
                     <option value="premium">Premium</option>
                     <option value="enterprise">Enterprise</option>
                   </select>
+                </div>
+
+                {/* Configuración de Correo */}
+                <div className="border-t border-gray-300 dark:border-gray-600 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Configuración de Correo
+                  </h3>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Email de la Compañía
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.emailConfig.user}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          emailConfig: { ...formData.emailConfig, user: e.target.value, from: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="empresa@gmail.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Contraseña de Aplicación de Gmail
+                      </label>
+                      <input
+                        type="password"
+                        value={formData.emailConfig.pass}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          emailConfig: { ...formData.emailConfig, pass: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="wimu etth qgnf qplx"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Contraseña de aplicación generada en Google
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Diseño de Factura */}
+                <div className="border-t border-gray-300 dark:border-gray-600 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Diseño de Factura
+                  </h3>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        URL del Logo
+                      </label>
+                      <input
+                        type="url"
+                        value={formData.invoiceDesign.logoUrl}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          invoiceDesign: { ...formData.invoiceDesign, logoUrl: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Color Principal
+                        </label>
+                        <input
+                          type="color"
+                          value={formData.invoiceDesign.primaryColor}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            invoiceDesign: { ...formData.invoiceDesign, primaryColor: e.target.value }
+                          })}
+                          className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Color Secundario
+                        </label>
+                        <input
+                          type="color"
+                          value={formData.invoiceDesign.secondaryColor}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            invoiceDesign: { ...formData.invoiceDesign, secondaryColor: e.target.value }
+                          })}
+                          className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Plantilla
+                      </label>
+                      <select
+                        value={formData.invoiceDesign.template}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          invoiceDesign: { ...formData.invoiceDesign, template: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="modern">Moderna</option>
+                        <option value="classic">Clásica</option>
+                        <option value="minimal">Minimalista</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Texto de Encabezado
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.invoiceDesign.headerText}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          invoiceDesign: { ...formData.invoiceDesign, headerText: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Gracias por su preferencia"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Texto de Pie de Página
+                      </label>
+                      <textarea
+                        value={formData.invoiceDesign.footerText}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          invoiceDesign: { ...formData.invoiceDesign, footerText: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Términos y condiciones..."
+                        rows="3"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

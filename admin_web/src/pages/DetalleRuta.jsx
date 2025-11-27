@@ -346,7 +346,7 @@ const TablaFacturas = ({ facturas }) => {
         <tbody className="divide-y divide-gray-200">
           {facturas.map((factura) => (
             <tr key={factura.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">{factura.numeroFactura}</td>
+              <td className="px-4 py-3 text-sm font-medium text-gray-900">{factura.codigoTracking || factura.numeroFactura || '-'}</td>
               <td className="px-4 py-3 text-sm text-gray-700">{factura.cliente}</td>
               <td className="px-4 py-3 text-sm text-gray-600">{factura.direccion}</td>
               {/* ✅ NUEVA COLUMNA: Sector */}

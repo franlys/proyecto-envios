@@ -1,4 +1,5 @@
 // backend/src/routes/facturacion.js
+// backend/src/routes/facturacion.js
 /**
  * RUTAS DEL SISTEMA DE FACTURACIÓN
  * Gestión de pagos, precios y estados financieros
@@ -6,6 +7,7 @@
  */
 
 import express from 'express';
+import multer from 'multer'; // ✅ Importar multer
 import { verifyToken } from '../middleware/auth.js';
 import {
   actualizarFacturacion,
@@ -14,14 +16,15 @@ import {
   getFacturasPorContenedor,
   // ✅ CORRECCIÓN: Se importa la nueva función del controller
   getFacturasNoEntregadas,
-  reasignarFactura, // <-- Nueva importación
-  debugEstadosFacturas, // <-- Debug temporal
-  repararFacturasHuerfanas // <-- Reparación temporal
+  reasignarFactura,
+  subirFactura, // <-- Nueva función
+  enviarFactura, // <-- Nueva función
+  debugEstadosFacturas,
+  repararFacturasHuerfanas
 } from '../controllers/facturacionController.js';
 
 const router = express.Router();
-
-// ========================================\
+const upload = multer({ storage: multer.memoryStorage() }); // ✅ Configurar multer en memoria
 // MIDDLEWARE DE AUTENTICACIÓN
 // ========================================\
 router.use(verifyToken);
@@ -45,6 +48,22 @@ router.put('/recolecciones/:id', actualizarFacturacion);
  * Roles: admin_general, secretaria, repartidor
  */
 router.post('/recolecciones/:id/pago', registrarPago);
+
+/**
+ * POST /api/facturacion/recolecciones/:id/upload
+ * Subir archivo de factura (PDF/Imagen)
+ * Body: form-data con key 'factura'
+ * Roles: admin_general, secretaria
+ */
+router.post('/recolecciones/:id/upload', upload.single('factura'), subirFactura);
+
+/**
+ * POST /api/facturacion/recolecciones/:id/send
+ * Enviar factura por Email/WhatsApp
+ * Body: { metodo: 'email'|'whatsapp'|'ambos', email, telefono }
+ * Roles: admin_general, secretaria
+ */
+router.post('/recolecciones/:id/send', enviarFactura);
 
 /**
  * GET /api/facturacion/pendientes

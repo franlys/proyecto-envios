@@ -56,7 +56,8 @@ const Rutas = () => {
   const [ordenEntrega, setOrdenEntrega] = useState('cercanas-primero');
   const [showVistaPrevia, setShowVistaPrevia] = useState(false);
   const [facturasConOrden, setFacturasConOrden] = useState([]);
-  const [loadingModal, setLoadingModal] = useState(false); 
+  const [loadingModal, setLoadingModal] = useState(false);
+  const [montoAsignado, setMontoAsignado] = useState(''); 
 
   // ESTADOS PARA FILTROS JERÁRQUICOS
   const [contenedoresDisponibles, setContenedoresDisponibles] = useState([]); 
@@ -315,6 +316,7 @@ const Rutas = () => {
         repartidorId: selectedRepartidor,
         cargadoresIds: selectedCargadores,
         facturasIds: facturasIds,
+        montoAsignado: parseFloat(montoAsignado) || 0,
         configuracion: {
           direccionCarga,
           ordenEntrega
@@ -369,10 +371,11 @@ const Rutas = () => {
     setDireccionCarga('adelante-atras');
     setOrdenEntrega('cercanas-primero');
     setFacturasConOrden([]);
-    setSelectedContenedor(''); 
+    setSelectedContenedor('');
     setSelectedZonaPrincipal('');
     setSelectedSubzona('');
     setSelectedSector('');
+    setMontoAsignado('');
   };
 
   const getEstadoColor = (estado) => {
@@ -642,6 +645,25 @@ const Rutas = () => {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
                   placeholder="Ej: Ruta SD Este - 15 Enero 2025"
                 />
+              </div>
+
+              {/* Monto Asignado */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Monto Asignado para Gastos (RD$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={montoAsignado}
+                  onChange={(e) => setMontoAsignado(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Presupuesto para combustible, peajes y otros gastos de la ruta
+                </p>
               </div>
 
               {/* Configuración LIFO */}

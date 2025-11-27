@@ -3,14 +3,20 @@
  * SISTEMA DE FACTURACIÓN
  * Gestión de pagos, precios y estados financieros de recolecciones
  * * Estados de pago:
+// backend/src/controllers/facturacionController.js
+/**
+ * SISTEMA DE FACTURACIÓN
+ * Gestión de pagos, precios y estados financieros de recolecciones
+ * * Estados de pago:
  * - pagada: Factura completamente pagada
  * - pendiente_pago: Sin pagar
  * - pago_parcial: Pagada parcialmente
  * - cobro_contra_entrega: Se cobrará al entregar
  */
 
-import { db } from '../config/firebase.js';
+import { db, storage } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore'; // ✅ Importación requerida para reasignarFactura
+import { sendInvoiceStatusUpdate, sendEmail, sendWhatsApp } from '../services/notificationService.js';
 
 // Helper para obtener ID de compañía de forma segura (NECESARIO)
 const getUserDataSafe = async (uid) => {
@@ -38,7 +44,7 @@ export const actualizarFacturacion = async (req, res) => {
 
     const recoleccionRef = db.collection('recolecciones').doc(recoleccionId);
     const recoleccionDoc = await recoleccionRef.get();
-    
+
     if (!recoleccionDoc.exists) {
       return res.status(404).json({
         success: false,
@@ -47,10 +53,10 @@ export const actualizarFacturacion = async (req, res) => {
     }
 
     const recoleccionData = recoleccionDoc.data();
-    
+
     // Lógica para calcular el total (se mantiene del snippet anterior)
-    let totalFactura = recoleccionData.totalFactura || 0; 
-    
+    let totalFactura = recoleccionData.totalFactura || 0;
+
     const facturacionData = {
       items: items || recoleccionData.facturacion?.items || [],
       metodoPago: metodoPago || recoleccionData.facturacion?.metodoPago,
@@ -62,7 +68,7 @@ export const actualizarFacturacion = async (req, res) => {
     };
 
     const isTotalPaid = facturacionData.montoPagado >= facturacionData.totalFactura;
-    
+
     let newEstado = recoleccionData.estado;
     if (estadoPago === 'pagada' || isTotalPaid) {
       newEstado = 'pagada_secretaria';
@@ -79,6 +85,38 @@ export const actualizarFacturacion = async (req, res) => {
       message: 'Facturación actualizada exitosamente',
       data: { id: recoleccionId, ...recoleccionData, facturacion: facturacionData, estado: newEstado }
     });
+
+    // 🔔 NOTIFICACIONES AUTOMÁTICAS
+    // Si el estado de pago cambió, notificar al cliente
+    if (estadoPago && estadoPago !== recoleccionData.facturacion?.estadoPago) {
+      const clientData = {
+        email: recoleccionData.destinatario?.email || recoleccionData.email,
+        telefono: recoleccionData.destinatario?.telefono || recoleccionData.telefono,
+        nombre: recoleccionData.destinatario?.nombre || recoleccionData.cliente || 'Cliente'
+      };
+
+      const invoiceData = {
+        id: recoleccionId,
+        estado: estadoPago,
+        total: facturacionData.totalFactura,
+        link: facturacionData.archivoUrl || null
+      };
+
+      // Obtener configuración de la compañía
+      const companyId = recoleccionData.companyId;
+      let companyConfig = null;
+      if (companyId) {
+        const companyDoc = await db.collection('companies').doc(companyId).get();
+        if (companyDoc.exists) {
+          companyConfig = companyDoc.data();
+        }
+      }
+
+      // Ejecutar en segundo plano para no bloquear la respuesta
+      sendInvoiceStatusUpdate(clientData, invoiceData, companyConfig)
+        .then(res => console.log(`🔔 Notificación enviada para ${recoleccionId}:`, res))
+        .catch(err => console.error(`❌ Error enviando notificación para ${recoleccionId}:`, err));
+    }
 
   } catch (error) {
     console.error('❌ Error en actualizarFacturacion:', error);
@@ -100,7 +138,7 @@ export const registrarPago = async (req, res) => {
     const { montoPago, metodoPago, referencia, notas } = req.body; // Datos esperados
 
     console.log(`💲 Registrando pago de ${montoPago} para recolección ${recoleccionId}`);
-    
+
     // **AÑADIR LÓGICA:**
     // 1. Obtener documento de recolección.
     // 2. Calcular nuevo saldo.
@@ -108,12 +146,12 @@ export const registrarPago = async (req, res) => {
     // 4. Actualizar el estado de pago principal (estadoPago) en el documento de recolección.
 
     // Placeholder de respuesta exitosa (simulando la lógica real)
-    res.json({ 
-        success: true, 
-        message: 'Pago registrado exitosamente (Implementación pendiente)',
-        data: { id: recoleccionId, montoPago, metodoPago }
+    res.json({
+      success: true,
+      message: 'Pago registrado exitosamente (Implementación pendiente)',
+      data: { id: recoleccionId, montoPago, metodoPago }
     });
-    
+
   } catch (error) {
     console.error('❌ Error en registrarPago:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -134,13 +172,13 @@ export const getFacturasPendientes = async (req, res) => {
     // **AÑADIR LÓGICA:**
     // 1. Consultar 'recolecciones' donde 'companyId' sea igual a userData.companyId
     // 2. Filtrar donde 'facturacion.estadoPago' sea 'pendiente_pago' o 'pago_parcial'.
-    
+
     // Placeholder de consulta (DEBE SER AJUSTADO CON LA LÓGICA REAL DE FIREBASE)
     const snapshot = await db.collection('recolecciones')
-        .where('companyId', '==', userData.companyId)
-        .where('facturacion.estadoPago', 'in', ['pendiente_pago', 'pago_parcial'])
-        .limit(100)
-        .get();
+      .where('companyId', '==', userData.companyId)
+      .where('facturacion.estadoPago', 'in', ['pendiente_pago', 'pago_parcial'])
+      .limit(100)
+      .get();
 
     const facturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -170,15 +208,15 @@ export const getFacturasPorContenedor = async (req, res) => {
 
     // Placeholder de consulta
     const snapshot = await db.collection('recolecciones')
-        .where('companyId', '==', userData.companyId)
-        .where('contenedorId', '==', contenedorId)
-        .limit(200)
-        .get();
+      .where('companyId', '==', userData.companyId)
+      .where('contenedorId', '==', contenedorId)
+      .limit(200)
+      .get();
 
     const facturas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     res.json({ success: true, data: facturas });
-    
+
   } catch (error) {
     console.error('❌ Error en getFacturasPorContenedor:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -439,7 +477,7 @@ export const reasignarFactura = async (req, res) => {
         fechaAsignacionRuta: now,
         reporteNoEntrega: FieldValue.delete(), // ✅ Eliminar el reporte para que no aparezca más en "No Entregadas"
       };
-      
+
       // Actualizar el arreglo de facturas dentro del documento de la ruta
       const nuevaFacturaEnRuta = {
         id: facturaId,
@@ -450,7 +488,7 @@ export const reasignarFactura = async (req, res) => {
         zona: recoleccionData.zona,
         sector: recoleccionData.sector,
         itemsTotal: recoleccionData.items?.length || 0,
-        estado: nuevoEstado, 
+        estado: nuevoEstado,
       };
 
       batch.update(rutaDoc.ref, {
@@ -467,9 +505,9 @@ export const reasignarFactura = async (req, res) => {
 
     // Actualizar la factura (recolección)
     if (observaciones) {
-        updateData.observacionesReasignacion = observaciones;
+      updateData.observacionesReasignacion = observaciones;
     }
-    
+
     // Agregar al historial
     updateData.historial = FieldValue.arrayUnion({
       estado: nuevoEstado,
@@ -477,15 +515,144 @@ export const reasignarFactura = async (req, res) => {
       descripcion: `Reasignada desde 'No Entregadas'. Acción: ${accion}.`,
       observaciones: observaciones || '-',
     });
-    
+
     batch.update(recoleccionRef, updateData);
-    
+
     await batch.commit();
 
     res.json({ success: true, message: mensaje, data: { id: facturaId, nuevoEstado } });
 
   } catch (error) {
     console.error('❌ Error en reasignarFactura:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ========================================\
+// 📤 SUBIR FACTURA (PDF/IMAGEN)
+// ========================================\
+export const subirFactura = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, error: 'No se ha subido ningún archivo.' });
+    }
+
+    console.log(`📤 Subiendo factura para ${id}: ${file.originalname}`);
+
+    const bucket = storage.bucket();
+    // Nombre único: facturas/ID_TIMESTAMP_NOMBRE
+    const filename = `facturas/${id}_${Date.now()}_${file.originalname}`;
+    const fileUpload = bucket.file(filename);
+
+    const blobStream = fileUpload.createWriteStream({
+      metadata: {
+        contentType: file.mimetype
+      }
+    });
+
+    blobStream.on('error', (error) => {
+      console.error('❌ Error subiendo archivo a Storage:', error);
+      res.status(500).json({ success: false, error: error.message });
+    });
+
+    blobStream.on('finish', async () => {
+      // Hacer el archivo público (o usar URLs firmadas, pero público es más fácil para acceso directo)
+      await fileUpload.makePublic();
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+
+      // Actualizar Firestore con la URL
+      await db.collection('recolecciones').doc(id).update({
+        'facturacion.archivoUrl': publicUrl,
+        'facturacion.archivoNombre': file.originalname,
+        updatedAt: new Date().toISOString()
+      });
+
+      res.json({
+        success: true,
+        message: 'Factura subida exitosamente',
+        url: publicUrl
+      });
+    });
+
+    blobStream.end(file.buffer);
+
+  } catch (error) {
+    console.error('❌ Error en subirFactura:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ========================================\
+// 📨 ENVIAR FACTURA MANUALMENTE
+// ========================================\
+export const enviarFactura = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { metodo, email, telefono } = req.body; // metodo: 'email', 'whatsapp', 'ambos'
+
+    console.log(`📨 Enviando factura ${id} por ${metodo}`);
+
+    const doc = await db.collection('recolecciones').doc(id).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Factura no encontrada' });
+
+    const data = doc.data();
+    const facturaUrl = data.facturacion?.archivoUrl;
+
+    if (!facturaUrl) {
+      return res.status(400).json({ success: false, error: 'No hay factura adjunta para enviar. Por favor sube una primero.' });
+    }
+
+    // Priorizar datos del body, luego del documento
+    const clientData = {
+      email: email || data.destinatario?.email || data.email,
+      telefono: telefono || data.destinatario?.telefono || data.telefono,
+      nombre: data.destinatario?.nombre || data.cliente || 'Cliente'
+    };
+
+    const subject = `Tu Factura #${data.codigoTracking || id}`;
+    const body = `
+      <h3>Hola ${clientData.nombre},</h3>
+      <p>Adjunto encontrarás tu factura correspondiente al envío <strong>#${data.codigoTracking || id}</strong>.</p>
+      <p>Puedes descargarla directamente aquí: <a href="${facturaUrl}">Descargar Factura</a></p>
+      <p>Gracias por tu preferencia.</p>
+    `;
+
+    // Obtener configuración de la compañía
+    const companyId = data.companyId;
+    let companyConfig = null;
+    if (companyId) {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      }
+    }
+
+    const results = { email: null, whatsapp: null };
+
+    if (metodo === 'email' || metodo === 'ambos') {
+      if (clientData.email) {
+        results.email = await sendEmail(clientData.email, subject, body, [], companyConfig);
+      } else {
+        results.email = { success: false, error: 'No hay email registrado' };
+      }
+    }
+
+    if (metodo === 'whatsapp' || metodo === 'ambos') {
+      if (clientData.telefono) {
+        const waMessage = `Hola ${clientData.nombre}, aquí tienes tu factura del envío #${data.codigoTracking || id}: ${facturaUrl}`;
+        results.whatsapp = await sendWhatsApp(clientData.telefono, waMessage, facturaUrl);
+      } else {
+        results.whatsapp = { success: false, error: 'No hay teléfono registrado' };
+      }
+    }
+
+    res.json({ success: true, message: 'Proceso de envío completado', results });
+
+  } catch (error) {
+    console.error('❌ Error en enviarFactura:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
