@@ -88,11 +88,11 @@ const PanelSecretarias = () => {
             id: doc.id,
             ...doc.data()
           }))
-          .filter(f => 
-            f.estado === 'sin_confirmar' || 
-            f.estado === 'pendiente_contacto' || 
-            f.estado === 'confirmada' || 
+          .filter(f =>
+            f.estado === 'sin_confirmar' ||
+            f.estado === 'pendiente_contacto' ||
             f.estado === 'no_entregado'
+            // 'confirmada' removido - las facturas confirmadas ya no aparecen en el panel
           );
         
         setTodasLasFacturas(facturasData);

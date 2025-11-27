@@ -273,9 +273,12 @@ const PanelRepartidores = () => {
         return;
       }
 
+      // Extraer solo las URLs originales para enviar al backend
+      const fotosUrls = urls.map(url => typeof url === 'string' ? url : url.original);
+
       const response = await api.post(
         `/repartidores/facturas/${facturaActual.id}/fotos`,
-        { fotos: urls }
+        { fotos: fotosUrls }
       );
 
       if (response.data.success) {

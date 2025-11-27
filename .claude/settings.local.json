@@ -42,7 +42,11 @@
       "Bash(npm run migrate:rutas-cargadores:*)",
       "Bash(if exist admin_webnul del admin_webnul)",
       "Bash(if exist nul del nul)",
-      "Bash(del admin_webnul)"
+      "Bash(del admin_webnul)",
+      "Bash(if [ -f .env ])",
+      "Bash(then echo \"✅ Archivo .env existe\")",
+      "Bash(else echo \"❌ Archivo .env NO existe\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []

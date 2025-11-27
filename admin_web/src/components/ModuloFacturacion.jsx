@@ -363,16 +363,15 @@ const ModuloFacturacion = ({
             </select>
           </div>
 
-          {/* Método de pago - SIEMPRE VISIBLE, DESHABILITADO SI YA ESTÁ PAGADA */}
+          {/* Método de pago - SIEMPRE EDITABLE, INCLUSO SI ESTÁ PAGADA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Método de Pago
+              Método de Pago {estadoPago === 'pagada' || estadoPago === 'pago_parcial' ? '*' : ''}
             </label>
             <select
               value={metodoPago}
               onChange={(e) => setMetodoPago(e.target.value)}
-              disabled={estadoPago === 'pagada'}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
             >
               <option value="">Seleccionar...</option>
               <option value="efectivo">💵 Efectivo</option>
