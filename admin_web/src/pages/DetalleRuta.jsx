@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Image, X } from 'lucide-react';
 import api from '../services/api';
 
 const DetalleRuta = () => {
@@ -318,6 +319,8 @@ const TabsDetalleRuta = ({ facturas, gastos }) => {
 
 // ✅ TABLA DE FACTURAS CON CORRECCIÓN DEL WARNING "KEY" (ya incluida)
 const TablaFacturas = ({ facturas }) => {
+  const [modalFoto, setModalFoto] = useState(null);
+
   if (facturas.length === 0) {
     return (
       <div className="text-center py-12">
@@ -340,6 +343,7 @@ const TablaFacturas = ({ facturas }) => {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Sector</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Monto</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Estado</th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Fotos</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Observaciones</th>
           </tr>
         </thead>
@@ -367,6 +371,36 @@ const TablaFacturas = ({ facturas }) => {
                    'Pendiente'}
                 </span>
               </td>
+              <td className="px-4 py-3">
+                {factura.fotosEntrega && factura.fotosEntrega.length > 0 ? (
+                  <div className="flex gap-1">
+                    {factura.fotosEntrega.slice(0, 3).map((foto, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setModalFoto({ fotos: factura.fotosEntrega, index: idx })}
+                        className="w-10 h-10 rounded border border-gray-300 overflow-hidden hover:border-blue-500 transition"
+                        title="Click para ampliar"
+                      >
+                        <img
+                          src={foto}
+                          alt={`Foto ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                    {factura.fotosEntrega.length > 3 && (
+                      <div className="w-10 h-10 rounded border border-gray-300 bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
+                        +{factura.fotosEntrega.length - 3}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 text-sm flex items-center gap-1">
+                    <Image size={16} />
+                    Sin fotos
+                  </span>
+                )}
+              </td>
               <td className="px-4 py-3 text-sm text-gray-600">
                 {factura.observaciones || factura.motivoNoEntrega || '-'}
               </td>
@@ -374,6 +408,41 @@ const TablaFacturas = ({ facturas }) => {
           ))}
         </tbody>
       </table>
+
+      {/* Modal para ver fotos en pantalla completa */}
+      {modalFoto && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+          <button
+            onClick={() => setModalFoto(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition"
+          >
+            <X size={32} />
+          </button>
+          <div className="max-w-4xl w-full">
+            <img
+              src={modalFoto.fotos[modalFoto.index]}
+              alt={`Foto ${modalFoto.index + 1}`}
+              className="w-full h-auto rounded-lg"
+            />
+            <div className="flex justify-center gap-2 mt-4">
+              {modalFoto.fotos.map((foto, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setModalFoto({ fotos: modalFoto.fotos, index: idx })}
+                  className={`w-16 h-16 rounded border-2 overflow-hidden transition ${
+                    idx === modalFoto.index ? 'border-blue-500' : 'border-white/30 hover:border-white/60'
+                  }`}
+                >
+                  <img src={foto} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+            <p className="text-white text-center mt-2">
+              Foto {modalFoto.index + 1} de {modalFoto.fotos.length}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

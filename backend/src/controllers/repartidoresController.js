@@ -839,6 +839,10 @@ export const entregarFactura = async (req, res) => {
 
     // 📧 ENVIAR EMAIL AL REMITENTE CON FOTOS DE EVIDENCIA
     const remitenteEmail = data.remitente?.email || data.remitenteEmail;
+    console.log(`📧 Verificando envío de email:`);
+    console.log(`  - Email remitente: ${remitenteEmail || 'NO ENCONTRADO'}`);
+    console.log(`  - Fotos disponibles: ${data.fotosEntrega?.length || 0}`);
+
     if (remitenteEmail) {
       try {
         // Obtener configuración de la compañía para email
@@ -847,6 +851,8 @@ export const entregarFactura = async (req, res) => {
 
         // Preparar las imágenes como adjuntos
         const fotosEvidencia = data.fotosEntrega || [];
+        console.log(`📸 Preparando ${fotosEvidencia.length} fotos como adjuntos...`);
+
         const attachments = fotosEvidencia.map((url, index) => ({
           filename: `evidencia_${index + 1}.jpg`,
           path: url
@@ -896,14 +902,22 @@ export const entregarFactura = async (req, res) => {
         `;
 
         // Enviar email con las fotos adjuntas
-        sendEmail(remitenteEmail, subject, html, attachments, companyConfig)
-          .then(() => console.log(`📧 Email de entrega enviado a ${remitenteEmail} con ${attachments.length} fotos`))
-          .catch(err => console.error(`❌ Error enviando email de entrega:`, err.message));
+        console.log(`📧 Intentando enviar email a ${remitenteEmail}...`);
+        const emailResult = await sendEmail(remitenteEmail, subject, html, attachments, companyConfig);
+
+        if (emailResult.success) {
+          console.log(`✅ Email de entrega enviado exitosamente a ${remitenteEmail} con ${attachments.length} fotos`);
+        } else {
+          console.error(`❌ Error enviando email de entrega:`, emailResult.error);
+        }
 
       } catch (emailError) {
         console.error('❌ Error preparando email de entrega:', emailError.message);
+        console.error('Stack trace:', emailError.stack);
         // No fallar la operación si el email falla
       }
+    } else {
+      console.warn(`⚠️ No se pudo enviar email: remitente sin email configurado`);
     }
 
     res.json({
