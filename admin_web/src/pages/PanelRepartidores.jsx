@@ -634,7 +634,7 @@ const PanelRepartidores = () => {
                 {/* Badge de nuevos datos si aplica */}
                 <NewDataBadge timestamp={ruta.updatedAt} />
 
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col xs:flex-row justify-between items-start gap-2 xs:gap-0">
                   <div>
                     <h3 className="font-bold text-lg text-gray-900 dark:text-white">{ruta.nombre}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
@@ -644,7 +644,7 @@ const PanelRepartidores = () => {
                       {new Date(ruta.fechaAsignacion).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left xs:text-right w-full xs:w-auto">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${ruta.estado === 'en_entrega' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                       }`}>
                       {ruta.estado === 'en_entrega' ? 'En Ruta' : 'Asignada'}
@@ -680,11 +680,10 @@ const PanelRepartidores = () => {
               {rutaSeleccionada.montoAsignado > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2">
                   <div className="text-xs text-gray-600 dark:text-gray-400">Balance</div>
-                  <div className={`text-lg font-bold ${
-                    (rutaSeleccionada.montoAsignado - totalGastos) >= 0
+                  <div className={`text-lg font-bold ${(rutaSeleccionada.montoAsignado - totalGastos) >= 0
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-red-600 dark:text-red-400'
-                  }`}>
+                    }`}>
                     ${((rutaSeleccionada.montoAsignado || 0) - totalGastos).toFixed(2)}
                   </div>
                   <div className="text-xs text-gray-500">
@@ -897,7 +896,7 @@ const PanelRepartidores = () => {
               </button>
             )}
 
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mt-2">
               <button
                 onClick={() => setShowModalNoEntrega(true)}
                 className="py-3 bg-red-100 text-red-700 rounded-lg font-bold hover:bg-red-200 transition flex justify-center items-center gap-2"
@@ -921,24 +920,94 @@ const PanelRepartidores = () => {
       {/* Modal Fotos */}
       {showModalFotos && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">📸 Evidencia de Entrega</h3>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => setFotosEvidencia(Array.from(e.target.files))}
-              className="w-full mb-4 p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
+          <div className="bg-white dark:bg-gray-800 p-4 xs:p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <Camera size={24} className="text-blue-600" />
+              Evidencia de Entrega
+            </h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Toma fotos o selecciona desde tu galería
+            </p>
+
+            <div className="space-y-3 mb-4">
+              {/* Botón para tomar foto directamente */}
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  onChange={(e) => setFotosEvidencia(prev => [...prev, ...Array.from(e.target.files)])}
+                  className="hidden"
+                  id="camera-input"
+                />
+                <div className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
+                  <Camera size={20} />
+                  Abrir Cámara
+                </div>
+              </label>
+
+              {/* Botón para seleccionar desde galería */}
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setFotosEvidencia(prev => [...prev, ...Array.from(e.target.files)])}
+                  className="hidden"
+                  id="gallery-input"
+                />
+                <div className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
+                  <Image size={20} />
+                  Seleccionar de Galería
+                </div>
+              </label>
+            </div>
+
+            {/* Preview de fotos seleccionadas */}
+            {fotosEvidencia.length > 0 && (
+              <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  📸 {fotosEvidencia.length} foto(s) seleccionada(s)
+                </p>
+                <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
+                  {fotosEvidencia.map((file, idx) => (
+                    <div key={idx} className="relative aspect-square">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${idx + 1}`}
+                        className="w-full h-full object-cover rounded border border-gray-300 dark:border-gray-600"
+                      />
+                      <button
+                        onClick={() => setFotosEvidencia(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowModalFotos(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400">Cancelar</button>
+              <button
+                onClick={() => {
+                  setShowModalFotos(false);
+                  setFotosEvidencia([]);
+                }}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400"
+              >
+                Cancelar
+              </button>
               <button
                 onClick={handleSubirFotos}
                 disabled={subiendoFotos || fotosEvidencia.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
               >
                 {subiendoFotos ? <Loader className="animate-spin" size={16} /> : <Camera size={16} />}
-                {subiendoFotos ? 'Subiendo...' : 'Subir Fotos'}
+                {subiendoFotos ? 'Subiendo...' : `Subir ${fotosEvidencia.length} Foto(s)`}
               </button>
             </div>
           </div>
