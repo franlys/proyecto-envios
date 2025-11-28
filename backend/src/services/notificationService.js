@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 // URL base del frontend (para enlaces de tracking)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://proyecto-envios-sandy.vercel.app';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://proyecto-envios.vercel.app';
 
 // Inicializar Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
