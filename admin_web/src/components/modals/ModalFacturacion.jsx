@@ -9,6 +9,16 @@ const ModalFacturacion = ({ factura, onClose, onUpdate }) => {
     const [items, setItems] = useState(factura.items || []);
 
     const handleGuardar = async () => {
+        // ✅ Prevenir cambios si la factura original estaba pagada
+        const estadoOriginal = factura.facturacion?.estadoPago || factura.estadoPago;
+        const estadoNuevo = facturacionData.estadoPago;
+
+        // Si el estado original era 'pagada' y se intenta cambiar, bloquear
+        if (estadoOriginal === 'pagada' && estadoNuevo !== 'pagada') {
+            alert('⚠️ No se puede cambiar el estado de una factura que ya está pagada.');
+            return;
+        }
+
         setLoading(true);
         try {
             // Usar endpoint existente para actualizar facturación

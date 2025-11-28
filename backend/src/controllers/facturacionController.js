@@ -54,6 +54,16 @@ export const actualizarFacturacion = async (req, res) => {
 
     const recoleccionData = recoleccionDoc.data();
 
+    // ✅ VALIDACIÓN: Prevenir cambios si ya está pagada
+    const estadoActual = recoleccionData.facturacion?.estadoPago || recoleccionData.estadoPago;
+    if (estadoActual === 'pagada' && estadoPago && estadoPago !== 'pagada') {
+      console.log(`⚠️ Intento de cambiar estado de factura pagada bloqueado: ${recoleccionId}`);
+      return res.status(400).json({
+        success: false,
+        error: 'No se puede cambiar el estado de pago de una factura que ya está pagada'
+      });
+    }
+
     // Lógica para calcular el total (se mantiene del snippet anterior)
     let totalFactura = recoleccionData.totalFactura || 0;
 
