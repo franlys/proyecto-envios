@@ -204,11 +204,10 @@ const PublicTracking = () => {
               {/* Línea vertical */}
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    item.completado
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${item.completado
                       ? 'bg-green-100 text-green-600'
                       : 'bg-gray-100 text-gray-400'
-                  }`}
+                    }`}
                 >
                   {item.completado ? (
                     <CheckCircle className="w-5 h-5" />
@@ -218,9 +217,8 @@ const PublicTracking = () => {
                 </div>
                 {index < timeline.length - 1 && (
                   <div
-                    className={`w-0.5 h-12 ${
-                      item.completado ? 'bg-green-300' : 'bg-gray-200'
-                    }`}
+                    className={`w-0.5 h-12 ${item.completado ? 'bg-green-300' : 'bg-gray-200'
+                      }`}
                   />
                 )}
               </div>
@@ -229,9 +227,8 @@ const PublicTracking = () => {
               <div className="flex-1 pb-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg">{item.icono}</span>
-                  <h4 className={`font-semibold ${
-                    item.actual ? 'text-blue-600' : item.completado ? 'text-gray-800' : 'text-gray-400'
-                  }`}>
+                  <h4 className={`font-semibold ${item.actual ? 'text-blue-600' : item.completado ? 'text-gray-800' : 'text-gray-400'
+                    }`}>
                     {item.nombre}
                   </h4>
                   {item.actual && (
@@ -323,11 +320,10 @@ const PublicTracking = () => {
                       <p className="text-sm text-gray-600">Cantidad: {item.cantidad}</p>
                     )}
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    item.estado === 'entregado'
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.estado === 'entregado'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-blue-100 text-blue-700'
-                  }`}>
+                    }`}>
                     {item.estado === 'entregado' ? 'Entregado' : 'En proceso'}
                   </span>
                 </div>
@@ -458,6 +454,8 @@ const PublicTracking = () => {
   }
 
   // Renderizar datos completos
+  if (!trackingData) return null;
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
