@@ -1,6 +1,10 @@
 // backend/src/models/Recoleccion.js
 import { db, storage } from '../config/firebase.js';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  generarCodigoTracking as generarTrackingNuevo,
+  generarCodigoTrackingLegacy
+} from '../utils/trackingUtils.js';
 
 /**
  * MODELO DE RECOLECCIÓN - FASE 1
@@ -147,50 +151,43 @@ export const detectarSector = (direccion, zona) => {
 // ========================================
 
 /**
- * Genera un código de tracking único
- * Formato: RC-YYYYMMDD-XXXX
- * RC = Recolección
- * ✅ CORREGIDO: Sin orderBy para evitar necesidad de índice
+ * Genera un código de tracking único usando el nuevo sistema de prefijos
+ *
+ * Formato nuevo: [PREFIJO]-[SECUENCIAL]
+ * Ejemplos: EMI-0001, LOE-0002, TRS-9999, EMI-10000
+ *
+ * Formato legacy: RC-YYYYMMDD-XXXX (solo para empresas sin prefijo)
+ *
+ * @param {string} companyId - ID de la empresa
+ * @returns {Promise<string>} Código de tracking único
  */
 export const generarCodigoTracking = async (companyId) => {
-  const fecha = new Date();
-  const year = fecha.getFullYear();
-  const month = String(fecha.getMonth() + 1).padStart(2, '0');
-  const day = String(fecha.getDate()).padStart(2, '0');
-  const datePrefix = `${year}${month}${day}`;
-  
-  // Obtener el último número del día
-  const startOfDay = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-  const endOfDay = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1);
-  
-  // ✅ CORRECCIÓN: Sin orderBy
-  const snapshot = await db.collection('recolecciones')
-    .where('companyId', '==', companyId)
-    .where('createdAt', '>=', startOfDay.toISOString())
-    .where('createdAt', '<', endOfDay.toISOString())
-    .limit(100) // Obtener hasta 100 para encontrar el máximo
-    .get();
-  
-  let nextNumber = 1;
-  
-  if (!snapshot.empty) {
-    // Ordenar en JavaScript y encontrar el número más alto
-    const codigos = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const code = data.codigoTracking;
-      if (code) {
-        const parts = code.split('-');
-        return parseInt(parts[2]) || 0;
-      }
-      return 0;
-    });
-    
-    const maxNumber = Math.max(...codigos);
-    nextNumber = maxNumber + 1;
+  try {
+    // Verificar si la empresa tiene prefijo configurado
+    const companyDoc = await db.collection('companies').doc(companyId).get();
+
+    if (!companyDoc.exists) {
+      throw new Error('Empresa no encontrada');
+    }
+
+    const companyData = companyDoc.data();
+
+    // Si tiene prefijo, usar nuevo sistema
+    if (companyData.trackingPrefix) {
+      console.log(`✅ Usando nuevo sistema de tracking para: ${companyData.nombre || companyId}`);
+      return await generarTrackingNuevo(companyId);
+    }
+
+    // Si no tiene prefijo, usar sistema legacy (compatibilidad temporal)
+    console.warn(`⚠️ Empresa sin prefijo, usando sistema legacy para: ${companyData.nombre || companyId}`);
+    console.warn(`⚠️ Ejecuta el script de migración para asignar prefijos`);
+    return await generarCodigoTrackingLegacy();
+
+  } catch (error) {
+    console.error(`❌ Error generando código de tracking:`, error);
+    // Fallback a legacy en caso de error
+    return await generarCodigoTrackingLegacy();
   }
-  
-  const numberPart = String(nextNumber).padStart(4, '0');
-  return `RC-${datePrefix}-${numberPart}`;
 };
 
 // ========================================

@@ -1,4 +1,5 @@
 import { auth, db } from '../config/firebase.js';
+import { obtenerPrefijoUnico, validarPrefijo } from '../utils/trackingUtils.js';
 
 // Crear nueva compañía (solo super_admin)
 export const createCompany = async (req, res) => {
@@ -57,6 +58,12 @@ export const createCompany = async (req, res) => {
       createdBy: req.user.uid
     });
 
+    // ======================================================================
+    // GENERAR PREFIJO ÚNICO PARA TRACKING
+    // ======================================================================
+    console.log(`🏢 Generando prefijo de tracking para: "${nombre}"`);
+    const trackingPrefix = await obtenerPrefijoUnico(companyId, nombre);
+
     // Crear la compañía
     const companyData = {
       nombre,
@@ -67,7 +74,11 @@ export const createCompany = async (req, res) => {
       plan: plan || 'basic',
       activo: true,
       createdAt: new Date().toISOString(),
-      createdBy: req.user.uid
+      createdBy: req.user.uid,
+      // ✅ NUEVO: Sistema de tracking con prefijos
+      trackingPrefix,              // Prefijo único (ej: "EMI", "LOE")
+      currentTrackingNumber: 0,    // Contador de tracking (inicia en 0)
+      lastTrackingGenerated: null  // Fecha del último tracking generado
     };
 
     // Agregar emailConfig si se proporciona
