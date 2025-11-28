@@ -28,7 +28,8 @@ export default {
         'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       screens: {
-        'xs': '360px',
+        'xxs': '280px',  // Para pantallas plegables (Z Flip, etc)
+        'xs': '360px',   // Móviles pequeños estándar
       },
     },
   },
