@@ -559,16 +559,17 @@ const NuevaRecoleccion = () => {
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               <Upload size={32} className="text-gray-500 dark:text-gray-400 mb-2" />
               <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                <span className="font-semibold">Click para subir</span> o arrastra las fotos
+                <span className="font-semibold">Click para tomar foto o subir</span> desde galería
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Máximo 10 fotos (JPG, PNG)
+                📸 En móviles abre la cámara directamente • Máximo 10 fotos
               </p>
             </div>
             <input
               type="file"
               multiple
               accept="image/*"
+              capture="environment"
               onChange={handleFileChange}
               className="hidden"
             />
