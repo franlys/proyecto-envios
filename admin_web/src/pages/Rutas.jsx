@@ -579,11 +579,11 @@ const Rutas = () => {
                   </div>
                 )}
 
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                   <div
                     className="bg-green-600 dark:bg-green-500 h-2 rounded-full transition-all"
                     style={{
-                      width: `${((ruta.facturasEntregadas || 0) / (ruta.totalFacturas || 1)) * 100}%`
+                      width: `${Math.min(((ruta.facturasEntregadas || 0) / (ruta.totalFacturas || 1)) * 100, 100)}%`
                     }}
                   ></div>
                 </div>
