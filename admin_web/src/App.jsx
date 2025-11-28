@@ -28,6 +28,7 @@ import Ayuda from './pages/Ayuda';
 import PanelAlmacenUSA from './pages/PanelAlmacenUSA';
 import PanelAlmacenRD from './pages/PanelAlmacenRD';
 import FacturasPendientesPago from './pages/FacturasPendientesPago';
+import PublicTracking from './pages/PublicTracking'; // ✅ NUEVO - Tracking Público
 
 // Componente que decide qué Dashboard mostrar según el rol
 const DashboardRouter = () => {
@@ -201,7 +202,18 @@ function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
-        <AppContent />
+        <Routes>
+          {/* ============================================ */}
+          {/* RUTAS PÚBLICAS (sin autenticación) */}
+          {/* ============================================ */}
+          <Route path="/tracking" element={<PublicTracking />} />
+          <Route path="/tracking/:codigo" element={<PublicTracking />} />
+
+          {/* ============================================ */}
+          {/* RUTAS PRIVADAS (requieren autenticación) */}
+          {/* ============================================ */}
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
       </AuthProvider>
     </BrowserRouter>
   );

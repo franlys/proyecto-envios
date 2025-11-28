@@ -46,7 +46,8 @@
       "Bash(if [ -f .env ])",
       "Bash(then echo \"✅ Archivo .env existe\")",
       "Bash(else echo \"❌ Archivo .env NO existe\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(echo $EMAIL_USER)"
     ],
     "deny": [],
     "ask": []

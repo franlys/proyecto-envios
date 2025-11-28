@@ -74,8 +74,8 @@ const procesarRutasSnapshot = (snapshot) => {
 // ============================================================
 export const createRutaAvanzada = async (req, res) => {
   try {
-    const { 
-      nombre, repartidorId, cargadoresIds, facturasIds,   
+    const {
+      nombre, repartidorId, cargadoresIds, facturasIds,
       configuracion, montoAsignado
     } = req.body;
 
@@ -93,7 +93,7 @@ export const createRutaAvanzada = async (req, res) => {
 
     const facturasParaRuta = [];
     let totalItems = 0;
-    
+
     facturasSnapshot.forEach(doc => {
       const f = doc.data();
       const items = f.items || [];
@@ -157,6 +157,53 @@ export const createRutaAvanzada = async (req, res) => {
     });
     await batch.commit();
 
+    // =====================================================
+    // 📧 NOTIFICACIÓN POR CORREO AL REPARTIDOR
+    // =====================================================
+    try {
+      // 1. Obtener configuración de la compañía
+      let companyConfig = null;
+      if (userData.companyId) {
+        const companyDoc = await db.collection('companies').doc(userData.companyId).get();
+        if (companyDoc.exists) {
+          companyConfig = companyDoc.data();
+        }
+      }
+
+      // 2. Obtener email del repartidor
+      const repartidorDoc = await db.collection('usuarios').doc(repartidorId).get();
+      const repartidorEmail = repartidorDoc.exists ? repartidorDoc.data().email : null;
+
+      if (repartidorEmail) {
+        const { sendEmail } = await import('../services/notificationService.js');
+
+        const subject = `🚚 Nueva Ruta Asignada: ${nuevaRuta.nombre}`;
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1976D2;">Nueva Ruta Asignada</h2>
+            <p>Hola <strong>${repNombre}</strong>,</p>
+            <p>Se te ha asignado una nueva ruta de entrega.</p>
+            
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Detalles de la Ruta</h3>
+              <p><strong>Nombre:</strong> ${nuevaRuta.nombre}</p>
+              <p><strong>Facturas a Entregar:</strong> ${facturasIds.length}</p>
+              <p><strong>Fecha Asignación:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+
+            <p>Por favor, ingresa a la aplicación para ver los detalles y comenzar la ruta.</p>
+          </div>
+        `;
+
+        // 3. Enviar correo
+        sendEmail(repartidorEmail, subject, html, [], companyConfig)
+          .then(() => console.log(`📧 Notificación de ruta enviada a ${repartidorEmail}`))
+          .catch(err => console.error('❌ Error enviando email de ruta:', err));
+      }
+    } catch (emailError) {
+      console.error('⚠️ Error en notificación de ruta:', emailError);
+    }
+
     res.status(201).json({ success: true, message: 'Ruta creada', data: { id: docRef.id, ...nuevaRuta } });
   } catch (error) {
     console.error('Error creating ruta:', error);
@@ -164,18 +211,15 @@ export const createRutaAvanzada = async (req, res) => {
   }
 };
 
-// ============================================================
-// 🔍 DETALLE DE RUTA
-// ============================================================
 export const getRutaById = async (req, res) => {
   try {
     const { id } = req.params;
     const doc = await db.collection('rutas').doc(id).get();
     if (!doc.exists) return res.status(404).json({ error: 'Ruta no encontrada' });
-    
+
     const rutaData = doc.data();
     const gastosSnap = await db.collection('gastos').where('rutaId', '==', id).get();
-    
+
     let totalGastos = 0;
     const gastos = [];
     gastosSnap.forEach(g => {
@@ -195,88 +239,88 @@ export const getRutaById = async (req, res) => {
 // Implementación de la lógica solicitada para marcar facturas pendientes como 'no_entregada'.
 // ============================================================
 export const finalizarRuta = async (req, res) => {
-    try {
-        // Se asume que el ID de la ruta viene en el path params o en el cuerpo.
-        const rutaId = req.params.id || req.body.id; 
-        if (!rutaId) {
-            return res.status(400).json({ success: false, error: 'ID de ruta requerido' });
-        }
-
-        const rutaRef = db.collection('rutas').doc(rutaId);
-        const rutaDoc = await rutaRef.get();
-
-        if (!rutaDoc.exists) {
-            return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
-        }
-
-        const rutaData = rutaDoc.data();
-        const facturasEnRuta = rutaData.facturas || [];
-
-        const batch = db.batch();
-        let facturasNoEntregadasCount = 0;
-        const now = new Date().toISOString();
-
-        // 1. Procesar todas las facturas de la ruta
-        for (const facturaRuta of facturasEnRuta) {
-            // Se asume que si el estado NO es 'entregada' (sino 'asignado', 'no_encontrado', etc.),
-            // debe ser reasignada.
-            if (facturaRuta.estado !== 'entregada') {
-                facturasNoEntregadasCount++;
-                const facturaId = facturaRuta.facturaId || facturaRuta.id; // El ID de la recolección
-                const recoleccionRef = db.collection('recolecciones').doc(facturaId);
-
-                // Crear reporte de no entrega
-                const reporteNoEntrega = {
-                    motivo: 'ruta_cerrada_sin_entregar',
-                    descripcion: 'Factura no entregada al cerrar la ruta',
-                    reportadoPor: req.user?.uid || 'sistema',
-                    nombreReportador: 'Sistema',
-                    intentarNuevamente: true,
-                    fecha: now
-                };
-
-                const historialEntry = {
-                    accion: 'factura_no_entregada',
-                    descripcion: 'Ruta cerrada sin entregar esta factura',
-                    motivo: 'ruta_cerrada_sin_entregar',
-                    fecha: now
-                };
-
-                // 1.1. Actualizar el documento de la recolección (la factura)
-                batch.update(recoleccionRef, {
-                    estado: 'no_entregada', // Estado para que aparezca en el panel de reasignación
-                    reporteNoEntrega, // Agregar reporte para que aparezca en facturas no entregadas
-                    rutaId: FieldValue.delete(), // Desvincular de la ruta
-                    repartidorId: FieldValue.delete(),
-                    repartidorNombre: FieldValue.delete(),
-                    historial: FieldValue.arrayUnion(historialEntry),
-                    fechaActualizacion: now
-                });
-            }
-        }
-
-        // 2. Actualizar el estado de la ruta a 'completada'
-        batch.update(rutaRef, {
-            estado: 'completada',
-            fechaCierre: now,
-            // Importante: Actualizar el contador de facturas no entregadas
-            facturasNoEntregadas: facturasNoEntregadasCount, 
-            updatedAt: now,
-        });
-
-        await batch.commit();
-
-        // 3. Respuesta final
-        res.json({ 
-            success: true, 
-            message: `Ruta finalizada. ${facturasNoEntregadasCount} facturas marcadas como no entregadas.`,
-            data: { id: rutaId }
-        });
-
-    } catch (error) {
-        console.error('❌ Error en finalizarRuta:', error);
-        res.status(500).json({ success: false, error: error.message });
+  try {
+    // Se asume que el ID de la ruta viene en el path params o en el cuerpo.
+    const rutaId = req.params.id || req.body.id;
+    if (!rutaId) {
+      return res.status(400).json({ success: false, error: 'ID de ruta requerido' });
     }
+
+    const rutaRef = db.collection('rutas').doc(rutaId);
+    const rutaDoc = await rutaRef.get();
+
+    if (!rutaDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+    }
+
+    const rutaData = rutaDoc.data();
+    const facturasEnRuta = rutaData.facturas || [];
+
+    const batch = db.batch();
+    let facturasNoEntregadasCount = 0;
+    const now = new Date().toISOString();
+
+    // 1. Procesar todas las facturas de la ruta
+    for (const facturaRuta of facturasEnRuta) {
+      // Se asume que si el estado NO es 'entregada' (sino 'asignado', 'no_encontrado', etc.),
+      // debe ser reasignada.
+      if (facturaRuta.estado !== 'entregada') {
+        facturasNoEntregadasCount++;
+        const facturaId = facturaRuta.facturaId || facturaRuta.id; // El ID de la recolección
+        const recoleccionRef = db.collection('recolecciones').doc(facturaId);
+
+        // Crear reporte de no entrega
+        const reporteNoEntrega = {
+          motivo: 'ruta_cerrada_sin_entregar',
+          descripcion: 'Factura no entregada al cerrar la ruta',
+          reportadoPor: req.user?.uid || 'sistema',
+          nombreReportador: 'Sistema',
+          intentarNuevamente: true,
+          fecha: now
+        };
+
+        const historialEntry = {
+          accion: 'factura_no_entregada',
+          descripcion: 'Ruta cerrada sin entregar esta factura',
+          motivo: 'ruta_cerrada_sin_entregar',
+          fecha: now
+        };
+
+        // 1.1. Actualizar el documento de la recolección (la factura)
+        batch.update(recoleccionRef, {
+          estado: 'no_entregada', // Estado para que aparezca en el panel de reasignación
+          reporteNoEntrega, // Agregar reporte para que aparezca en facturas no entregadas
+          rutaId: FieldValue.delete(), // Desvincular de la ruta
+          repartidorId: FieldValue.delete(),
+          repartidorNombre: FieldValue.delete(),
+          historial: FieldValue.arrayUnion(historialEntry),
+          fechaActualizacion: now
+        });
+      }
+    }
+
+    // 2. Actualizar el estado de la ruta a 'completada'
+    batch.update(rutaRef, {
+      estado: 'completada',
+      fechaCierre: now,
+      // Importante: Actualizar el contador de facturas no entregadas
+      facturasNoEntregadas: facturasNoEntregadasCount,
+      updatedAt: now,
+    });
+
+    await batch.commit();
+
+    // 3. Respuesta final
+    res.json({
+      success: true,
+      message: `Ruta finalizada. ${facturasNoEntregadasCount} facturas marcadas como no entregadas.`,
+      data: { id: rutaId }
+    });
+
+  } catch (error) {
+    console.error('❌ Error en finalizarRuta:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 };
 
 // ============================================================
@@ -421,7 +465,7 @@ export const getRepartidoresDisponibles = async (req, res) => {
       .where('companyId', '==', userData.companyId)
       .where('rol', '==', 'repartidor')
       .where('activo', '==', true).get();
-    res.json({ success: true, data: snap.docs.map(d => ({id: d.id, ...d.data()})) });
+    res.json({ success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
@@ -434,21 +478,21 @@ export const getCargadoresDisponibles = async (req, res) => {
       .where('companyId', '==', userData.companyId)
       .where('rol', '==', 'cargador')
       .where('activo', '==', true).get();
-    res.json({ success: true, data: snap.docs.map(d => ({id: d.id, ...d.data()})) });
+    res.json({ success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
 // Auxiliares
 export const cerrarRuta = async (req, res) => {
-    try {
-        await db.collection('rutas').doc(req.params.id).update({
-            estado: 'completada', fechaCierre: new Date().toISOString()
-        });
-        res.json({ success: true });
-    } catch(e) { res.status(500).json({error: e.message}); }
+  try {
+    await db.collection('rutas').doc(req.params.id).update({
+      estado: 'completada', fechaCierre: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 };
-export const updateEntrega = async (req, res) => res.json({msg: 'ok'});
+export const updateEntrega = async (req, res) => res.json({ msg: 'ok' });
 // export const finalizarRuta ya está implementada arriba
-export const getStatsRepartidor = async (req, res) => res.json({success: true, data: {}});
+export const getStatsRepartidor = async (req, res) => res.json({ success: true, data: {} });
 export const getRutasActivas = async (req, res) => getAllRutas(req, res);
 export const createRuta = async (req, res) => createRutaAvanzada(req, res);

@@ -21,7 +21,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { sendEmail } from '../services/notificationService.js';
+import { sendEmail, generateTrackingButtonHTML } from '../services/notificationService.js';
 
 // ==========================================================================
 // 🚚 OBTENER RUTAS ASIGNADAS AL REPARTIDOR
@@ -890,11 +890,13 @@ export const entregarFactura = async (req, res) => {
               </div>
             ` : ''}
 
-            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+            ${generateTrackingButtonHTML(data.codigoTracking)}
+
+            <p style="margin-top: 30px; text-align: center; font-size: 14px; color: #666;">
               Gracias por confiar en nuestros servicios de envío.
             </p>
 
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center;">
               <p>Este es un correo automático, por favor no responder.</p>
               ${companyConfig?.nombre ? `<p>${companyConfig.nombre}</p>` : ''}
             </div>

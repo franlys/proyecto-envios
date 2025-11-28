@@ -24,6 +24,7 @@ import facturacionRoutes from './routes/facturacion.js';
 import dashboardRoutes from './routes/dashboard.js';
 import sectoresRoutes from './routes/sectores.js'; // ✅ NUEVO - Sistema de Sectores
 import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión de Gastos de Ruta
+import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 
 const app = express();
 
@@ -123,6 +124,7 @@ app.use('/api/facturacion', facturacionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sectores', sectoresRoutes); // ✅ NUEVO - Sistema de Sectores
 app.use('/api/gastos-ruta', gastosRutaRoutes); // ✅ NUEVO - Gestión de Gastos de Ruta
+app.use('/api/tracking', trackingRoutes); // ✅ NUEVO - Tracking Público
 
 // =====================================================
 // RUTA RAÍZ
