@@ -1,0 +1,100 @@
+# 🚂 CONFIGURACIÓN EXACTA PARA RAILWAY
+# =======================================
+# Email: elmaestrogonzalez30@gmail.com
+# =======================================
+
+# 📋 OPCIÓN 1: Dashboard de Railway (Recomendado)
+# ================================================
+
+Ve a: https://railway.app/ → Tu Proyecto Backend → Variables
+
+Agrega estas 4 variables (click "New Variable" para cada una):
+
+┌─────────────────────────────────────────────────────────┐
+│ Variable Name: EMAIL_SERVICE                            │
+│ Value: gmail                                            │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ Variable Name: EMAIL_USER                               │
+│ Value: elmaestrogonzalez30@gmail.com                    │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ Variable Name: EMAIL_PASS                               │
+│ Value: [TU_CONTRASEÑA_DE_16_CARACTERES_AQUI]           │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ Variable Name: EMAIL_FROM                               │
+│ Value: ProLogix Envíos <elmaestrogonzalez30@gmail.com> │
+└─────────────────────────────────────────────────────────┘
+
+
+# 🔧 OPCIÓN 2: Railway CLI
+# =========================
+
+Copia y pega estos comandos UNO POR UNO:
+
+railway login
+railway link
+railway variables set EMAIL_SERVICE=gmail
+railway variables set EMAIL_USER=elmaestrogonzalez30@gmail.com
+railway variables set EMAIL_PASS=[TU_CONTRASEÑA_16_CARACTERES]
+railway variables set EMAIL_FROM="ProLogix Envíos <elmaestrogonzalez30@gmail.com>"
+
+
+# 🔑 OBTENER LA CONTRASEÑA DE APLICACIÓN
+# =======================================
+
+1. Ve a: https://myaccount.google.com/apppasswords
+2. Inicia sesión con: elmaestrogonzalez30@gmail.com
+3. Si te pide verificación en 2 pasos, actívala
+4. Selecciona App: "Correo"
+5. Selecciona Dispositivo: "Otro (Railway)"
+6. Click "Generar"
+7. COPIA los 16 caracteres (ejemplo: abcd efgh ijkl mnop)
+8. USA SIN ESPACIOS en Railway: abcdefghijklmnop
+
+
+# ✅ EJEMPLO COMPLETO (con contraseña ficticia)
+# ==============================================
+
+EMAIL_SERVICE=gmail
+EMAIL_USER=elmaestrogonzalez30@gmail.com
+EMAIL_PASS=abcdefghijklmnop
+EMAIL_FROM=ProLogix Envíos <elmaestrogonzalez30@gmail.com>
+
+
+# 🎯 DESPUÉS DE CONFIGURAR
+# =========================
+
+1. Railway reiniciará automáticamente (~30 segundos)
+2. Ve a la pestaña "Deployments" → Logs
+3. NO deberías ver: "⚠️ Advertencia: No hay credenciales de email"
+4. Prueba desde el móvil creando una recolección
+5. El email debe llegar a elmaestrogonzalez30@gmail.com (o al remitente)
+
+
+# 📝 CHECKLIST
+# =============
+
+☐ Contraseña de aplicación generada en Google
+☐ 4 variables agregadas en Railway
+☐ Railway reinició (espera 30 seg)
+☐ Logs no muestran warning de credenciales
+☐ Recolección de prueba creada desde móvil
+☐ Email recibido exitosamente
+
+
+# 🆘 SI NECESITAS AYUDA
+# =====================
+
+Si tienes problemas, comparte:
+- Screenshot de las variables en Railway (oculta la contraseña)
+- Los logs del último deployment
+- El error específico que ves
+
+---
+Archivo generado: 2025-01-28
+Email configurado: elmaestrogonzalez30@gmail.com
