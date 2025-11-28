@@ -551,10 +551,10 @@ const Recolecciones = () => {
                           className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
                         >
                           <SmartImage
-                            src={foto.url || foto}
+                            src={foto.preview || foto.url || foto}
                             alt={`Foto de recolección ${index + 1}`}
                             className="w-full h-full object-cover"
-                            onClick={openLightbox}
+                            onClick={() => openLightbox(foto.preview || foto.url || foto)}
                             showOptimizedBadge={true}
                             showZoomIcon={true}
                           />

@@ -11,19 +11,24 @@ const createTransporter = (config = null) => {
   // Si hay config específica de la compañía, usarla; sino, usar variables de entorno como fallback
   const user = config?.user || process.env.EMAIL_USER;
   const pass = config?.pass || process.env.EMAIL_PASS;
-  const service = config?.service || process.env.EMAIL_SERVICE || 'gmail';
 
   // Verificar si las credenciales están configuradas
   if (!user || !pass) {
     console.warn('⚠️ Advertencia: No hay credenciales de email configuradas (ni de compañía ni de entorno). El envío de correos fallará.');
   }
 
+  // Configuración específica para Gmail con puerto SSL (mejor compatibilidad con Railway)
   return createTransport({
-    service: service,
+    host: 'smtp.gmail.com',
+    port: 465, // Puerto SSL
+    secure: true, // SSL directo
     auth: {
       user: user,
       pass: pass,
     },
+    connectionTimeout: 10000, // 10 segundos
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 };
 
