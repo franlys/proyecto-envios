@@ -1,0 +1,70 @@
+# 🚂 CONFIGURAR EMAIL EN RAILWAY - COPIA Y PEGA
+# ================================================
+
+# 📧 PASO 1: Genera tu contraseña de aplicación de Gmail
+# Ve a: https://myaccount.google.com/apppasswords
+# Genera una contraseña de 16 caracteres y guárdala
+
+
+# 🔧 PASO 2: Configura en Railway Dashboard
+# =========================================
+# Ve a: https://railway.app/ → Tu Proyecto → Variables
+
+# COPIA Y PEGA ESTOS VALORES UNO POR UNO:
+
+Variable: EMAIL_SERVICE
+Valor: gmail
+
+Variable: EMAIL_USER
+Valor: [REEMPLAZA CON TU EMAIL]@gmail.com
+
+Variable: EMAIL_PASS
+Valor: [REEMPLAZA CON LOS 16 CARACTERES SIN ESPACIOS]
+
+Variable: EMAIL_FROM
+Valor: ProLogix Envíos <[REEMPLAZA CON TU EMAIL]@gmail.com>
+
+
+# 🖥️ ALTERNATIVA: Usar Railway CLI
+# ===================================
+# Si prefieres usar la terminal, copia y pega esto:
+
+railway login
+railway link
+railway variables set EMAIL_SERVICE=gmail
+railway variables set EMAIL_USER=[TU_EMAIL]@gmail.com
+railway variables set EMAIL_PASS=[CONTRASEÑA_16_CARACTERES]
+railway variables set EMAIL_FROM="ProLogix Envíos <[TU_EMAIL]@gmail.com>"
+
+
+# ✅ EJEMPLO COMPLETO (con valores ficticios)
+# ============================================
+# ASÍ SE VERÍA CON VALORES REALES:
+
+EMAIL_SERVICE=gmail
+EMAIL_USER=prologix.envios@gmail.com
+EMAIL_PASS=abcdefghijklmnop
+EMAIL_FROM=ProLogix Envíos <prologix.envios@gmail.com>
+
+
+# 🎯 REEMPLAZA:
+# ============
+# [TU_EMAIL] → tu-email-real (ejemplo: prologix.envios)
+# [CONTRASEÑA_16_CARACTERES] → La contraseña que generaste en Google
+
+
+# 📋 CHECKLIST:
+# ============
+# ☐ Contraseña de aplicación generada en Google
+# ☐ Variables agregadas en Railway
+# ☐ Railway reinició automáticamente (~30 seg)
+# ☐ Probado desde el móvil
+# ☐ Email recibido con éxito
+
+
+# 🆘 SI NO FUNCIONA:
+# ==================
+# 1. Verifica los logs de Railway
+# 2. Asegúrate que la contraseña NO tenga espacios
+# 3. Verifica que usaste una contraseña de APLICACIÓN (no tu contraseña normal)
+# 4. Revisa la carpeta SPAM del destinatario
