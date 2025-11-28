@@ -17,11 +17,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const sendEmail = async (to, subject, html, attachments = [], companyConfig = null) => {
   try {
     // Configurar remitente
-    // NOTA: Para usar un dominio personalizado, debe estar verificado en Resend.
-    // Por defecto usamos el de onboarding para pruebas.
-    // IMPORTANTE: Si process.env.EMAIL_FROM tiene un gmail/hotmail, fallará.
-    // Por eso forzamos onboarding@resend.dev hasta que se verifique un dominio.
-    const fromEmail = 'onboarding@resend.dev';
+    // Dominio verificado: prologix-app.com
+    const fromEmail = 'no-reply@prologix-app.com';
 
     // Si hay configuración de compañía, intentar usarla si es compatible con Resend (requiere dominio verificado)
     // Por ahora, para garantizar entrega, usamos el remitente verificado del sistema
