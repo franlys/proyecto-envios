@@ -68,17 +68,16 @@ export const ticketController = {
 
         // 2. Enviar correo de confirmación
         if (userData.email) {
-          const { sendEmail } = await import('../services/notificationService.js');
+          const { sendEmail, generateBrandedEmailHTML } = await import('../services/notificationService.js');
 
           const subject = `🎫 Ticket Recibido: ${asunto}`;
-          const html = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #1976D2;">Hemos recibido tu solicitud</h2>
+          const contentHtml = `
+              <h2 style="color: #1976D2; margin-top: 0;">Hemos recibido tu solicitud</h2>
               <p>Hola <strong>${userData.nombre}</strong>,</p>
               <p>Tu ticket de soporte ha sido creado exitosamente. Nuestro equipo lo revisará lo antes posible.</p>
               
               <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Detalles del Ticket</h3>
+                <h3 style="margin-top: 0; color: #555;">Detalles del Ticket</h3>
                 <p><strong>Asunto:</strong> ${asunto}</p>
                 <p><strong>Categoría:</strong> ${categoria || 'General'}</p>
                 <p><strong>Prioridad:</strong> ${prioridad || 'Media'}</p>
@@ -86,11 +85,12 @@ export const ticketController = {
               </div>
 
               <p>Te notificaremos cuando haya una respuesta.</p>
-            </div>
           `;
 
+          const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'default');
+
           // 3. Enviar correo
-          sendEmail(userData.email, subject, html, [], companyConfig)
+          sendEmail(userData.email, subject, brandedHtml, [], companyConfig)
             .then(() => console.log(`📧 Confirmación de ticket enviada a ${userData.email}`))
             .catch(err => console.error('❌ Error enviando email de ticket:', err));
         }

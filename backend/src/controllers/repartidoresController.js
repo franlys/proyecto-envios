@@ -21,7 +21,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { sendEmail, generateTrackingButtonHTML } from '../services/notificationService.js';
+import { sendEmail, generateTrackingButtonHTML, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ==========================================================================
 // 🚚 OBTENER RUTAS ASIGNADAS AL REPARTIDOR
@@ -842,86 +842,6 @@ export const entregarFactura = async (req, res) => {
     console.log(`📧 Verificando envío de email:`);
     console.log(`  - Email remitente: ${remitenteEmail || 'NO ENCONTRADO'}`);
     console.log(`  - Fotos disponibles: ${data.fotosEntrega?.length || 0}`);
-
-    if (remitenteEmail) {
-      try {
-        // Obtener configuración de la compañía para email
-        const companyDoc = await db.collection('companies').doc(data.companyId).get();
-        const companyConfig = companyDoc.exists ? companyDoc.data() : null;
-
-        // Preparar las imágenes como adjuntos
-        const fotosEvidencia = data.fotosEntrega || [];
-        console.log(`📸 Preparando ${fotosEvidencia.length} fotos como adjuntos...`);
-
-        const attachments = fotosEvidencia.map((url, index) => ({
-          filename: `evidencia_${index + 1}.jpg`,
-          path: url
-        }));
-
-        const subject = `✅ ¡Entregado Exitosamente! - ${data.codigoTracking}`;
-        const html = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #16a34a;">✅ ¡Paquete Entregado Exitosamente!</h2>
-            <p>Hola <strong>${data.remitente?.nombre || 'Cliente'}</strong>,</p>
-            <p>Tu paquete ha sido entregado exitosamente.</p>
-
-            <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #166534;">📦 Detalles de Entrega</h3>
-              <p><strong>Código de Tracking:</strong> ${data.codigoTracking}</p>
-              <p><strong>Destinatario:</strong> ${data.destinatario?.nombre || 'N/A'}</p>
-              <p><strong>Dirección:</strong> ${data.destinatario?.direccion || 'N/A'}</p>
-              <p><strong>Recibido por:</strong> ${nombreReceptor || data.destinatario?.nombre || 'N/A'}</p>
-              <p><strong>Fecha de Entrega:</strong> ${new Date().toLocaleString('es-DO', {
-                timeZone: 'America/Santo_Domingo',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}</p>
-              <p><strong>Entregado por:</strong> ${nombreRepartidor}</p>
-              ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
-            </div>
-
-            ${fotosEvidencia.length > 0 ? `
-              <div style="margin: 20px 0;">
-                <h3 style="color: #1976D2;">📸 Fotos de Evidencia</h3>
-                <p style="color: #666;">Se adjuntan ${fotosEvidencia.length} foto(s) de evidencia de la entrega.</p>
-              </div>
-            ` : ''}
-
-            ${generateTrackingButtonHTML(data.codigoTracking)}
-
-            <p style="margin-top: 30px; text-align: center; font-size: 14px; color: #666;">
-              Gracias por confiar en nuestros servicios de envío.
-            </p>
-
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center;">
-              <p>Este es un correo automático, por favor no responder.</p>
-              ${companyConfig?.nombre ? `<p>${companyConfig.nombre}</p>` : ''}
-            </div>
-          </div>
-        `;
-
-        // Enviar email con las fotos adjuntas
-        console.log(`📧 Intentando enviar email a ${remitenteEmail}...`);
-        const emailResult = await sendEmail(remitenteEmail, subject, html, attachments, companyConfig);
-
-        if (emailResult.success) {
-          console.log(`✅ Email de entrega enviado exitosamente a ${remitenteEmail} con ${attachments.length} fotos`);
-        } else {
-          console.error(`❌ Error enviando email de entrega:`, emailResult.error);
-        }
-
-      } catch (emailError) {
-        console.error('❌ Error preparando email de entrega:', emailError.message);
-        console.error('Stack trace:', emailError.stack);
-        // No fallar la operación si el email falla
-      }
-    } else {
-      console.warn(`⚠️ No se pudo enviar email: remitente sin email configurado`);
-    }
-
     res.json({
       success: true,
       message: 'Factura entregada exitosamente',

@@ -1,6 +1,8 @@
 // backend/src/routes/companies.js
 import express from 'express';
 import { verifyToken, checkRole } from '../middleware/auth.js';
+import multer from 'multer';
+import { db } from '../config/firebase.js';
 import {
   createCompany,
   getAllCompanies,
@@ -8,8 +10,25 @@ import {
   updateCompany,
   toggleCompany,
   resetUserPassword,
-  deleteCompany
+  deleteCompany,
+  uploadCompanyLogo
 } from '../controllers/companyController.js';
+
+// Configurar multer para almacenar archivos en memoria
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // Límite de 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    // Solo permitir imágenes
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen'));
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -201,5 +220,11 @@ router.delete('/:id', deleteCompany);
  * Resetear contraseña de usuario (solo super_admin)
  */
 router.post('/reset-password', resetUserPassword);
+
+/**
+ * POST /api/companies/:id/upload-logo
+ * Subir logo de compañía (solo super_admin)
+ */
+router.post('/:id/upload-logo', upload.single('logo'), uploadCompanyLogo);
 
 export default router;

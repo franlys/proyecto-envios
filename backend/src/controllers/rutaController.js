@@ -175,28 +175,28 @@ export const createRutaAvanzada = async (req, res) => {
       const repartidorEmail = repartidorDoc.exists ? repartidorDoc.data().email : null;
 
       if (repartidorEmail) {
-        const { sendEmail } = await import('../services/notificationService.js');
+        const { sendEmail, generateBrandedEmailHTML } = await import('../services/notificationService.js');
 
         const subject = `🚚 Nueva Ruta Asignada: ${nuevaRuta.nombre}`;
-        const html = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #1976D2;">Nueva Ruta Asignada</h2>
+        const contentHtml = `
+            <h2 style="color: #1976D2; margin-top: 0;">Nueva Ruta Asignada</h2>
             <p>Hola <strong>${repNombre}</strong>,</p>
             <p>Se te ha asignado una nueva ruta de entrega.</p>
             
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <h3 style="margin-top: 0;">Detalles de la Ruta</h3>
+              <h3 style="margin-top: 0; color: #555;">Detalles de la Ruta</h3>
               <p><strong>Nombre:</strong> ${nuevaRuta.nombre}</p>
               <p><strong>Facturas a Entregar:</strong> ${facturasIds.length}</p>
               <p><strong>Fecha Asignación:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
 
             <p>Por favor, ingresa a la aplicación para ver los detalles y comenzar la ruta.</p>
-          </div>
         `;
 
+        const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'en_ruta');
+
         // 3. Enviar correo
-        sendEmail(repartidorEmail, subject, html, [], companyConfig)
+        sendEmail(repartidorEmail, subject, brandedHtml, [], companyConfig)
           .then(() => console.log(`📧 Notificación de ruta enviada a ${repartidorEmail}`))
           .catch(err => console.error('❌ Error enviando email de ruta:', err));
       }

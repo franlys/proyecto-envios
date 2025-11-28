@@ -214,24 +214,24 @@ export const updateEmbarque = async (req, res) => {
         const destinatarioEmail = userData.email;
 
         if (destinatarioEmail) {
-          const { sendEmail } = await import('../services/notificationService.js');
+          const { sendEmail, generateBrandedEmailHTML } = await import('../services/notificationService.js');
 
           const subject = `🚢 Actualización de Embarque: ${embarqueData.nombre}`;
-          const html = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #1976D2;">Estado de Embarque Actualizado</h2>
-              <p>El estado del embarque <strong>${embarqueData.nombre}</strong> ha cambiado.</p>
-              
-              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Estado Anterior:</strong> ${embarqueData.estado}</p>
-                <p><strong>Nuevo Estado:</strong> <span style="color: #2e7d32; font-weight: bold;">${estado}</span></p>
-                <p><strong>Actualizado por:</strong> ${userData.nombre}</p>
-                <p><strong>Fecha:</strong> ${new Date().toLocaleDateString()}</p>
-              </div>
+          const contentHTML = `
+            <h2 style="color: #2c3e50; margin-top: 0;">Estado de Embarque Actualizado</h2>
+            <p>El estado del embarque <strong>${embarqueData.nombre}</strong> ha cambiado.</p>
+
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Estado Anterior:</strong> ${embarqueData.estado}</p>
+              <p><strong>Nuevo Estado:</strong> <span style="color: #2e7d32; font-weight: bold;">${estado}</span></p>
+              <p><strong>Actualizado por:</strong> ${userData.nombre}</p>
+              <p><strong>Fecha:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
           `;
 
-          sendEmail(destinatarioEmail, subject, html, [], companyConfig)
+          const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, estado);
+
+          sendEmail(destinatarioEmail, subject, brandedHTML, [], companyConfig)
             .then(() => console.log(`📧 Notificación de cambio de estado enviada a ${destinatarioEmail}`))
             .catch(err => console.error('❌ Error enviando email de actualización:', err));
         }

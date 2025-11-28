@@ -3,7 +3,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { sendEmail } from '../services/notificationService.js';
+import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // Estados válidos del sistema
 const ESTADOS_CONTENEDOR = {
@@ -287,26 +287,25 @@ export const agregarFactura = async (req, res) => {
       }
 
       const subject = `📦 En Contenedor - Almacén USA - ${facturaData.codigoTracking}`;
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1976D2;">📦 En Contenedor - Almacén USA</h2>
-          <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
-          <p>Tu paquete ha sido colocado en un contenedor en nuestro almacén de USA y pronto será enviado.</p>
+      const contentHTML = `
+        <h2 style="color: #2c3e50; margin-top: 0;">📦 En Contenedor - Almacén USA</h2>
+        <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
+        <p>Tu paquete ha sido colocado en un contenedor en nuestro almacén de USA y pronto será enviado.</p>
 
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Detalles del Envío</h3>
-            <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
-            <p><strong>Contenedor:</strong> ${result.contenedorId}</p>
-            <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
-            <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
-          </div>
-
-          <p>Puedes rastrear tu envío en cualquier momento usando el código: <strong>${facturaData.codigoTracking}</strong></p>
-          <p>Gracias por confiar en nosotros.</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Detalles del Envío</h3>
+          <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
+          <p><strong>Contenedor:</strong> ${result.contenedorId}</p>
+          <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+          <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
         </div>
+
+        <p>Gracias por confiar en nosotros.</p>
       `;
 
-      sendEmail(remitenteEmail, subject, html, [], companyConfig)
+      const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'en_contenedor_usa', facturaData.codigoTracking);
+
+      sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
         .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Factura agregada a contenedor`))
         .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
     }
@@ -662,27 +661,26 @@ export const cerrarContenedor = async (req, res) => {
 
           if (remitenteEmail) {
             const subject = `🚢 En Tránsito a República Dominicana - ${facturaData.codigoTracking}`;
-            const html = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #1976D2;">🚢 En Tránsito a República Dominicana</h2>
-                <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
-                <p>Tu paquete está en camino hacia República Dominicana.</p>
+            const contentHTML = `
+              <h2 style="color: #2c3e50; margin-top: 0;">🚢 En Tránsito a República Dominicana</h2>
+              <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
+              <p>Tu paquete está en camino hacia República Dominicana.</p>
 
-                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                  <h3 style="margin-top: 0;">Detalles del Envío</h3>
-                  <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
-                  <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
-                  <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
-                  <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
-                </div>
-
-                <p>Puedes rastrear tu envío en cualquier momento usando el código: <strong>${facturaData.codigoTracking}</strong></p>
-                <p>Te notificaremos cuando el paquete llegue a nuestro almacén en República Dominicana.</p>
-                <p>Gracias por confiar en nosotros.</p>
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalles del Envío</h3>
+                <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
+                <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+                <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
               </div>
+
+              <p>Te notificaremos cuando el paquete llegue a nuestro almacén en República Dominicana.</p>
+              <p>Gracias por confiar en nosotros.</p>
             `;
 
-            sendEmail(remitenteEmail, subject, html, [], companyConfig)
+            const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'en_transito_rd', facturaData.codigoTracking);
+
+            sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
               .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Contenedor en tránsito`))
               .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
           }

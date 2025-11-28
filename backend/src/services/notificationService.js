@@ -67,7 +67,7 @@ export const sendEmail = async (to, subject, html, attachments = [], companyConf
 export const sendWhatsApp = async (to, message, mediaUrl = null) => {
   try {
     console.log(`📱 Simulando envío de WhatsApp a ${to}: ${message}`);
-    
+
     // AQUÍ IRÍA LA INTEGRACIÓN CON TWILIO O META API
     // Ejemplo Twilio:
     // await client.messages.create({ body: message, from: 'whatsapp:+14155238886', to: `whatsapp:${to}` });
@@ -156,4 +156,84 @@ export const generateTrackingTextForWhatsApp = (codigoTracking) => {
   const trackingUrl = `${FRONTEND_URL}/tracking/${codigoTracking}`;
 
   return `\n\n📦 *Rastrea tu paquete aquí:*\n${trackingUrl}\n\nCódigo: ${codigoTracking}`;
+};
+
+// Mapeo de estados a imágenes (URLs públicas o estáticas)
+// NOTA: Idealmente estas deberían ser URLs a GIFs o imágenes reales alojadas en tu servidor/bucket
+const STATE_IMAGES = {
+  'pendiente_recoleccion': 'https://img.icons8.com/clouds/200/box.png',
+  'recolectada': 'https://img.icons8.com/clouds/200/checked-truck.png',
+  'en_contenedor_usa': 'https://img.icons8.com/clouds/200/container-truck.png',
+  'incompleta_usa': 'https://img.icons8.com/clouds/200/error.png',
+  'en_transito_rd': 'https://img.icons8.com/clouds/200/airplane-take-off.png',
+  'recibida_rd': 'https://img.icons8.com/clouds/200/warehouse-1.png',
+  'pendiente_confirmacion': 'https://img.icons8.com/clouds/200/questions.png',
+  'confirmada': 'https://img.icons8.com/clouds/200/checkmark.png',
+  'en_ruta': 'https://img.icons8.com/clouds/200/delivery.png',
+  'lista_para_entregar': 'https://img.icons8.com/clouds/200/open-box.png',
+  'entregada': 'https://img.icons8.com/clouds/200/ok.png',
+  'no_entregada': 'https://img.icons8.com/clouds/200/cancel.png',
+  'default': 'https://img.icons8.com/clouds/200/box.png'
+};
+
+/**
+ * Genera un HTML de correo con branding de la compañía
+ * @param {string} contentHTML - Contenido específico del correo
+ * @param {Object} companyConfig - Configuración de la compañía { nombre, logo, primaryColor, secondaryColor }
+ * @param {string} state - Estado actual para mostrar imagen/animación (opcional)
+ * @param {string} codigoTracking - Código de tracking para incluir botón de rastreo (opcional)
+ * @returns {string} HTML completo y estilizado
+ */
+export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, state = 'default', codigoTracking = null) => {
+  // Valores por defecto si no hay config de compañía
+  // Soporta tanto invoiceDesign.primaryColor como primaryColor directo
+  const primaryColor = companyConfig?.invoiceDesign?.primaryColor || companyConfig?.primaryColor || companyConfig?.color || '#1976D2';
+  const secondaryColor = companyConfig?.invoiceDesign?.secondaryColor || companyConfig?.secondaryColor || '#f5f5f5';
+  const logoUrl = companyConfig?.invoiceDesign?.logoUrl || companyConfig?.logo || companyConfig?.logoUrl || 'https://via.placeholder.com/150x50?text=ProLogix';
+  const companyName = companyConfig?.nombre || 'ProLogix';
+
+  const stateImage = STATE_IMAGES[state] || STATE_IMAGES['default'];
+
+  // Generar botón de tracking si se proporciona el código
+  const trackingButton = codigoTracking ? generateTrackingButtonHTML(codigoTracking) : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8;">
+
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 20px; margin-bottom: 20px;">
+
+        <!-- HEADER CON LOGO -->
+        <div style="background-color: ${primaryColor}; padding: 25px; text-align: center;">
+          <img src="${logoUrl}" alt="${companyName}" style="max-height: 60px; max-width: 200px; object-fit: contain; background: rgba(255,255,255,0.9); padding: 5px; border-radius: 4px;">
+        </div>
+
+        <!-- IMAGEN DEL ESTADO (ANIMACIÓN ESTÁTICA) -->
+        <div style="text-align: center; padding-top: 30px; background-color: #ffffff;">
+          <img src="${stateImage}" alt="Estado: ${state}" style="width: 120px; height: 120px; object-fit: contain;">
+        </div>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div style="padding: 30px 40px; color: #333333; line-height: 1.6;">
+          ${contentHTML}
+        </div>
+
+        <!-- BOTÓN DE TRACKING (SI APLICA) -->
+        ${trackingButton}
+
+        <!-- FOOTER -->
+        <div style="background-color: ${secondaryColor}; padding: 20px; text-align: center; font-size: 12px; color: #888888; border-top: 1px solid #eeeeee;">
+          <p style="margin: 0 0 10px 0;">Enviado por <strong>${companyName}</strong></p>
+          <p style="margin: 0;">&copy; ${new Date().getFullYear()} Todos los derechos reservados.</p>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
 };

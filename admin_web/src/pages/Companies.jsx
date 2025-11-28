@@ -554,17 +554,100 @@ const Companies = () => {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        URL del Logo
+                        Logo de la Compañía
                       </label>
+
+                      {/* Preview del logo */}
+                      {formData.invoiceDesign.logoUrl && (
+                        <div className="mb-2 p-2 border border-gray-200 dark:border-gray-600 rounded-lg">
+                          <img
+                            src={formData.invoiceDesign.logoUrl}
+                            alt="Logo preview"
+                            className="h-16 object-contain mx-auto"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Botones de carga */}
+                      <div className="flex gap-2">
+                        <label className="flex-1 cursor-pointer">
+                          <div className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg transition-colors">
+                            📤 Subir Logo
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+
+                              // Validar tamaño (5MB max)
+                              if (file.size > 5 * 1024 * 1024) {
+                                alert('El archivo es muy grande. Máximo 5MB');
+                                return;
+                              }
+
+                              try {
+                                const formDataUpload = new FormData();
+                                formDataUpload.append('logo', file);
+
+                                const response = await api.post(
+                                  `/companies/${selectedCompany.id}/upload-logo`,
+                                  formDataUpload,
+                                  {
+                                    headers: {
+                                      'Content-Type': 'multipart/form-data'
+                                    }
+                                  }
+                                );
+
+                                if (response.data.success) {
+                                  setFormData({
+                                    ...formData,
+                                    invoiceDesign: {
+                                      ...formData.invoiceDesign,
+                                      logoUrl: response.data.logoUrl
+                                    }
+                                  });
+                                  alert('Logo subido exitosamente');
+                                } else {
+                                  alert('Error: ' + response.data.error);
+                                }
+                              } catch (error) {
+                                console.error('Error subiendo logo:', error);
+                                alert(error.response?.data?.error || 'Error al subir logo');
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = prompt('Ingresa la URL del logo:', formData.invoiceDesign.logoUrl);
+                            if (url !== null) {
+                              setFormData({
+                                ...formData,
+                                invoiceDesign: { ...formData.invoiceDesign, logoUrl: url }
+                              });
+                            }
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                        >
+                          🔗 URL
+                        </button>
+                      </div>
+
+                      {/* Input de URL (solo lectura para mostrar la URL actual) */}
                       <input
                         type="url"
                         value={formData.invoiceDesign.logoUrl}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          invoiceDesign: { ...formData.invoiceDesign, logoUrl: e.target.value }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="https://..."
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg bg-gray-50 text-sm"
+                        placeholder="https://... (carga un archivo o ingresa una URL)"
                       />
                     </div>
 

@@ -420,3 +420,101 @@ export const deleteCompany = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Subir logo de compañía
+export const uploadCompanyLogo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validar que el usuario sea super_admin
+    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'No tienes permisos para subir logos'
+      });
+    }
+
+    // Verificar que la compañía existe
+    const companyDoc = await db.collection('companies').doc(id).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Compañía no encontrada'
+      });
+    }
+
+    // Verificar que se subió un archivo
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se ha subido ningún archivo'
+      });
+    }
+
+    const file = req.file;
+    console.log(`📤 Subiendo logo para compañía ${id}: ${file.originalname}`);
+
+    // Importar storage dinámicamente
+    const { storage } = await import('../config/firebase.js');
+    const bucket = storage.bucket();
+
+    // Nombre único: logos/COMPANY_ID_TIMESTAMP.ext
+    const extension = file.originalname.split('.').pop();
+    const filename = `logos/${id}_${Date.now()}.${extension}`;
+    const fileUpload = bucket.file(filename);
+
+    const blobStream = fileUpload.createWriteStream({
+      metadata: {
+        contentType: file.mimetype
+      }
+    });
+
+    return new Promise((resolve, reject) => {
+      blobStream.on('error', (error) => {
+        console.error('❌ Error subiendo logo a Storage:', error);
+        reject(error);
+      });
+
+      blobStream.on('finish', async () => {
+        try {
+          // Hacer el archivo público
+          await fileUpload.makePublic();
+          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+
+          // Actualizar la compañía con la nueva URL del logo
+          await db.collection('companies').doc(id).update({
+            'invoiceDesign.logoUrl': publicUrl,
+            updatedAt: new Date().toISOString()
+          });
+
+          console.log(`✅ Logo subido exitosamente: ${publicUrl}`);
+
+          res.json({
+            success: true,
+            message: 'Logo subido exitosamente',
+            logoUrl: publicUrl
+          });
+
+          resolve();
+        } catch (error) {
+          console.error('❌ Error actualizando URL del logo:', error);
+          res.status(500).json({
+            success: false,
+            error: error.message
+          });
+          reject(error);
+        }
+      });
+
+      blobStream.end(file.buffer);
+    });
+
+  } catch (error) {
+    console.error('❌ Error en uploadCompanyLogo:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};

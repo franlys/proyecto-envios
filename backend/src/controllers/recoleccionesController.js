@@ -5,7 +5,7 @@ import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import multer from 'multer';
 import path from 'path';
-import { sendEmail, generateTrackingButtonHTML } from '../services/notificationService.js';
+import { sendEmail, generateTrackingButtonHTML, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ========================================
 // CONFIGURACIÓN DE MULTER
@@ -279,14 +279,13 @@ export const createRecoleccion = async (req, res) => {
       const subject = `Recolección Confirmada - ${codigoTracking}`;
       const trackingButton = generateTrackingButtonHTML(codigoTracking);
 
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1976D2;">Recolección Creada Exitosamente</h2>
+            const contentHtml = `
+          <h2 style="color: #333; margin-top: 0;">Recolección Creada Exitosamente</h2>
           <p>Hola <strong>${remitenteNombre}</strong>,</p>
           <p>Tu recolección ha sido registrada correctamente.</p>
 
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Detalles de la Recolección</h3>
+            <h3 style="margin-top: 0; color: #555;">Detalles de la Recolección</h3>
             <p><strong>Código de Tracking:</strong> ${codigoTracking}</p>
             <p><strong>Destinatario:</strong> ${destinatarioNombre}</p>
             <p><strong>Dirección:</strong> ${destinatarioDireccion}</p>
@@ -295,8 +294,8 @@ export const createRecoleccion = async (req, res) => {
           </div>
 
           <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h4 style="margin-top: 0;">Items:</h4>
-            <ul>
+            <h4 style="margin-top: 0; color: #856404;">Items:</h4>
+            <ul style="padding-left: 20px; margin-bottom: 0;">
               ${itemsArray.map(item => `<li>${item.cantidad}x ${item.descripcion} - $${parseFloat(item.precio).toFixed(2)}</li>`).join('')}
             </ul>
           </div>
@@ -304,10 +303,11 @@ export const createRecoleccion = async (req, res) => {
           ${trackingButton}
 
           <p>Gracias por confiar en nosotros.</p>
-        </div>
       `;
 
-      sendEmail(remitenteEmail, subject, html, [], companyConfig)
+      const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'pendiente_recoleccion');
+
+      sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
         .then(() => console.log(`📧 Correo de confirmación enviado a ${remitenteEmail}`))
         .catch(err => console.error(`❌ Error enviando correo a ${remitenteEmail}:`, err.message));
     }
@@ -575,36 +575,36 @@ export const actualizarEstado = async (req, res) => {
       };
 
       const subject = `${estadoInfo.emoji} ${estadoInfo.titulo} - ${recoleccionData.codigoTracking}`;
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1976D2;">${estadoInfo.emoji} ${estadoInfo.titulo}</h2>
-          <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
-          <p>${estadoInfo.mensaje}</p>
+              const contentHtml = `
+            <h2 style="color: #333; margin-top: 0;">${estadoInfo.emoji} ${estadoInfo.titulo}</h2>
+            <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
+            <p>${estadoInfo.mensaje}</p>
 
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Detalles del Envío</h3>
-            <p><strong>Código de Tracking:</strong> ${recoleccionData.codigoTracking}</p>
-            <p><strong>Destinatario:</strong> ${recoleccionData.destinatario?.nombre}</p>
-            <p><strong>Dirección de Entrega:</strong> ${recoleccionData.destinatario?.direccion}</p>
-            <p><strong>Estado Actual:</strong> ${estadoInfo.titulo}</p>
-          </div>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #555;">Detalles del Envío</h3>
+              <p><strong>Código de Tracking:</strong> ${recoleccionData.codigoTracking}</p>
+              <p><strong>Destinatario:</strong> ${recoleccionData.destinatario?.nombre}</p>
+              <p><strong>Dirección de Entrega:</strong> ${recoleccionData.destinatario?.direccion}</p>
+              <p><strong>Estado Actual:</strong> ${estadoInfo.titulo}</p>
+            </div>
 
-          ${notas ? `
-          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h4 style="margin-top: 0;">Nota Adicional:</h4>
-            <p>${notas}</p>
-          </div>
-          ` : ''}
+            ${notas ? `
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h4 style="margin-top: 0; color: #856404;">Nota Adicional:</h4>
+              <p>${notas}</p>
+            </div>
+            ` : ''}
 
-          ${generateTrackingButtonHTML(recoleccionData.codigoTracking)}
+            ${generateTrackingButtonHTML(recoleccionData.codigoTracking)}
 
-          <p style="text-align: center; color: #666;">Gracias por confiar en nosotros.</p>
-        </div>
-      `;
+            <p style="text-align: center; color: #666;">Gracias por confiar en nosotros.</p>
+        `;
 
-      sendEmail(remitenteEmail, subject, html, [], companyConfig)
-        .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail} - Estado: ${estado}`))
-        .catch(err => console.error(`❌ Error enviando notificación de estado:`, err.message));
+        const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, estado);
+
+        sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
+          .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}`))
+          .catch(err => console.error(`❌ Error enviando notificación a ${remitenteEmail}:`, err.message));
     }
 
     res.json({
@@ -696,30 +696,30 @@ export const actualizarPago = async (req, res) => {
     const remitenteEmail = recoleccionData.remitente?.email;
     if (remitenteEmail && estadoPago === 'pagada') {
       const subject = `💰 Pago Confirmado - ${recoleccionData.codigoTracking}`;
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #4CAF50;">💰 Pago Confirmado</h2>
-          <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
-          <p>Hemos confirmado el pago de tu envío.</p>
+                const contentHtml = `
+              <h2 style="color: #4CAF50; margin-top: 0;">💰 Pago Confirmado</h2>
+              <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
+              <p>Hemos confirmado el pago de tu envío.</p>
 
-          <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Detalles del Pago</h3>
-            <p><strong>Código de Tracking:</strong> ${recoleccionData.codigoTracking}</p>
-            <p><strong>Monto Pagado:</strong> $${nuevoMontoPagado.toFixed(2)} USD</p>
-            <p><strong>Método de Pago:</strong> ${metodoPago || 'No especificado'}</p>
-            ${referenciaPago ? `<p><strong>Referencia:</strong> ${referenciaPago}</p>` : ''}
-            <p><strong>Estado:</strong> Pagada ✅</p>
-          </div>
+              <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #2e7d32;">Detalles del Pago</h3>
+                <p><strong>Código de Tracking:</strong> ${recoleccionData.codigoTracking}</p>
+                <p><strong>Monto Pagado:</strong> $${nuevoMontoPagado.toFixed(2)} USD</p>
+                <p><strong>Método de Pago:</strong> ${metodoPago || 'No especificado'}</p>
+                ${referenciaPago ? `<p><strong>Referencia:</strong> ${referenciaPago}</p>` : ''}
+                <p><strong>Estado:</strong> Pagada ✅</p>
+              </div>
 
-          ${generateTrackingButtonHTML(recoleccionData.codigoTracking)}
+              ${generateTrackingButtonHTML(recoleccionData.codigoTracking)}
 
-          <p style="text-align: center; color: #666;">Gracias por tu pago. Tu envío será procesado pronto.</p>
-        </div>
-      `;
+              <p style="text-align: center; color: #666;">Gracias por tu pago. Tu envío será procesado pronto.</p>
+          `;
 
-      sendEmail(remitenteEmail, subject, html, [], companyConfig)
-        .then(() => console.log(`📧 Notificación de pago enviada a ${remitenteEmail}`))
-        .catch(err => console.error(`❌ Error enviando notificación de pago:`, err.message));
+          const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'confirmada');
+
+          sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
+            .then(() => console.log(`📧 Confirmación de pago enviada a ${recoleccionData.remitente?.email}`))
+            .catch(err => console.error(`❌ Error enviando confirmación a ${recoleccionData.remitente?.email}:`, err.message));
     }
 
     res.json({

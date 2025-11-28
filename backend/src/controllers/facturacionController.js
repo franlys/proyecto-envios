@@ -2,12 +2,8 @@
 /**
  * SISTEMA DE FACTURACIÓN
  * Gestión de pagos, precios y estados financieros de recolecciones
- * * Estados de pago:
-// backend/src/controllers/facturacionController.js
-/**
- * SISTEMA DE FACTURACIÓN
- * Gestión de pagos, precios y estados financieros de recolecciones
- * * Estados de pago:
+ *
+ * Estados de pago:
  * - pagada: Factura completamente pagada
  * - pendiente_pago: Sin pagar
  * - pago_parcial: Pagada parcialmente
@@ -623,10 +619,15 @@ export const enviarFactura = async (req, res) => {
     };
 
     const subject = `Tu Factura #${data.codigoTracking || id}`;
-    const body = `
-      <h3>Hola ${clientData.nombre},</h3>
+    const contentHtml = `
+      <h2 style="color: #1976D2; margin-top: 0;">Tu Factura está lista</h2>
+      <p>Hola <strong>${clientData.nombre}</strong>,</p>
       <p>Adjunto encontrarás tu factura correspondiente al envío <strong>#${data.codigoTracking || id}</strong>.</p>
-      <p>Puedes descargarla directamente aquí: <a href="${facturaUrl}">Descargar Factura</a></p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${facturaUrl}" style="background-color: #1976D2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Descargar Factura</a>
+      </div>
+
       <p>Gracias por tu preferencia.</p>
     `;
 
@@ -640,11 +641,14 @@ export const enviarFactura = async (req, res) => {
       }
     }
 
+    const { generateBrandedEmailHTML } = await import('../services/notificationService.js');
+    const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'pagada');
+
     const results = { email: null, whatsapp: null };
 
     if (metodo === 'email' || metodo === 'ambos') {
       if (clientData.email) {
-        results.email = await sendEmail(clientData.email, subject, body, [], companyConfig);
+        results.email = await sendEmail(clientData.email, subject, brandedHtml, [], companyConfig);
       } else {
         results.email = { success: false, error: 'No hay email registrado' };
       }
