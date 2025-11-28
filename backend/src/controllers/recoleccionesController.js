@@ -5,7 +5,7 @@ import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import multer from 'multer';
 import path from 'path';
-import { sendEmail } from '../services/notificationService.js';
+import { sendEmail, generateTrackingButtonHTML } from '../services/notificationService.js';
 
 // ========================================
 // CONFIGURACIÓN DE MULTER
@@ -277,6 +277,8 @@ export const createRecoleccion = async (req, res) => {
     // Enviar notificación por correo al remitente (en segundo plano)
     if (remitenteEmail) {
       const subject = `Recolección Confirmada - ${codigoTracking}`;
+      const trackingButton = generateTrackingButtonHTML(codigoTracking);
+
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1976D2;">Recolección Creada Exitosamente</h2>
@@ -299,7 +301,8 @@ export const createRecoleccion = async (req, res) => {
             </ul>
           </div>
 
-          <p>Puedes rastrear tu envío usando el código: <strong>${codigoTracking}</strong></p>
+          ${trackingButton}
+
           <p>Gracias por confiar en nosotros.</p>
         </div>
       `;
@@ -593,8 +596,9 @@ export const actualizarEstado = async (req, res) => {
           </div>
           ` : ''}
 
-          <p>Puedes rastrear tu envío en cualquier momento usando el código: <strong>${recoleccionData.codigoTracking}</strong></p>
-          <p>Gracias por confiar en nosotros.</p>
+          ${generateTrackingButtonHTML(recoleccionData.codigoTracking)}
+
+          <p style="text-align: center; color: #666;">Gracias por confiar en nosotros.</p>
         </div>
       `;
 
@@ -707,8 +711,9 @@ export const actualizarPago = async (req, res) => {
             <p><strong>Estado:</strong> Pagada ✅</p>
           </div>
 
-          <p>Gracias por tu pago. Tu envío será procesado pronto.</p>
-          <p>Código de tracking: <strong>${recoleccionData.codigoTracking}</strong></p>
+          ${generateTrackingButtonHTML(recoleccionData.codigoTracking)}
+
+          <p style="text-align: center; color: #666;">Gracias por tu pago. Tu envío será procesado pronto.</p>
         </div>
       `;
 

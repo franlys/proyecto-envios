@@ -942,6 +942,35 @@ const PanelCargadores = () => {
                 </div>
               </div>
 
+              {/* Fotos de la Recolección */}
+              {facturaDetalleSeleccionada.fotos && facturaDetalleSeleccionada.fotos.length > 0 && (
+                <div className="border dark:border-gray-700 rounded-lg p-4">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <ImageIcon size={18} className="text-blue-600" />
+                    Fotos de la Recolección ({facturaDetalleSeleccionada.fotos.length})
+                  </h3>
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                    {facturaDetalleSeleccionada.fotos.map((foto, idx) => (
+                      <div
+                        key={idx}
+                        className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border-2 border-gray-200 dark:border-gray-600"
+                        onClick={() => abrirGaleriaFotos(facturaDetalleSeleccionada.fotos)}
+                      >
+                        <img
+                          src={foto}
+                          alt={`Foto ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Haz clic en cualquier foto para ver en tamaño completo
+                  </p>
+                </div>
+              )}
+
               {/* Información de Facturación */}
               {facturaDetalleSeleccionada.facturacion && (
                 <div className="border dark:border-gray-700 rounded-lg p-4">

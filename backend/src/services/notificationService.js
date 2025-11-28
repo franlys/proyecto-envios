@@ -2,6 +2,10 @@ import pkg from 'nodemailer';
 const { createTransport } = pkg;
 import axios from 'axios';
 
+// URL base del frontend (para enlaces de tracking)
+// En producción debe ser la URL de tu frontend en Vercel
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://proyecto-envios-sandy.vercel.app';
+
 // Configuración del transporter de Nodemailer
 const createTransporter = (config = null) => {
   // Si hay config específica de la compañía, usarla; sino, usar variables de entorno como fallback
@@ -106,4 +110,50 @@ export const sendInvoiceStatusUpdate = async (clientData, invoiceData, companyCo
   }
 
   return results;
+};
+
+/**
+ * Genera el HTML para el botón de tracking público
+ * @param {string} codigoTracking - Código de tracking (ej: EMI-0001)
+ * @returns {string} HTML del botón de tracking
+ */
+export const generateTrackingButtonHTML = (codigoTracking) => {
+  if (!codigoTracking) return '';
+
+  const trackingUrl = `${FRONTEND_URL}/tracking/${codigoTracking}`;
+
+  return `
+    <div style="margin: 30px 0; text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 8px;">
+      <h3 style="color: #2c3e50; margin-bottom: 15px;">📦 Rastrea tu Paquete</h3>
+      <p style="color: #555; margin-bottom: 20px; font-size: 14px;">
+        Puedes seguir el estado de tu envío en tiempo real haciendo clic en el botón de abajo:
+      </p>
+      <a href="${trackingUrl}"
+         style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s;">
+        🔍 Rastrear ${codigoTracking}
+      </a>
+      <p style="color: #777; margin-top: 15px; font-size: 12px;">
+        O copia este enlace: <br>
+        <a href="${trackingUrl}" style="color: #667eea; word-break: break-all;">${trackingUrl}</a>
+      </p>
+      <p style="color: #999; margin-top: 10px; font-size: 11px;">
+        💡 Puedes compartir este enlace con otras personas
+      </p>
+    </div>
+  `;
+};
+
+/**
+ * Genera el texto plano para WhatsApp con enlace de tracking
+ * @param {string} codigoTracking - Código de tracking
+ * @returns {string} Texto con enlace
+ */
+export const generateTrackingTextForWhatsApp = (codigoTracking) => {
+  if (!codigoTracking) return '';
+
+  const trackingUrl = `${FRONTEND_URL}/tracking/${codigoTracking}`;
+
+  return `\n\n📦 *Rastrea tu paquete aquí:*\n${trackingUrl}\n\nCódigo: ${codigoTracking}`;
 };

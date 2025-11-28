@@ -4,7 +4,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { sendEmail } from '../services/notificationService.js';
+import { sendEmail, generateTrackingButtonHTML } from '../services/notificationService.js';
 
 // ========================================
 // CONSTANTES DE ESTADOS
@@ -422,7 +422,8 @@ export const confirmarRecepcion = async (req, res) => {
                   <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
                 </div>
 
-                <p>Puedes rastrear tu envío en cualquier momento usando el código: <strong>${facturaData.codigoTracking}</strong></p>
+                ${generateTrackingButtonHTML(facturaData.codigoTracking)}
+
                 <p>Pronto será asignado a una ruta para su entrega final.</p>
                 <p>Gracias por confiar en nosotros.</p>
               </div>
