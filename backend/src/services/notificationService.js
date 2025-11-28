@@ -193,7 +193,7 @@ export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, stat
       <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 20px; margin-bottom: 20px;">
 
         <!-- HEADER CON LOGO -->
-        <div style="background-color: ${primaryColor}; padding: 25px; text-align: center;">
+        <div style="background-color: ${primaryColor}; padding: 25px; text-align: center; border-bottom: 4px solid ${secondaryColor};">
           <img src="${logoUrl}" alt="${companyName}" style="max-height: 80px; max-width: 220px; object-fit: contain; border-radius: 4px;">
         </div>
 
