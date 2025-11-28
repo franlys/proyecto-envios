@@ -1,39 +1,13 @@
-import pkg from 'nodemailer';
-const { createTransport } = pkg;
-import axios from 'axios';
+import { Resend } from 'resend';
 
 // URL base del frontend (para enlaces de tracking)
-// En producción debe ser la URL de tu frontend en Vercel
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://proyecto-envios-sandy.vercel.app';
 
-// Configuración del transporter de Nodemailer
-const createTransporter = (config = null) => {
-  // Si hay config específica de la compañía, usarla; sino, usar variables de entorno como fallback
-  const user = config?.user || process.env.EMAIL_USER;
-  const pass = config?.pass || process.env.EMAIL_PASS;
-
-  // Verificar si las credenciales están configuradas
-  if (!user || !pass) {
-    console.warn('⚠️ Advertencia: No hay credenciales de email configuradas (ni de compañía ni de entorno). El envío de correos fallará.');
-  }
-
-  // Configuración específica para Gmail con puerto SSL (mejor compatibilidad con Railway)
-  return createTransport({
-    host: 'smtp.gmail.com',
-    port: 465, // Puerto SSL
-    secure: true, // SSL directo
-    auth: {
-      user: user,
-      pass: pass,
-    },
-    connectionTimeout: 10000, // 10 segundos
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
-};
+// Inicializar Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Envía un correo electrónico
+ * Envía un correo electrónico usando Resend
  * @param {string} to - Destinatario
  * @param {string} subject - Asunto
  * @param {string} html - Cuerpo del correo en HTML
@@ -42,21 +16,36 @@ const createTransporter = (config = null) => {
  */
 export const sendEmail = async (to, subject, html, attachments = [], companyConfig = null) => {
   try {
-    const transporter = createTransporter(companyConfig?.emailConfig);
+    // Configurar remitente
+    // NOTA: Para usar un dominio personalizado, debe estar verificado en Resend.
+    // Por defecto usamos el de onboarding para pruebas.
+    // IMPORTANTE: Si process.env.EMAIL_FROM tiene un gmail/hotmail, fallará.
+    // Por eso forzamos onboarding@resend.dev hasta que se verifique un dominio.
+    const fromEmail = 'onboarding@resend.dev';
 
-    const fromEmail = companyConfig?.emailConfig?.from || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    // Si hay configuración de compañía, intentar usarla si es compatible con Resend (requiere dominio verificado)
+    // Por ahora, para garantizar entrega, usamos el remitente verificado del sistema
 
-    const mailOptions = {
+    const emailOptions = {
       from: fromEmail,
-      to,
-      subject,
-      html,
-      attachments
+      to: to,
+      subject: subject,
+      html: html,
+      attachments: attachments.map(att => ({
+        filename: att.filename,
+        content: att.content // Resend espera Buffer o string base64
+      }))
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`📧 Correo enviado a ${to}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    const data = await resend.emails.send(emailOptions);
+
+    if (data.error) {
+      console.error('❌ Error enviando correo (Resend):', data.error);
+      return { success: false, error: data.error.message };
+    }
+
+    console.log(`📧 Correo enviado a ${to}: ${data.data?.id}`);
+    return { success: true, messageId: data.data?.id };
   } catch (error) {
     console.error('❌ Error enviando correo:', error);
     return { success: false, error: error.message };
@@ -72,11 +61,6 @@ export const sendEmail = async (to, subject, html, attachments = [], companyConf
 export const sendWhatsApp = async (to, message, mediaUrl = null) => {
   try {
     console.log(`📱 Simulando envío de WhatsApp a ${to}: ${message}`);
-
-    // AQUÍ IRÍA LA INTEGRACIÓN CON TWILIO O META API
-    // Ejemplo Twilio:
-    // await client.messages.create({ body: message, from: 'whatsapp:+14155238886', to: `whatsapp:${to}` });
-
     return { success: true, message: 'Simulación exitosa' };
   } catch (error) {
     console.error('❌ Error enviando WhatsApp:', error);
@@ -106,7 +90,9 @@ export const sendInvoiceStatusUpdate = async (clientData, invoiceData, companyCo
   const results = { email: null, whatsapp: null };
 
   if (email) {
-    results.email = await sendEmail(email, subject, body, [], companyConfig);
+    // Envolver el contenido en la plantilla con branding
+    const brandedHtml = generateBrandedEmailHTML(body, companyConfig, 'default');
+    results.email = await sendEmail(email, subject, brandedHtml, [], companyConfig);
   }
 
   if (telefono) {
@@ -164,7 +150,6 @@ export const generateTrackingTextForWhatsApp = (codigoTracking) => {
 };
 
 // Mapeo de estados a imágenes (URLs públicas o estáticas)
-// NOTA: Idealmente estas deberían ser URLs a GIFs o imágenes reales alojadas en tu servidor/bucket
 const STATE_IMAGES = {
   'pendiente_recoleccion': 'https://img.icons8.com/clouds/200/box.png',
   'recolectada': 'https://img.icons8.com/clouds/200/checked-truck.png',
@@ -190,8 +175,6 @@ const STATE_IMAGES = {
  * @returns {string} HTML completo y estilizado
  */
 export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, state = 'default', codigoTracking = null) => {
-  // Valores por defecto si no hay config de compañía
-  // Soporta tanto invoiceDesign.primaryColor como primaryColor directo
   const primaryColor = companyConfig?.invoiceDesign?.primaryColor || companyConfig?.primaryColor || companyConfig?.color || '#1976D2';
   const secondaryColor = companyConfig?.invoiceDesign?.secondaryColor || companyConfig?.secondaryColor || '#f5f5f5';
   const logoUrl = companyConfig?.invoiceDesign?.logoUrl || companyConfig?.logo || companyConfig?.logoUrl || 'https://via.placeholder.com/150x50?text=ProLogix';
@@ -199,7 +182,6 @@ export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, stat
 
   const stateImage = STATE_IMAGES[state] || STATE_IMAGES['default'];
 
-  // Generar botón de tracking si se proporciona el código
   const trackingButton = codigoTracking ? generateTrackingButtonHTML(codigoTracking) : '';
 
   return `
@@ -218,7 +200,7 @@ export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, stat
           <img src="${logoUrl}" alt="${companyName}" style="max-height: 60px; max-width: 200px; object-fit: contain; background: rgba(255,255,255,0.9); padding: 5px; border-radius: 4px;">
         </div>
 
-        <!-- IMAGEN DEL ESTADO (ANIMACIÓN ESTÁTICA) -->
+        <!-- IMAGEN DEL ESTADO -->
         <div style="text-align: center; padding-top: 30px; background-color: #ffffff;">
           <img src="${stateImage}" alt="Estado: ${state}" style="width: 120px; height: 120px; object-fit: contain;">
         </div>
@@ -228,7 +210,7 @@ export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, stat
           ${contentHTML}
         </div>
 
-        <!-- BOTÓN DE TRACKING (SI APLICA) -->
+        <!-- BOTÓN DE TRACKING -->
         ${trackingButton}
 
         <!-- FOOTER -->
