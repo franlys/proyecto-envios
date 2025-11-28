@@ -194,7 +194,7 @@ export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, stat
 
         <!-- HEADER CON LOGO -->
         <div style="background-color: ${primaryColor}; padding: 25px; text-align: center;">
-          <img src="${logoUrl}" alt="${companyName}" style="max-height: 60px; max-width: 200px; object-fit: contain; background: rgba(255,255,255,0.9); padding: 5px; border-radius: 4px;">
+          <img src="${logoUrl}" alt="${companyName}" style="max-height: 80px; max-width: 220px; object-fit: contain; border-radius: 4px;">
         </div>
 
         <!-- IMAGEN DEL ESTADO -->
