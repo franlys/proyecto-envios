@@ -464,66 +464,120 @@ export const buscarPorCodigoTracking = async (req, res) => {
 // ACTUALIZAR ESTADO DE RECOLECCIÓN
 // ========================================
 
-// Obtener configuración de la compañía
-let companyConfig = null;
-try {
-  const companyDoc = await db.collection('companies').doc(companyId).get();
-  if (companyDoc.exists) {
-    companyConfig = companyDoc.data();
-  }
-} catch (error) {
-  console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
-}
+export const actualizarEstado = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estado, notas } = req.body;
 
-// Enviar notificación por correo al remitente (en segundo plano)
-const remitenteEmail = recoleccionData.remitente?.email;
-if (remitenteEmail) {
-  const estadosMensajes = {
-    'pendiente': {
-      titulo: 'Recolección Pendiente',
-      mensaje: 'Tu recolección está pendiente de procesamiento.',
-      emoji: '⏳'
-    },
-    'en_contenedor': {
-      titulo: 'En Contenedor - Almacén USA',
-      mensaje: 'Tu paquete ha sido colocado en un contenedor en nuestro almacén de USA y pronto será enviado.',
-      emoji: '📦'
-    },
-    'en_transito': {
-      titulo: 'En Tránsito a República Dominicana',
-      mensaje: 'Tu paquete está en camino hacia República Dominicana.',
-      emoji: '🚢'
-    },
-    'recibido_rd': {
-      titulo: 'Recibido en Almacén RD',
-      mensaje: 'Tu paquete ha llegado a nuestro almacén en República Dominicana y está siendo procesado.',
-      emoji: '🏭'
-    },
-    'en_ruta': {
-      titulo: 'En Ruta de Entrega',
-      mensaje: 'Tu paquete está en camino hacia su destino final.',
-      emoji: '🚚'
-    },
-    'entregado': {
-      titulo: '¡Entregado Exitosamente!',
-      mensaje: 'Tu paquete ha sido entregado al destinatario.',
-      emoji: '✅'
-    },
-    'cancelado': {
-      titulo: 'Recolección Cancelada',
-      mensaje: 'Tu recolección ha sido cancelada.',
-      emoji: '❌'
+    const estadosPermitidos = [
+      'pendiente',
+      'en_contenedor',
+      'en_transito',
+      'recibida_rd',
+      'en_ruta',
+      'entregado',
+      'cancelado'
+    ];
+
+    if (!estadosPermitidos.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Estado no válido',
+        estadosPermitidos
+      });
     }
-  };
 
-  const estadoInfo = estadosMensajes[estado] || {
-    titulo: 'Actualización de Estado',
-    mensaje: `El estado de tu envío ha cambiado a: ${estado}`,
-    emoji: '📬'
-  };
+    const recoleccionRef = db.collection('recolecciones').doc(id);
+    const doc = await recoleccionRef.get();
 
-  const subject = `${estadoInfo.emoji} ${estadoInfo.titulo} - ${recoleccionData.codigoTracking}`;
-  const contentHtml = `
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recolección no encontrada'
+      });
+    }
+
+    const historialEntry = {
+      accion: 'cambio_estado',
+      descripcion: `Estado cambiado a: ${estado}`,
+      estadoAnterior: doc.data().estado,
+      estadoNuevo: estado,
+      notas: notas || '',
+      usuario: req.userData?.uid,
+      fecha: new Date().toISOString()
+    };
+
+    await recoleccionRef.update({
+      estado,
+      estadoGeneral: estado,
+      fechaActualizacion: FieldValue.serverTimestamp(),
+      historial: FieldValue.arrayUnion(historialEntry)
+    });
+
+    // Obtener datos completos de la recolección para notificación
+    const recoleccionData = doc.data();
+    const companyId = recoleccionData.companyId;
+
+    // Obtener configuración de la compañía
+    let companyConfig = null;
+    try {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      }
+    } catch (error) {
+      console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    // Enviar notificación por correo al remitente (en segundo plano)
+    const remitenteEmail = recoleccionData.remitente?.email;
+    if (remitenteEmail) {
+      const estadosMensajes = {
+        'pendiente': {
+          titulo: 'Recolección Pendiente',
+          mensaje: 'Tu recolección está pendiente de procesamiento.',
+          emoji: '⏳'
+        },
+        'en_contenedor': {
+          titulo: 'En Contenedor - Almacén USA',
+          mensaje: 'Tu paquete ha sido colocado en un contenedor en nuestro almacén de USA y pronto será enviado.',
+          emoji: '📦'
+        },
+        'en_transito': {
+          titulo: 'En Tránsito a República Dominicana',
+          mensaje: 'Tu paquete está en camino hacia República Dominicana.',
+          emoji: '🚢'
+        },
+        'recibido_rd': {
+          titulo: 'Recibido en Almacén RD',
+          mensaje: 'Tu paquete ha llegado a nuestro almacén en República Dominicana y está siendo procesado.',
+          emoji: '🏭'
+        },
+        'en_ruta': {
+          titulo: 'En Ruta de Entrega',
+          mensaje: 'Tu paquete está en camino hacia su destino final.',
+          emoji: '🚚'
+        },
+        'entregado': {
+          titulo: '¡Entregado Exitosamente!',
+          mensaje: 'Tu paquete ha sido entregado al destinatario.',
+          emoji: '✅'
+        },
+        'cancelado': {
+          titulo: 'Recolección Cancelada',
+          mensaje: 'Tu recolección ha sido cancelada.',
+          emoji: '❌'
+        }
+      };
+
+      const estadoInfo = estadosMensajes[estado] || {
+        titulo: 'Actualización de Estado',
+        mensaje: `El estado de tu envío ha cambiado a: ${estado}`,
+        emoji: '📬'
+      };
+
+      const subject = `${estadoInfo.emoji} ${estadoInfo.titulo} - ${recoleccionData.codigoTracking}`;
+      const contentHtml = `
             <h2 style="color: #333; margin-top: 0;">${estadoInfo.emoji} ${estadoInfo.titulo}</h2>
             <p>Hola <strong>${recoleccionData.remitente?.nombre}</strong>,</p>
             <p>${estadoInfo.mensaje}</p>
@@ -548,27 +602,27 @@ if (remitenteEmail) {
             <p style="text-align: center; color: #666;">Gracias por confiar en nosotros.</p>
         `;
 
-  const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, estado);
+      const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, estado);
 
-  sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
-    .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}`))
-    .catch(err => console.error(`❌ Error enviando notificación a ${remitenteEmail}:`, err.message));
-}
+      sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
+        .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}`))
+        .catch(err => console.error(`❌ Error enviando notificación a ${remitenteEmail}:`, err.message));
+    }
 
-res.json({
-  success: true,
-  message: 'Estado actualizado exitosamente',
-  data: { id, estado }
-});
+    res.json({
+      success: true,
+      message: 'Estado actualizado exitosamente',
+      data: { id, estado }
+    });
 
   } catch (error) {
-  console.error('❌ Error actualizando estado:', error);
-  res.status(500).json({
-    success: false,
-    message: 'Error al actualizar el estado',
-    error: error.message
-  });
-}
+    console.error('❌ Error actualizando estado:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar el estado',
+      error: error.message
+    });
+  }
 };
 
 // ========================================
