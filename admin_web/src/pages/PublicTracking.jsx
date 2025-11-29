@@ -205,8 +205,8 @@ const PublicTracking = () => {
               <div className="flex flex-col items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center ${item.completado
-                      ? 'bg-green-100 text-green-600'
-                      : 'bg-gray-100 text-gray-400'
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-gray-100 text-gray-400'
                     }`}
                 >
                   {item.completado ? (
@@ -321,8 +321,8 @@ const PublicTracking = () => {
                     )}
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.estado === 'entregado'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-blue-100 text-blue-700'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-blue-100 text-blue-700'
                     }`}>
                     {item.estado === 'entregado' ? 'Entregado' : 'En proceso'}
                   </span>
@@ -485,7 +485,8 @@ const PublicTracking = () => {
         {renderFotos()}
 
         {/* Lightbox */}
-        <LightboxComponent />
+        {/* Lightbox */}
+        {LightboxComponent}
       </div>
     </div>
   );
