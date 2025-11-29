@@ -158,7 +158,18 @@ function generarTimeline(recoleccion) {
     'entregada'
   ];
 
-  const estadoActual = recoleccion.estadoGeneral;
+  let estadoActual = recoleccion.estadoGeneral;
+
+  // Normalizar estado actual para el timeline
+  const mapaEstados = {
+    'en_contenedor': 'en_contenedor_usa',
+    'en_transito': 'en_transito_rd',
+    'recibida': 'recibida_rd'
+  };
+  if (mapaEstados[estadoActual]) {
+    estadoActual = mapaEstados[estadoActual];
+  }
+
   const estadoActualIndex = estados.indexOf(estadoActual);
 
   estados.forEach((estado, index) => {
@@ -257,7 +268,14 @@ function obtenerEstadoLegible(estadoCodigo) {
     }
   };
 
-  return estados[estadoCodigo] || {
+  // Mapeo de estados alternativos (para compatibilidad)
+  const estadoNormalizado = {
+    'en_contenedor': 'en_contenedor_usa',
+    'en_transito': 'en_transito_rd',
+    'recibida': 'recibida_rd'
+  }[estadoCodigo] || estadoCodigo;
+
+  return estados[estadoNormalizado] || {
     nombre: 'Estado Desconocido',
     descripcion: estadoCodigo,
     icono: '❓',
