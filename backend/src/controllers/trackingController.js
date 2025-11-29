@@ -164,7 +164,8 @@ function generarTimeline(recoleccion) {
   const mapaEstados = {
     'en_contenedor': 'en_contenedor_usa',
     'en_transito': 'en_transito_rd',
-    'recibida': 'recibida_rd'
+    'recibida': 'recibida_rd',
+    'sin_confirmar': 'pendiente_recoleccion'
   };
   if (mapaEstados[estadoActual]) {
     estadoActual = mapaEstados[estadoActual];
@@ -272,7 +273,8 @@ function obtenerEstadoLegible(estadoCodigo) {
   const estadoNormalizado = {
     'en_contenedor': 'en_contenedor_usa',
     'en_transito': 'en_transito_rd',
-    'recibida': 'recibida_rd'
+    'recibida': 'recibida_rd',
+    'sin_confirmar': 'pendiente_recoleccion'
   }[estadoCodigo] || estadoCodigo;
 
   return estados[estadoNormalizado] || {
