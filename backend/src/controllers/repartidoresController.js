@@ -85,33 +85,9 @@ export const getDetalleRuta = async (req, res) => {
 
     // Validar que la ruta pertenezca al repartidor
     if (data.repartidorId !== repartidorId) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tiene permisos para ver esta ruta'
-      });
-    }
-
-    // Ordenar facturas por orden de entrega si existe
-    let facturas = data.facturas || [];
-    facturas.sort((a, b) => (a.ordenEntrega || 999) - (b.ordenEntrega || 999));
-
-    res.json({
-      success: true,
-      data: {
-        id: doc.id,
-        ...data,
-        facturas,
-        fechaCreacion: data.fechaCreacion?.toDate?.() || null,
-        fechaAsignacion: data.fechaAsignacion?.toDate?.() || null
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error obteniendo detalle de ruta:', error);
-    res.status(500).json({
       success: false,
-      message: 'Error al obtener el detalle de la ruta',
-      error: error.message
+        message: 'Error al obtener el detalle de la ruta',
+          error: error.message
     });
   }
 };
