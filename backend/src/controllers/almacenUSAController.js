@@ -198,13 +198,13 @@ export const agregarFactura = async (req, res) => {
         codigoTracking: factura.codigoTracking,
         remitente: factura.remitente || {},
         destinatario: factura.destinatario || {},
-        
+
         // ✅✅✅ CRÍTICO: GUARDAR ITEMS COMPLETOS ✅✅✅
         items: itemsCompletos,
         itemsTotal: itemsCompletos.length,
         itemsMarcados: 0,
         estadoItems: ESTADOS_ITEMS.PENDIENTE,
-        
+
         facturacion: factura.facturacion || {},
         pago: factura.pago || {},
         fechaAgregada: new Date().toISOString()
@@ -242,12 +242,13 @@ export const agregarFactura = async (req, res) => {
         contenedorId,
         numeroContenedor: contenedor.numeroContenedor,
         estado: ESTADOS_FACTURA.EN_CONTENEDOR,
-        
+        estadoGeneral: ESTADOS_FACTURA.EN_CONTENEDOR, // ✅ Sincronizar estadoGeneral
+
         // Guardar conteos REALES desde el principio
         itemsTotal: itemsCompletos.length,
         itemsMarcados: 0,
         estadoItems: ESTADOS_ITEMS.PENDIENTE,
-        
+
         fechaActualizacion: FieldValue.serverTimestamp(),
         historial: FieldValue.arrayUnion({
           accion: 'agregada_a_contenedor',
@@ -359,8 +360,8 @@ export const marcarItem = async (req, res) => {
       const facturasActualizadas = JSON.parse(JSON.stringify(contenedor.facturas || []));
       const factura = facturasActualizadas[facturaIndex];
 
-      if (!Array.isArray(factura.items) || itemIndex < 0 || itemIndex >= factura.items.length) { 
-        throw new Error('ITEM_INVALIDO'); 
+      if (!Array.isArray(factura.items) || itemIndex < 0 || itemIndex >= factura.items.length) {
+        throw new Error('ITEM_INVALIDO');
       }
 
       // Actualizar marcado
@@ -486,6 +487,7 @@ export const quitarFactura = async (req, res) => {
           contenedorId: null,
           numeroContenedor: null,
           estado: estadoOriginal,
+          estadoGeneral: estadoOriginal, // ✅ Sincronizar estadoGeneral
           itemsMarcados: 0,
           estadoItems: ESTADOS_ITEMS.PENDIENTE,
           fechaActualizacion: FieldValue.serverTimestamp(),
@@ -543,14 +545,14 @@ export const cerrarContenedor = async (req, res) => {
     }
     const contenedor = contenedorDoc.data();
 
-    if (contenedor.companyId !== companyId) { 
-      return res.status(403).json({ success: false, message: 'No tiene permisos' }); 
+    if (contenedor.companyId !== companyId) {
+      return res.status(403).json({ success: false, message: 'No tiene permisos' });
     }
-    if (contenedor.estado !== ESTADOS_CONTENEDOR.ABIERTO) { 
-      return res.status(400).json({ success: false, message: 'El contenedor no está abierto' }); 
+    if (contenedor.estado !== ESTADOS_CONTENEDOR.ABIERTO) {
+      return res.status(400).json({ success: false, message: 'El contenedor no está abierto' });
     }
-    if (!contenedor.facturas || contenedor.facturas.length === 0) { 
-      return res.status(400).json({ success: false, message: 'No se puede cerrar un contenedor vacío' }); 
+    if (!contenedor.facturas || contenedor.facturas.length === 0) {
+      return res.status(400).json({ success: false, message: 'No se puede cerrar un contenedor vacío' });
     }
 
     const facturasIncompletas = (contenedor.facturas || []).filter(
@@ -609,6 +611,7 @@ export const cerrarContenedor = async (req, res) => {
           if (recoleccionDoc.exists) {
             batch.update(recoleccionRef, {
               estado: ESTADOS_FACTURA.EN_TRANSITO, // Se marca como EN_TRANSITO
+              estadoGeneral: ESTADOS_FACTURA.EN_TRANSITO, // ✅ Sincronizar estadoGeneral
               estadoItems: factura.estadoItems || ESTADOS_ITEMS.COMPLETO,
               fechaActualizacion: FieldValue.serverTimestamp(),
               historial: FieldValue.arrayUnion({
@@ -706,10 +709,10 @@ export const cerrarContenedor = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error cerrando contenedor:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al cerrar el contenedor', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al cerrar el contenedor',
+      error: error.message
     });
   }
 };
@@ -813,106 +816,31 @@ export const marcarTrabajado = async (req, res) => {
       return res.status(403).json({ success: false, message: 'No tiene permisos' });
     }
 
+    if (contenedor.estado !== ESTADOS_CONTENEDOR.RECIBIDO) {
+      return res.status(400).json({ success: false, message: 'El contenedor no ha sido recibido' });
+    }
+
     const historialEntry = {
       accion: 'marcar_trabajado',
-      descripcion: `Contenedor marcado como trabajado`,
+      descripcion: 'Contenedor marcado como trabajado',
       usuario: usuarioId,
       fecha: new Date().toISOString()
     };
 
     await contenedorRef.update({
       estado: ESTADOS_CONTENEDOR.TRABAJADO,
-      fechaTrabajado: FieldValue.serverTimestamp(),
       fechaActualizacion: FieldValue.serverTimestamp(),
-      trabajadoPor: usuarioId,
       historial: FieldValue.arrayUnion(historialEntry)
     });
-
-    console.log(`✅ Contenedor ${contenedorId} marcado como trabajado`);
 
     res.json({
       success: true,
       message: 'Contenedor marcado como trabajado exitosamente',
-      data: {
-        contenedorId,
-        numeroContenedor: contenedor.numeroContenedor,
-        estado: ESTADOS_CONTENEDOR.TRABAJADO
-      }
+      data: { id: contenedorId, estado: ESTADOS_CONTENEDOR.TRABAJADO }
     });
 
   } catch (error) {
-    console.error('❌ Error marcando contenedor como trabajado:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al marcar el contenedor como trabajado',
-      error: error.message
-    });
-  }
-};
-
-// ========================================
-// OBTENER ESTADÍSTICAS DEL ALMACÉN USA
-// ========================================
-export const getEstadisticasAlmacen = async (req, res) => {
-  try {
-    const companyId = req.userData?.companyId;
-    const contenedoresSnapshot = await db.collection('contenedores')
-      .where('companyId', '==', companyId)
-      .get();
-
-    const recoleccionesSnapshot = await db.collection('recolecciones')
-      .where('companyId', '==', companyId)
-      .where('contenedorId', '==', null)
-      .get();
-
-    const estadisticas = {
-      contenedores: {
-        total: contenedoresSnapshot.size,
-        abiertos: 0,
-        cerrados: 0,
-        enTransito: 0
-      },
-      facturas: {
-        disponibles: recoleccionesSnapshot.size,
-        enContenedores: 0,
-        totalProcesadas: 0
-      },
-      items: {
-        total: 0,
-        marcados: 0,
-        porMarcar: 0
-      },
-      montos: {
-        total: 0
-      }
-    };
-
-    contenedoresSnapshot.forEach(doc => {
-      const data = doc.data();
-
-      if (data.estado === ESTADOS_CONTENEDOR.ABIERTO) {
-        estadisticas.contenedores.abiertos++;
-      } else if (data.estado === ESTADOS_CONTENEDOR.EN_TRANSITO) {
-        estadisticas.contenedores.enTransito++;
-      } else {
-        estadisticas.contenedores.cerrados++;
-      }
-
-      if (data.estadisticas) {
-        estadisticas.facturas.enContenedores += data.estadisticas.totalFacturas || 0;
-        estadisticas.items.total += data.estadisticas.totalItems || 0;
-        estadisticas.items.marcados += data.estadisticas.itemsMarcados || 0;
-        estadisticas.montos.total += data.estadisticas.montoTotal || 0;
-      }
-    });
-
-    estadisticas.items.porMarcar = estadisticas.items.total - estadisticas.items.marcados;
-    estadisticas.facturas.totalProcesadas = estadisticas.facturas.disponibles + estadisticas.facturas.enContenedores;
-    estadisticas.montos.total = parseFloat(estadisticas.montos.total.toFixed(2));
-
-    res.json({ success: true, data: estadisticas });
-  } catch (error) {
-    console.error('Error obteniendo estadísticas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener las estadísticas', error: error.message });
+    console.error('Error marcando contenedor como trabajado:', error);
+    res.status(500).json({ success: false, message: 'Error al marcar el contenedor', error: error.message });
   }
 };

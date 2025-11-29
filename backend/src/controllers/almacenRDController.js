@@ -52,7 +52,7 @@ const normalizeFacturaRef = (factura) => {
 const calcularEstadoItems = (itemsMarcados, itemsTotal) => {
   const marcados = Number(itemsMarcados) || 0;
   const total = Number(itemsTotal) || 0;
-  
+
   if (marcados === 0 || total === 0) return ESTADOS_ITEMS.PENDIENTE;
   if (marcados === total) return ESTADOS_ITEMS.COMPLETO;
   return ESTADOS_ITEMS.INCOMPLETO;
@@ -64,11 +64,11 @@ const calcularEstadoItems = (itemsMarcados, itemsTotal) => {
 export const getContenedoresEnTransito = async (req, res) => {
   try {
     const companyId = req.userData?.companyId;
-    
+
     if (!companyId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -99,18 +99,18 @@ export const getContenedoresEnTransito = async (req, res) => {
 
     console.log(`✅ ${contenedores.length} contenedores en tránsito encontrados`);
 
-    res.json({ 
-      success: true, 
-      data: contenedores, 
-      total: contenedores.length 
+    res.json({
+      success: true,
+      data: contenedores,
+      total: contenedores.length
     });
 
   } catch (error) {
     console.error('❌ Error obteniendo contenedores en tránsito:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener los contenedores', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener los contenedores',
+      error: error.message
     });
   }
 };
@@ -121,11 +121,11 @@ export const getContenedoresEnTransito = async (req, res) => {
 export const getContenedoresRecibidos = async (req, res) => {
   try {
     const companyId = req.userData?.companyId;
-    
+
     if (!companyId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -157,18 +157,18 @@ export const getContenedoresRecibidos = async (req, res) => {
 
     console.log(`✅ ${contenedores.length} contenedores recibidos encontrados`);
 
-    res.json({ 
-      success: true, 
-      data: contenedores, 
-      total: contenedores.length 
+    res.json({
+      success: true,
+      data: contenedores,
+      total: contenedores.length
     });
 
   } catch (error) {
     console.error('❌ Error obteniendo contenedores recibidos:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener los contenedores', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener los contenedores',
+      error: error.message
     });
   }
 };
@@ -187,16 +187,16 @@ export const confirmarRecepcion = async (req, res) => {
 
     // Validación de parámetros
     if (!contenedorId || contenedorId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de contenedor requerido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de contenedor requerido'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -207,9 +207,9 @@ export const confirmarRecepcion = async (req, res) => {
     const doc = await contenedorRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Contenedor no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Contenedor no encontrado'
       });
     }
 
@@ -217,17 +217,17 @@ export const confirmarRecepcion = async (req, res) => {
 
     // Validar permisos
     if (contenedor.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a este contenedor' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a este contenedor'
       });
     }
 
     // Validar estado
     if (contenedor.estado !== ESTADOS_CONTENEDOR.EN_TRANSITO) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `El contenedor no está en tránsito. Estado actual: ${contenedor.estado}` 
+      return res.status(400).json({
+        success: false,
+        message: `El contenedor no está en tránsito. Estado actual: ${contenedor.estado}`
       });
     }
 
@@ -296,10 +296,10 @@ export const confirmarRecepcion = async (req, res) => {
 
           // ✅✅✅ SOLUCIÓN DEFINITIVA: Leer desde la factura ORIGINAL ✅✅✅
           const facturaOriginal = recoleccionDoc.data();
-          
+
           // Leer itemsTotal desde la factura original (fuente de verdad)
-          const itemsTotal = facturaOriginal.itemsTotal ?? 
-                           (Array.isArray(facturaOriginal.items) ? facturaOriginal.items.length : 0);
+          const itemsTotal = facturaOriginal.itemsTotal ??
+            (Array.isArray(facturaOriginal.items) ? facturaOriginal.items.length : 0);
 
           // Leer itemsMarcados desde la factura original
           const itemsMarcados = facturaOriginal.itemsMarcados ?? 0;
@@ -310,19 +310,6 @@ export const confirmarRecepcion = async (req, res) => {
 
           console.log(`📊 Factura ${facturaId}:`, {
             itemsTotal,
-            itemsMarcados,
-            estadoItems,
-            itemsEnOriginal: facturaOriginal.items?.length || 0
-          });
-
-          // Actualizar la factura en recolecciones con datos correctos
-          batch.update(recoleccionRef, {
-            estado: ESTADOS_FACTURA.RECIBIDA,
-            itemsMarcados: itemsMarcados,
-            itemsTotal: itemsTotal,
-            estadoItems: estadoItems,
-            estadoFactura: estadoFactura,
-            fechaActualizacion: FieldValue.serverTimestamp(),
             historial: FieldValue.arrayUnion({
               accion: 'recibido_rd',
               descripcion: `Factura recibida en RD desde contenedor ${contenedor.numeroContenedor}`,
@@ -464,34 +451,34 @@ export const getDetalleFactura = async (req, res) => {
     const companyId = req.userData?.companyId;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (!companyId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
     const doc = await db.collection('recolecciones').doc(facturaId.trim()).get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
@@ -545,31 +532,31 @@ export const editarPago = async (req, res) => {
   try {
     const { facturaId } = req.params;
     const { estado, metodoPago, montoPagado, referenciaPago, notasPago } = req.body;
-    
+
     const companyId = req.userData?.companyId;
     const usuarioId = req.userData?.uid;
     const rol = req.userData?.rol;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
     const rolesPermitidos = ['admin_general', 'admin_almacen_rd', 'secretaria', 'repartidor'];
 
     if (!rolesPermitidos.includes(rol)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para editar información de pago' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para editar información de pago'
       });
     }
 
@@ -585,18 +572,18 @@ export const editarPago = async (req, res) => {
     const doc = await facturaRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
@@ -691,23 +678,23 @@ export const asignarFacturaARuta = async (req, res) => {
     const usuarioId = req.userData?.uid;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (!ruta || ruta.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Ruta requerida' 
+      return res.status(400).json({
+        success: false,
+        message: 'Ruta requerida'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -715,18 +702,18 @@ export const asignarFacturaARuta = async (req, res) => {
     const doc = await facturaRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
@@ -783,23 +770,23 @@ export const reasignarFactura = async (req, res) => {
     const usuarioId = req.userData?.uid;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (!nuevaRuta || nuevaRuta.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'La nueva ruta es requerida' 
+      return res.status(400).json({
+        success: false,
+        message: 'La nueva ruta es requerida'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -807,18 +794,18 @@ export const reasignarFactura = async (req, res) => {
     const doc = await facturaRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
@@ -870,16 +857,16 @@ export const quitarFacturaDeRuta = async (req, res) => {
     const usuarioId = req.userData?.uid;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -887,25 +874,25 @@ export const quitarFacturaDeRuta = async (req, res) => {
     const doc = await facturaRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
     if (!data.rutaAsignada) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'La factura no está asignada a ninguna ruta' 
+      return res.status(400).json({
+        success: false,
+        message: 'La factura no está asignada a ninguna ruta'
       });
     }
 
@@ -955,23 +942,23 @@ export const marcarItemDanado = async (req, res) => {
     const usuarioId = req.userData?.uid;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (itemIndex === undefined || itemIndex === null) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Índice de item requerido' 
+      return res.status(400).json({
+        success: false,
+        message: 'Índice de item requerido'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -979,30 +966,30 @@ export const marcarItemDanado = async (req, res) => {
     const doc = await facturaRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
     if (!Array.isArray(data.items) || itemIndex < 0 || itemIndex >= data.items.length) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Índice de item inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'Índice de item inválido'
       });
     }
 
     const item = data.items[itemIndex];
-    
+
     const itemDanado = {
       itemIndex,
       item: {
@@ -1018,8 +1005,8 @@ export const marcarItemDanado = async (req, res) => {
 
     const historialEntry = {
       accion: danado ? 'item_danado' : 'item_normal',
-      descripcion: danado 
-        ? `Item marcado como dañado: ${item.descripcion}` 
+      descripcion: danado
+        ? `Item marcado como dañado: ${item.descripcion}`
         : `Item marcado como normal: ${item.descripcion}`,
       itemIndex,
       usuario: usuarioId,
@@ -1071,16 +1058,16 @@ export const reportarFacturaIncompleta = async (req, res) => {
     const usuarioId = req.userData?.uid;
 
     if (!facturaId || facturaId.trim() === '') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de factura inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de factura inválido'
       });
     }
 
     if (!companyId || !usuarioId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -1088,18 +1075,18 @@ export const reportarFacturaIncompleta = async (req, res) => {
     const doc = await facturaRef.get();
 
     if (!doc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Factura no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
       });
     }
 
     const data = doc.data();
 
     if (data.companyId !== companyId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tiene permisos para acceder a esta factura' 
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta factura'
       });
     }
 
@@ -1150,9 +1137,9 @@ export const getEstadisticasAlmacenRD = async (req, res) => {
     const companyId = req.userData?.companyId;
 
     if (!companyId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no autenticado' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no autenticado'
       });
     }
 
@@ -1165,8 +1152,8 @@ export const getEstadisticasAlmacenRD = async (req, res) => {
     const facturasSnapshot = await db.collection('recolecciones')
       .where('companyId', '==', companyId)
       .where('estado', 'in', [
-        ESTADOS_FACTURA.RECIBIDA, 
-        ESTADOS_FACTURA.EN_RUTA, 
+        ESTADOS_FACTURA.RECIBIDA,
+        ESTADOS_FACTURA.EN_RUTA,
         ESTADOS_FACTURA.ENTREGADA
       ])
       .get();
@@ -1219,7 +1206,7 @@ export const getEstadisticasAlmacenRD = async (req, res) => {
 
     facturasSnapshot.forEach(doc => {
       const data = doc.data();
-      
+
       if (data.estado === ESTADOS_FACTURA.RECIBIDA) {
         estadisticas.facturas.recibidas++;
       } else if (data.estado === ESTADOS_FACTURA.EN_RUTA) {

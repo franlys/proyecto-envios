@@ -350,6 +350,7 @@ export const iniciarEntregas = async (req, res) => {
         const facturaRef = db.collection('recolecciones').doc(idFactura);
         batch.update(facturaRef, {
           estado: 'en_ruta',
+          estadoGeneral: 'en_ruta', // ✅ Sincronizar estadoGeneral
           fechaActualizacion: new Date().toISOString(),
           historial: FieldValue.arrayUnion({
             accion: 'inicio_entregas',
@@ -800,6 +801,7 @@ export const entregarFactura = async (req, res) => {
 
     await facturaRef.update({
       estado: 'entregada',
+      estadoGeneral: 'entregada', // ✅ Sincronizar estadoGeneral
       estadoEntrega: 'completo',
       firmaCliente: firmaCliente || null,
       nombreReceptor: nombreReceptor || '',
@@ -924,6 +926,7 @@ export const reportarNoEntrega = async (req, res) => {
 
     await facturaRef.update({
       estado: nuevoEstado,
+      estadoGeneral: nuevoEstado, // ✅ Sincronizar estadoGeneral
       reporteNoEntrega,
       fechaActualizacion: new Date().toISOString(),
       historial: FieldValue.arrayUnion(historialEntry),
@@ -1060,6 +1063,7 @@ export const finalizarRuta = async (req, res) => {
           // Actualizar el documento de la recolección
           batch.update(recoleccionRef, {
             estado: 'no_entregada',
+            estadoGeneral: 'no_entregada', // ✅ Sincronizar estadoGeneral
             reporteNoEntrega,
             rutaId: FieldValue.delete(),
             repartidorId: FieldValue.delete(),

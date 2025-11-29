@@ -219,235 +219,254 @@ export const getContenedoresDisponibles = async (req, res) => {
         numeroContenedor: data.numeroContenedor,
         facturasPendientes: contadores[doc.id] || 0 // Usar el conteo real
       };
-      // VALIDACIONES
-      // ========================================
-      if (!companyId || !usuarioId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
-      }
+    });
 
-      if (!nombre || !repartidorId || !cargadoresIds || !facturasIds) {
-        return res.status(400).json({
-          success: false,
-          message: 'Faltan campos requeridos: nombre, repartidorId, cargadoresIds, facturasIds'
-        });
-      }
+    res.json({ success: true, data: contenedores });
 
-      if (!Array.isArray(cargadoresIds) || cargadoresIds.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Debe haber al menos un cargador asignado'
-        });
-      }
+  } catch (error) {
+    console.error('❌ Error obteniendo contenedores:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener contenedores', error: error.message });
+  }
+};
 
-      if (!Array.isArray(facturasIds) || facturasIds.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Debe haber al menos una factura asignada'
-        });
-      }
+// ========================================
+// CREAR RUTA AVANZADA
+// ========================================
+export const crearRutaAvanzada = async (req, res) => {
+  try {
+    const { nombre, repartidorId, cargadoresIds, facturasIds, configuracion } = req.body;
+    const companyId = req.userData?.companyId;
+    const usuarioId = req.userData?.uid;
 
-      console.log(`🚀 Creando ruta avanzada: ${nombre}`);
-      console.log(`📦 Facturas: ${facturasIds.length}`);
-      console.log(`🚚 Repartidor: ${repartidorId}`);
-      console.log(`👷 Cargadores: ${cargadoresIds.length}`);
-
-      // ========================================
-      // VERIFICAR REPARTIDOR
-      // ========================================
-      const repartidorDoc = await db.collection('usuarios').doc(repartidorId).get();
-      if (!repartidorDoc.exists) {
-        return res.status(404).json({
-          success: false,
-          message: 'Repartidor no encontrado'
-        });
-      }
-
-      const repartidorData = repartidorDoc.data();
-      if (repartidorData.companyId !== companyId) {
-        return res.status(403).json({
-          success: false,
-          message: 'El repartidor no pertenece a tu compañía'
-        });
-      }
-
-      // ========================================
-      // VERIFICAR CARGADORES
-      // ========================================
-      const cargadoresPromises = cargadoresIds.map(id =>
-        db.collection('usuarios').doc(id).get()
-      );
-      const cargadoresSnap = await Promise.all(cargadoresPromises);
-
-      const cargadoresData = [];
-      for (let i = 0; i < cargadoresSnap.length; i++) {
-        const doc = cargadoresSnap[i];
-        if (!doc.exists) {
-          return res.status(404).json({
-            success: false,
-            message: `Cargador ${cargadoresIds[i]} no encontrado`
-          });
-        }
-        const data = doc.data();
-        if (data.companyId !== companyId) {
-          return res.status(403).json({
-            success: false,
-            message: 'Uno o más cargadores no pertenecen a tu compañía'
-          });
-        }
-        cargadoresData.push({ id: doc.id, nombre: data.nombre });
-      }
-
-      // ========================================
-      // CALCULAR ORDEN DE CARGA Y ENTREGA (LIFO)
-      // ========================================
-      const direccionCarga = configuracion?.direccionCarga || 'adelante-atras';
-      const ordenEntrega = configuracion?.ordenEntrega || 'cercanas-primero';
-
-      let facturasOrdenadas = [...facturasIds].map((id, index) => ({
-        facturaId: id,
-        ordenOriginal: index + 1
-      }));
-
-      // Si es "lejanas primero", invertir
-      if (ordenEntrega === 'lejanas-primero') {
-        facturasOrdenadas.reverse();
-      }
-
-      // Aplicar LIFO según dirección de carga
-      const facturasConOrden = facturasOrdenadas.map((item, index) => {
-        if (direccionCarga === 'atras-adelante') {
-          // Carga desde atrás: última en cargar = primera en entregar
-          return {
-            facturaId: item.facturaId,
-            ordenCarga: facturasOrdenadas.length - index,
-            ordenEntrega: index + 1
-          };
-        } else {
-          // Carga desde adelante: primera en cargar = última en entregar
-          return {
-            facturaId: item.facturaId,
-            ordenCarga: index + 1,
-            ordenEntrega: facturasOrdenadas.length - index
-          };
-        }
-      });
-
-      console.log('📊 Orden calculado:', facturasConOrden);
-
-      // ========================================
-      // CREAR DOCUMENTO DE RUTA
-      // ========================================
-      const rutaData = {
-        nombre: nombre.trim(),
-        companyId,
-        repartidorId,
-        repartidorNombre: repartidorData.nombre,
-
-        // ✅ CORRECCIÓN 3: AÑADIR ID Y NOMBRE DEL CARGADOR PRINCIPAL PARA FILTRADO
-        // Esto soluciona la invisibilidad del cargador
-        cargadorId: cargadoresIds[0],
-        cargadorNombre: cargadoresData.find(c => c.id === cargadoresIds[0])?.nombre || cargadoresIds[0],
-
-        // ✅ CORRECCIÓN 4: AGREGAR ARRAY DE CARGADORES PARA BÚSQUEDA POR ARRAY-CONTAINS
-        cargadoresIds: cargadoresIds, // Array de IDs de cargadores para queries
-
-        cargadores: cargadoresData,
-        facturas: facturasConOrden,
-        configuracion: {
-          direccionCarga,
-          ordenEntrega,
-          sistemaLIFO: true
-        },
-        estado: 'asignada',
-        totalFacturas: facturasIds.length,
-        facturasEntregadas: 0,
-        createdAt: FieldValue.serverTimestamp(),
-        fechaCreacion: FieldValue.serverTimestamp(),
-        createdBy: usuarioId,
-        fechaActualizacion: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        historial: [
-          {
-            accion: 'crear_ruta',
-            descripcion: `Ruta creada con ${facturasIds.length} facturas`,
-            usuario: usuarioId,
-            fecha: new Date().toISOString()
-          }
-        ]
-      };
-
-      const rutaRef = await db.collection('rutas').add(rutaData);
-      console.log(`✅ Ruta creada con ID: ${rutaRef.id}`);
-
-      // ========================================
-      // ACTUALIZAR FACTURAS EN BATCH
-      // ========================================
-      const batch = db.batch();
-
-      for (const facturaInfo of facturasConOrden) {
-        const facturaRef = db.collection('recolecciones').doc(facturaInfo.facturaId);
-
-        batch.update(facturaRef, {
-          estado: 'en_ruta',
-          rutaId: rutaRef.id,
-          rutaNombre: nombre.trim(),
-          repartidorId,
-          repartidorNombre: repartidorData.nombre,
-          ordenCarga: facturaInfo.ordenCarga,
-          ordenEntrega: facturaInfo.ordenEntrega,
-          fechaAsignacionRuta: FieldValue.serverTimestamp(),
-          fechaActualizacion: FieldValue.serverTimestamp(),
-          historial: FieldValue.arrayUnion({
-            accion: 'asignar_ruta',
-            descripcion: `Asignada a ruta: ${nombre}`,
-            rutaId: rutaRef.id,
-            ordenCarga: facturaInfo.ordenCarga,
-            ordenEntrega: facturaInfo.ordenEntrega,
-            usuario: usuarioId,
-            fecha: new Date().toISOString()
-          })
-        });
-      }
-
-      await batch.commit();
-      console.log(`✅ ${facturasConOrden.length} facturas actualizadas`);
-
-      // ========================================
-      // RESPUESTA EXITOSA
-      // ========================================
-      res.status(201).json({
-        success: true,
-        message: 'Ruta creada exitosamente',
-        data: {
-          id: rutaRef.id,
-          nombre: nombre.trim(),
-          totalFacturas: facturasIds.length,
-          repartidor: repartidorData.nombre,
-          cargadores: cargadoresData.length,
-          configuracion: rutaData.configuracion
-        }
-      });
-
-    } catch (error) {
-      console.error('❌ Error creando ruta avanzada:', error);
-      res.status(500).json({
+    // VALIDACIONES
+    // ========================================
+    if (!companyId || !usuarioId) {
+      return res.status(401).json({
         success: false,
-        message: 'Error al crear la ruta',
-        error: error.message
+        message: 'Usuario no autenticado'
       });
     }
-  };
 
-  // ========================================
-  // EXPORTAR CONTROLADORES
-  // ========================================
-  export default {
-    getRepartidoresDisponibles,
-    getCargadoresDisponibles,
-    getContenedoresDisponibles,
-    getFacturasDisponibles,
-    crearRutaAvanzada
-  };
+    if (!nombre || !repartidorId || !cargadoresIds || !facturasIds) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faltan campos requeridos: nombre, repartidorId, cargadoresIds, facturasIds'
+      });
+    }
+
+    if (!Array.isArray(cargadoresIds) || cargadoresIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe haber al menos un cargador asignado'
+      });
+    }
+
+    if (!Array.isArray(facturasIds) || facturasIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe haber al menos una factura asignada'
+      });
+    }
+
+    console.log(`🚀 Creando ruta avanzada: ${nombre}`);
+    console.log(`📦 Facturas: ${facturasIds.length}`);
+    console.log(`🚚 Repartidor: ${repartidorId}`);
+    console.log(`👷 Cargadores: ${cargadoresIds.length}`);
+
+    // ========================================
+    // VERIFICAR REPARTIDOR
+    // ========================================
+    const repartidorDoc = await db.collection('usuarios').doc(repartidorId).get();
+    if (!repartidorDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Repartidor no encontrado'
+      });
+    }
+
+    const repartidorData = repartidorDoc.data();
+    if (repartidorData.companyId !== companyId) {
+      return res.status(403).json({
+        success: false,
+        message: 'El repartidor no pertenece a tu compañía'
+      });
+    }
+
+    // ========================================
+    // VERIFICAR CARGADORES
+    // ========================================
+    const cargadoresPromises = cargadoresIds.map(id =>
+      db.collection('usuarios').doc(id).get()
+    );
+    const cargadoresSnap = await Promise.all(cargadoresPromises);
+
+    const cargadoresData = [];
+    for (let i = 0; i < cargadoresSnap.length; i++) {
+      const doc = cargadoresSnap[i];
+      if (!doc.exists) {
+        return res.status(404).json({
+          success: false,
+          message: `Cargador ${cargadoresIds[i]} no encontrado`
+        });
+      }
+      const data = doc.data();
+      if (data.companyId !== companyId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Uno o más cargadores no pertenecen a tu compañía'
+        });
+      }
+      cargadoresData.push({ id: doc.id, nombre: data.nombre });
+    }
+
+    // ========================================
+    // CALCULAR ORDEN DE CARGA Y ENTREGA (LIFO)
+    // ========================================
+    const direccionCarga = configuracion?.direccionCarga || 'adelante-atras';
+    const ordenEntrega = configuracion?.ordenEntrega || 'cercanas-primero';
+
+    let facturasOrdenadas = [...facturasIds].map((id, index) => ({
+      facturaId: id,
+      ordenOriginal: index + 1
+    }));
+
+    // Si es "lejanas primero", invertir
+    if (ordenEntrega === 'lejanas-primero') {
+      facturasOrdenadas.reverse();
+    }
+
+    // Aplicar LIFO según dirección de carga
+    const facturasConOrden = facturasOrdenadas.map((item, index) => {
+      if (direccionCarga === 'atras-adelante') {
+        // Carga desde atrás: última en cargar = primera en entregar
+        return {
+          facturaId: item.facturaId,
+          ordenCarga: facturasOrdenadas.length - index,
+          ordenEntrega: index + 1
+        };
+      } else {
+        // Carga desde adelante: primera en cargar = última en entregar
+        return {
+          facturaId: item.facturaId,
+          ordenCarga: index + 1,
+          ordenEntrega: facturasOrdenadas.length - index
+        };
+      }
+    });
+
+    console.log('📊 Orden calculado:', facturasConOrden);
+
+    // ========================================
+    // CREAR DOCUMENTO DE RUTA
+    // ========================================
+    const rutaData = {
+      nombre: nombre.trim(),
+      companyId,
+      repartidorId,
+      repartidorNombre: repartidorData.nombre,
+
+      // ✅ CORRECCIÓN 3: AÑADIR ID Y NOMBRE DEL CARGADOR PRINCIPAL PARA FILTRADO
+      // Esto soluciona la invisibilidad del cargador
+      cargadorId: cargadoresIds[0],
+      cargadorNombre: cargadoresData.find(c => c.id === cargadoresIds[0])?.nombre || cargadoresIds[0],
+
+      // ✅ CORRECCIÓN 4: AGREGAR ARRAY DE CARGADORES PARA BÚSQUEDA POR ARRAY-CONTAINS
+      cargadoresIds: cargadoresIds, // Array de IDs de cargadores para queries
+
+      cargadores: cargadoresData,
+      facturas: facturasConOrden,
+      configuracion: {
+        direccionCarga,
+        ordenEntrega,
+        sistemaLIFO: true
+      },
+      estado: 'asignada',
+      totalFacturas: facturasIds.length,
+      facturasEntregadas: 0,
+      createdAt: FieldValue.serverTimestamp(),
+      fechaCreacion: FieldValue.serverTimestamp(),
+      createdBy: usuarioId,
+      fechaActualizacion: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      historial: [
+        {
+          accion: 'crear_ruta',
+          descripcion: `Ruta creada con ${facturasIds.length} facturas`,
+          usuario: usuarioId,
+          fecha: new Date().toISOString()
+        }
+      ]
+    };
+
+    const rutaRef = await db.collection('rutas').add(rutaData);
+    console.log(`✅ Ruta creada con ID: ${rutaRef.id}`);
+
+    // ========================================
+    // ACTUALIZAR FACTURAS EN BATCH
+    // ========================================
+    const batch = db.batch();
+
+    for (const facturaInfo of facturasConOrden) {
+      const facturaRef = db.collection('recolecciones').doc(facturaInfo.facturaId);
+
+      batch.update(facturaRef, {
+        estado: 'en_ruta',
+        estadoGeneral: 'en_ruta', // ✅ Sincronizar estadoGeneral
+        rutaId: rutaRef.id,
+        rutaNombre: nombre.trim(),
+        repartidorId,
+        repartidorNombre: repartidorData.nombre,
+        ordenCarga: facturaInfo.ordenCarga,
+        ordenEntrega: facturaInfo.ordenEntrega,
+        fechaAsignacionRuta: FieldValue.serverTimestamp(),
+        fechaActualizacion: FieldValue.serverTimestamp(),
+        historial: FieldValue.arrayUnion({
+          accion: 'asignar_ruta',
+          descripcion: `Asignada a ruta: ${nombre}`,
+          rutaId: rutaRef.id,
+          ordenCarga: facturaInfo.ordenCarga,
+          ordenEntrega: facturaInfo.ordenEntrega,
+          usuario: usuarioId,
+          fecha: new Date().toISOString()
+        })
+      });
+    }
+
+    await batch.commit();
+    console.log(`✅ ${facturasConOrden.length} facturas actualizadas`);
+
+    // ========================================
+    // RESPUESTA EXITOSA
+    // ========================================
+    res.status(201).json({
+      success: true,
+      message: 'Ruta creada exitosamente',
+      data: {
+        id: rutaRef.id,
+        nombre: nombre.trim(),
+        totalFacturas: facturasIds.length,
+        repartidor: repartidorData.nombre,
+        cargadores: cargadoresData.length,
+        configuracion: rutaData.configuracion
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error creando ruta avanzada:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear la ruta',
+      error: error.message
+    });
+  }
+};
+
+// ========================================
+// EXPORTAR CONTROLADORES
+// ========================================
+export default {
+  getRepartidoresDisponibles,
+  getCargadoresDisponibles,
+  getContenedoresDisponibles,
+  crearRutaAvanzada
+};
