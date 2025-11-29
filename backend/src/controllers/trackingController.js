@@ -14,7 +14,22 @@ import { validarFormatoTracking } from '../utils/trackingUtils.js';
  */
 export const getPublicTracking = async (req, res) => {
   try {
-    const { codigo } = req.params;
+    let { codigo } = req.params;
+
+    // 0. Normalizar código (manejar espacios y ceros faltantes)
+    if (codigo) {
+      // Reemplazar espacios por guiones (caso de copy-paste erróneo)
+      codigo = codigo.replace(/\s+|%20/g, '-').toUpperCase();
+
+      // Si es formato legacy (RC-YYYYMMDD-N), asegurar padding de 4 ceros
+      const parts = codigo.split('-');
+      if (parts[0] === 'RC' && parts.length === 3) {
+        const [prefix, date, number] = parts;
+        if (number.length < 4 && /^\d+$/.test(number)) {
+          codigo = `${prefix}-${date}-${number.padStart(4, '0')}`;
+        }
+      }
+    }
 
     // 1. Validar formato del código
     if (!validarFormatoTracking(codigo)) {
