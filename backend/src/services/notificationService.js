@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
 
 // URL base del frontend (para enlaces de tracking)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://proyecto-envios.vercel.app';
+// URL base del frontend (para enlaces de tracking)
+const FRONTEND_URL = 'https://proyecto-envios.vercel.app'; // Hardcoded para producción
 
 // Inicializar Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -194,7 +195,7 @@ export const generateBrandedEmailHTML = (contentHTML, companyConfig = null, stat
 
         <!-- HEADER CON LOGO -->
         <div style="background-color: ${primaryColor}; padding: 20px; text-align: center; border-bottom: 4px solid ${secondaryColor};">
-          <img src="${logoUrl}" alt="${companyName}" style="max-height: 120px; max-width: 300px; object-fit: contain; border-radius: 4px;">
+          <img src="${logoUrl}" alt="${companyName}" style="max-height: 180px; max-width: 400px; object-fit: contain; border-radius: 4px;">
         </div>
 
         <!-- IMAGEN DEL ESTADO -->
