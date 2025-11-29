@@ -74,8 +74,15 @@ const PublicTracking = () => {
 
   const handleBuscar = (e) => {
     e.preventDefault();
-    if (codigoBusqueda.trim()) {
-      navigate(`/tracking/${codigoBusqueda.trim()}`);
+    const codigoLimpio = codigoBusqueda.trim();
+
+    if (codigoLimpio) {
+      if (codigoLimpio === codigo) {
+        // Si es el mismo código, forzar recarga
+        fetchTracking(codigoLimpio);
+      } else {
+        navigate(`/tracking/${codigoLimpio}`);
+      }
     }
   };
 
