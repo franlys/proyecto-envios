@@ -1,4 +1,4 @@
-// backend/src/controllers/almacenUSAController.js
+// backend/src/controllers/almacenUsaController.js
 // ✅ VERSIÓN CORREGIDA - SINCRONIZACIÓN PERMANENTE
 
 import { db } from '../config/firebase.js';
@@ -292,7 +292,7 @@ export const agregarFactura = async (req, res) => {
         <h2 style="color: #2c3e50; margin-top: 0;">📦 En Contenedor - Almacén USA</h2>
         <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
         <p>Tu paquete ha sido colocado en un contenedor en nuestro almacén de USA y pronto será enviado.</p>
-
+        
         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Detalles del Envío</h3>
           <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
@@ -668,7 +668,7 @@ export const cerrarContenedor = async (req, res) => {
               <h2 style="color: #2c3e50; margin-top: 0;">🚢 En Tránsito a República Dominicana</h2>
               <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
               <p>Tu paquete está en camino hacia República Dominicana.</p>
-
+              
               <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <h3 style="margin-top: 0;">Detalles del Envío</h3>
                 <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
@@ -843,4 +843,59 @@ export const marcarTrabajado = async (req, res) => {
     console.error('Error marcando contenedor como trabajado:', error);
     res.status(500).json({ success: false, message: 'Error al marcar el contenedor', error: error.message });
   }
+};
+
+// ========================================
+// OBTENER ESTADÍSTICAS DEL ALMACÉN
+// ========================================
+export const getEstadisticasAlmacen = async (req, res) => {
+  try {
+    const companyId = req.userData?.companyId;
+
+    const contenedoresSnapshot = await db.collection('contenedores')
+      .where('companyId', '==', companyId)
+      .get();
+
+    const stats = {
+      contenedoresAbiertos: 0,
+      contenedoresEnTransito: 0,
+      contenedoresRecibidos: 0,
+      contenedoresTrabajados: 0,
+      totalFacturas: 0,
+      totalItems: 0
+    };
+
+    contenedoresSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.estado === ESTADOS_CONTENEDOR.ABIERTO) stats.contenedoresAbiertos++;
+      if (data.estado === ESTADOS_CONTENEDOR.EN_TRANSITO) stats.contenedoresEnTransito++;
+      if (data.estado === ESTADOS_CONTENEDOR.RECIBIDO) stats.contenedoresRecibidos++;
+      if (data.estado === ESTADOS_CONTENEDOR.TRABAJADO) stats.contenedoresTrabajados++;
+
+      stats.totalFacturas += (data.facturas || []).length;
+      stats.totalItems += (data.facturas || []).reduce((sum, f) => sum + (f.itemsTotal || 0), 0);
+    });
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener estadísticas', error: error.message });
+  }
+};
+
+export default {
+  crearContenedor,
+  buscarFactura,
+  agregarFactura,
+  marcarItem,
+  quitarFactura,
+  cerrarContenedor,
+  getContenedores,
+  getContenedorById,
+  marcarTrabajado,
+  getEstadisticasAlmacen
 };

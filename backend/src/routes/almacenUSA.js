@@ -14,7 +14,7 @@ import {
   cerrarContenedor,
   marcarTrabajado,
   getEstadisticasAlmacen
-} from '../controllers/almacenUSAController.js';
+} from '../controllers/almacenUsaController.js';
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.post('/contenedores', crearContenedor);
 router.get('/contenedores', getContenedores);
 router.get('/contenedores/:id', getContenedorById);
 router.post('/contenedores/:id/cerrar', cerrarContenedor);
-router.post('/contenedores/:id/trabajado', marcarTrabajado); 
+router.post('/contenedores/:id/trabajado', marcarTrabajado);
 
 // ========================================
 // RUTAS DE FACTURAS
