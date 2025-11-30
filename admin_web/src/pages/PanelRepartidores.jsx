@@ -657,8 +657,8 @@ const PanelRepartidores = () => {
                     setVistaActual('factura');
                   }}
                   className={`p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-green-50 border-green-500 dark:bg-green-900/20' :
-                      factura.estado === 'no_entregada' ? 'bg-red-50 border-red-500 dark:bg-red-900/20' :
-                        'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'
+                    factura.estado === 'no_entregada' ? 'bg-red-50 border-red-500 dark:bg-red-900/20' :
+                      'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'
                     }`}
                 >
                   <div className="flex justify-between items-center">
@@ -760,73 +760,25 @@ const PanelRepartidores = () => {
                             setShowModalDano(true);
                           }}
                           className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition"
-                          title="Reportar daño"
+                          title="Reportar Daño"
                         >
                           <AlertTriangle size={20} />
                         </button>
                       </>
                     )}
-                    {item.entregado && <CheckCircle className="text-green-600" size={24} />}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Botones de Acción Principal */}
-            <div className="grid grid-cols-1 gap-3">
-              <button
-                onClick={() => setShowModalFotos(true)}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2"
-              >
-                <Camera size={20} /> Subir Evidencia Fotográfica
-              </button>
-
-              {facturaActual.pago?.estado !== 'pagada' && facturaActual.pago?.total > 0 && (
-                <button
-                  onClick={() => setShowModalPago(true)}
-                  className="w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition flex justify-center items-center gap-2"
-                >
-                  <DollarSign size={20} /> Confirmar Pago
-                </button>
-              )}
-
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mt-2">
-                <button
-                  onClick={() => setShowModalNoEntrega(true)}
-                  className="py-3 bg-red-100 text-red-700 rounded-lg font-bold hover:bg-red-200 transition flex justify-center items-center gap-2"
-                >
-                  <XCircle size={20} /> No Entregado
-                </button>
-                <button
-                  onClick={() => setShowModalEntregar(true)}
-                  className="py-3 bg-green-100 text-green-700 rounded-lg font-bold hover:bg-green-200 transition flex justify-center items-center gap-2"
-                >
-                  <CheckCircle size={20} /> Finalizar Entrega
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==============================================================================
-            MODALES
-            ============================================================================== */}
-
-        {/* Modal Fotos */}
-        {showModalFotos && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-base xxs:text-lg xs:text-xl font-bold mb-3 xxs:mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-                <Camera size={20} className="text-blue-600" />
-                Evidencia de Entrega
+            {/* Evidencia Fotográfica Section */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm mb-6">
+              <h3 className="font-bold text-lg mb-3 text-gray-900 dark:text-white flex items-center gap-2">
+                <Camera size={20} /> Evidencia de Entrega
               </h3>
 
-              <p className="text-xs xxs:text-sm text-gray-600 dark:text-gray-400 mb-3 xxs:mb-4">
-                Toma fotos o selecciona desde tu galería
-              </p>
-
-              <div className="space-y-2 xxs:space-y-3 mb-3 xxs:mb-4">
-                <label className="block">
+              <div className="flex gap-2 mb-4">
+                <label className="flex-1">
                   <input
                     type="file"
                     accept="image/*"
@@ -836,13 +788,13 @@ const PanelRepartidores = () => {
                     className="hidden"
                     id="camera-input"
                   />
-                  <div className="w-full px-3 xxs:px-4 py-2 xxs:py-3 text-xs xxs:text-sm xs:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
-                    <Camera size={18} />
-                    Abrir Cámara
+                  <div className="w-full px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
+                    <Camera size={20} />
+                    <span>Cámara</span>
                   </div>
                 </label>
 
-                <label className="block">
+                <label className="flex-1">
                   <input
                     type="file"
                     accept="image/*"
@@ -851,9 +803,9 @@ const PanelRepartidores = () => {
                     className="hidden"
                     id="gallery-input"
                   />
-                  <div className="w-full px-3 xxs:px-4 py-2 xxs:py-3 text-xs xxs:text-sm xs:text-base bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
-                    <Image size={18} />
-                    Seleccionar de Galería
+                  <div className="w-full px-3 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
+                    <Image size={20} />
+                    <span>Galería</span>
                   </div>
                 </label>
               </div>
@@ -880,28 +832,55 @@ const PanelRepartidores = () => {
                       </div>
                     ))}
                   </div>
+
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={() => setFotosEvidencia([])}
+                      className="px-4 py-2 text-gray-600 dark:text-gray-400"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSubirFotos}
+                      disabled={subiendoFotos}
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 font-medium"
+                    >
+                      {subiendoFotos ? <Loader className="animate-spin" size={16} /> : <Camera size={16} />}
+                      {subiendoFotos ? 'Subiendo...' : 'Subir Evidencia'}
+                    </button>
+                  </div>
                 </div>
               )}
+            </div>
 
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowModalFotos(false);
-                    setFotosEvidencia([]);
-                  }}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSubirFotos}
-                  disabled={subiendoFotos || fotosEvidencia.length === 0}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
-                >
-                  {subiendoFotos ? <Loader className="animate-spin" size={16} /> : <Camera size={16} />}
-                  {subiendoFotos ? 'Subiendo...' : `Subir ${fotosEvidencia.length} Foto(s)`}
-                </button>
-              </div>
+            {/* Botones de Acción Principal */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowModalNoEntrega(true)}
+                className="p-4 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition flex flex-col items-center gap-2"
+              >
+                <XCircle size={24} />
+                <span className="font-bold">No Entregado</span>
+              </button>
+
+              <button
+                onClick={() => setShowModalPago(true)}
+                disabled={facturaActual.pago?.estado === 'pagada' || facturaActual.pago?.total <= 0}
+                className="p-4 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <DollarSign size={24} />
+                <span className="font-bold">
+                  {facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Confirmar Pago'}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setShowModalEntregar(true)}
+                className="col-span-2 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-lg"
+              >
+                <CheckCircle size={24} />
+                <span className="font-bold text-lg">Finalizar Entrega</span>
+              </button>
             </div>
           </div>
         )}
@@ -1244,6 +1223,7 @@ const PanelRepartidores = () => {
             </div>
           </div>
         )}
+
       </div>
     </PullToRefresh>
   );

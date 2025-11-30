@@ -10,8 +10,8 @@
  */
 
 import { db } from '../config/firebase.js';
-// ✅ CORRECCIÓN 1: Importar FieldPath correctamente
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
+import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ========================================
 // MAPEO DE SECTORES A ZONAS
@@ -364,15 +364,9 @@ export const crearRutaAvanzada = async (req, res) => {
       companyId,
       repartidorId,
       repartidorNombre: repartidorData.nombre,
-
-      // ✅ CORRECCIÓN 3: AÑADIR ID Y NOMBRE DEL CARGADOR PRINCIPAL PARA FILTRADO
-      // Esto soluciona la invisibilidad del cargador
       cargadorId: cargadoresIds[0],
       cargadorNombre: cargadoresData.find(c => c.id === cargadoresIds[0])?.nombre || cargadoresIds[0],
-
-      // ✅ CORRECCIÓN 4: AGREGAR ARRAY DE CARGADORES PARA BÚSQUEDA POR ARRAY-CONTAINS
-      cargadoresIds: cargadoresIds, // Array de IDs de cargadores para queries
-
+      cargadoresIds: cargadoresIds,
       cargadores: cargadoresData,
       facturas: facturasConOrden,
       configuracion: {
@@ -411,7 +405,7 @@ export const crearRutaAvanzada = async (req, res) => {
 
       batch.update(facturaRef, {
         estado: 'en_ruta',
-        estadoGeneral: 'en_ruta', // ✅ Sincronizar estadoGeneral
+        estadoGeneral: 'en_ruta',
         rutaId: rutaRef.id,
         rutaNombre: nombre.trim(),
         repartidorId,
@@ -434,6 +428,48 @@ export const crearRutaAvanzada = async (req, res) => {
 
     await batch.commit();
     console.log(`✅ ${facturasConOrden.length} facturas actualizadas`);
+
+    // ========================================
+    // ENVIAR NOTIFICACIÓN AL REPARTIDOR
+    // ========================================
+    if (repartidorData.email) {
+      try {
+        const subject = `🚚 Nueva Ruta Asignada: ${nombre.trim()}`;
+        const contentHTML = `
+          <h2 style="color: #2c3e50; margin-top: 0;">🚚 Nueva Ruta Asignada</h2>
+          <p>Hola <strong>${repartidorData.nombre}</strong>,</p>
+          <p>Se te ha asignado una nueva ruta de entrega.</p>
+
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Detalles de la Ruta</h3>
+            <p><strong>Nombre:</strong> ${nombre.trim()}</p>
+            <p><strong>Total de Entregas:</strong> ${facturasIds.length}</p>
+            <p><strong>Cargadores Asignados:</strong> ${cargadoresData.map(c => c.nombre).join(', ')}</p>
+          </div>
+
+          <p>Por favor, ingresa a tu panel para iniciar la ruta.</p>
+        `;
+
+        let companyConfig = null;
+        try {
+          const companyDoc = await db.collection('companies').doc(companyId).get();
+          if (companyDoc.exists) {
+            companyConfig = companyDoc.data();
+          }
+        } catch (e) {
+          console.warn('No se pudo obtener config de compañía para email');
+        }
+
+        const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'en_ruta');
+
+        sendEmail(repartidorData.email, subject, brandedHTML, [], companyConfig)
+          .then(() => console.log(`📧 Notificación enviada al repartidor ${repartidorData.email}`))
+          .catch(err => console.error(`❌ Error enviando email al repartidor:`, err.message));
+
+      } catch (error) {
+        console.error('⚠️ Error preparando notificación de ruta:', error.message);
+      }
+    }
 
     // ========================================
     // RESPUESTA EXITOSA

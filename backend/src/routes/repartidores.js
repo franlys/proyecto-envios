@@ -8,6 +8,7 @@
 
 import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
+import uploadDisk from '../middleware/uploadDisk.js';
 import {
   getRutasAsignadas,
   getDetalleRuta,

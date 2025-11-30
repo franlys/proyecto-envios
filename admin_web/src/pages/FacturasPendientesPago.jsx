@@ -252,8 +252,9 @@ const FacturasPendientesPago = () => {
                       </button>
                       <button
                         onClick={() => openModalPago(factura)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-gray-400"
-                        disabled={loading}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        disabled={loading || factura.facturacion?.estadoPago === 'pagada' || ((factura.facturacion?.totalFactura || 0) - (factura.facturacion?.montoPagado || 0)) <= 0}
+                        title={factura.facturacion?.estadoPago === 'pagada' ? 'Factura ya pagada' : 'Registrar Pago'}
                       >
                         <DollarSign className="w-4 h-4 mr-1" />
                         Registrar Pago

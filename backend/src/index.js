@@ -4,6 +4,11 @@ dotenv.config(); // ✅ CARGAR PRIMERO las variables de entorno
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Importar rutas
 import authRoutes from './routes/auth.js';
@@ -27,6 +32,9 @@ import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión d
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 
 const app = express();
+
+// Servir archivos estáticos (uploads)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // =====================================================
 // 🔧 CONFIGURACIÓN MEJORADA DE CORS
@@ -130,7 +138,7 @@ app.use('/api/tracking', trackingRoutes); // ✅ NUEVO - Tracking Público
 // RUTA RAÍZ
 // =====================================================
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     success: true,
     message: '🚀 API de Sistema de Envíos',
     version: '4.1.0', // ✅ ACTUALIZADA - Con Sistema de Sectores
@@ -164,7 +172,7 @@ app.get('/', (req, res) => {
 // =====================================================
 app.use('*', (req, res) => {
   console.log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ 
+  res.status(404).json({
     success: false,
     error: 'Ruta no encontrada',
     method: req.method,
@@ -311,7 +319,7 @@ app.use('*', (req, res) => {
 // =====================================================
 app.use((err, req, res, next) => {
   console.error('❌ Error global:', err);
-  
+
   if (err.message.includes('CORS')) {
     return res.status(403).json({
       success: false,
@@ -320,12 +328,12 @@ app.use((err, req, res, next) => {
       origin: req.headers.origin
     });
   }
-  
+
   res.status(500).json({
     success: false,
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Something went wrong' 
+    message: process.env.NODE_ENV === 'production'
+      ? 'Something went wrong'
       : err.message
   });
 });

@@ -1,5 +1,5 @@
-// backend/src/controllers/almacenRDController.js
-// ✅ VERSIÓN DEFINITIVA - Lee itemsTotal/itemsMarcados desde recolecciones originales
+﻿// backend/src/controllers/almacenRDController.js
+// âœ… VERSIÃ“N DEFINITIVA - Lee itemsTotal/itemsMarcados desde recolecciones originales
 // Sincroniza permanentemente entre contenedor y recolecciones
 
 import { db } from '../config/firebase.js';
@@ -59,7 +59,7 @@ const calcularEstadoItems = (itemsMarcados, itemsTotal) => {
 };
 
 // ========================================
-// OBTENER CONTENEDORES EN TRÁNSITO
+// OBTENER CONTENEDORES EN TRÃNSITO
 // ========================================
 export const getContenedoresEnTransito = async (req, res) => {
   try {
@@ -72,7 +72,7 @@ export const getContenedoresEnTransito = async (req, res) => {
       });
     }
 
-    console.log('📦 Obteniendo contenedores en tránsito para company:', companyId);
+    console.log('ðŸ“¦ Obteniendo contenedores en trÃ¡nsito para company:', companyId);
 
     const snapshot = await db.collection('contenedores')
       .where('companyId', '==', companyId)
@@ -97,7 +97,7 @@ export const getContenedoresEnTransito = async (req, res) => {
       };
     });
 
-    console.log(`✅ ${contenedores.length} contenedores en tránsito encontrados`);
+    console.log(`âœ… ${contenedores.length} contenedores en trÃ¡nsito encontrados`);
 
     res.json({
       success: true,
@@ -106,7 +106,7 @@ export const getContenedoresEnTransito = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo contenedores en tránsito:', error);
+    console.error('âŒ Error obteniendo contenedores en trÃ¡nsito:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener los contenedores',
@@ -129,7 +129,7 @@ export const getContenedoresRecibidos = async (req, res) => {
       });
     }
 
-    console.log('📦 Obteniendo contenedores recibidos para company:', companyId);
+    console.log('ðŸ“¦ Obteniendo contenedores recibidos para company:', companyId);
 
     const snapshot = await db.collection('contenedores')
       .where('companyId', '==', companyId)
@@ -155,7 +155,7 @@ export const getContenedoresRecibidos = async (req, res) => {
       };
     });
 
-    console.log(`✅ ${contenedores.length} contenedores recibidos encontrados`);
+    console.log(`âœ… ${contenedores.length} contenedores recibidos encontrados`);
 
     res.json({
       success: true,
@@ -164,7 +164,7 @@ export const getContenedoresRecibidos = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo contenedores recibidos:', error);
+    console.error('âŒ Error obteniendo contenedores recibidos:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener los contenedores',
@@ -174,18 +174,18 @@ export const getContenedoresRecibidos = async (req, res) => {
 };
 
 // ========================================
-// CONFIRMAR RECEPCIÓN DE CONTENEDOR
-// ✅✅✅ SOLUCIÓN CRÍTICA APLICADA ✅✅✅
+// CONFIRMAR RECEPCIÃ“N DE CONTENEDOR
+// âœ…âœ…âœ… SOLUCIÃ“N CRÃTICA APLICADA âœ…âœ…âœ…
 // ========================================
 export const confirmarRecepcion = async (req, res) => {
   try {
-    // ✅ CORRECCIÓN 1: Leer contenedorId desde req.params
+    // âœ… CORRECCIÃ“N 1: Leer contenedorId desde req.params
     const { contenedorId } = req.params;
     const { notas } = req.body;
     const companyId = req.userData?.companyId;
     const usuarioId = req.userData?.uid;
 
-    // Validación de parámetros
+    // ValidaciÃ³n de parÃ¡metros
     if (!contenedorId || contenedorId.trim() === '') {
       return res.status(400).json({
         success: false,
@@ -200,7 +200,7 @@ export const confirmarRecepcion = async (req, res) => {
       });
     }
 
-    console.log('📦 Confirmando recepción de contenedor:', contenedorId);
+    console.log('ðŸ“¦ Confirmando recepciÃ³n de contenedor:', contenedorId);
 
     // Obtener contenedor
     const contenedorRef = db.collection('contenedores').doc(contenedorId.trim());
@@ -227,14 +227,14 @@ export const confirmarRecepcion = async (req, res) => {
     if (contenedor.estado !== ESTADOS_CONTENEDOR.EN_TRANSITO) {
       return res.status(400).json({
         success: false,
-        message: `El contenedor no está en tránsito. Estado actual: ${contenedor.estado}`
+        message: `El contenedor no estÃ¡ en trÃ¡nsito. Estado actual: ${contenedor.estado}`
       });
     }
 
     // Crear entrada de historial
     const historialEntry = {
       accion: 'confirmar_recepcion',
-      descripcion: 'Contenedor recibido en almacén RD',
+      descripcion: 'Contenedor recibido en almacÃ©n RD',
       usuario: usuarioId,
       fecha: new Date().toISOString(),
       notas: notas || ''
@@ -249,15 +249,15 @@ export const confirmarRecepcion = async (req, res) => {
       historial: FieldValue.arrayUnion(historialEntry)
     });
 
-    console.log('✅ Contenedor actualizado a estado recibido_rd');
+    console.log('âœ… Contenedor actualizado a estado recibido_rd');
 
-    // ✅✅✅ SOLUCIÓN CRÍTICA: Actualizar facturas en batch ✅✅✅
+    // âœ…âœ…âœ… SOLUCIÃ“N CRÃTICA: Actualizar facturas en batch âœ…âœ…âœ…
     const batch = db.batch();
     let facturasActualizadas = 0;
     let facturasConError = 0;
     const erroresDetallados = [];
 
-    console.log('🔍 Procesando facturas del contenedor...');
+    console.log('ðŸ” Procesando facturas del contenedor...');
     console.log(`Total de facturas en contenedor: ${contenedor.facturas?.length || 0}`);
 
     if (Array.isArray(contenedor.facturas) && contenedor.facturas.length > 0) {
@@ -268,11 +268,11 @@ export const confirmarRecepcion = async (req, res) => {
         const facturaId = normalizeFacturaRef(factura);
 
         if (!facturaId || typeof facturaId !== 'string' || facturaId.trim() === '') {
-          console.warn(`⚠️ Factura #${i} sin ID válido en contenedor ${contenedorId}`);
+          console.warn(`âš ï¸ Factura #${i} sin ID vÃ¡lido en contenedor ${contenedorId}`);
           facturasConError++;
           erroresDetallados.push({
             indice: i,
-            error: 'ID inválido o vacío',
+            error: 'ID invÃ¡lido o vacÃ­o',
             factura: factura
           });
           continue;
@@ -284,7 +284,7 @@ export const confirmarRecepcion = async (req, res) => {
           const recoleccionDoc = await recoleccionRef.get();
 
           if (!recoleccionDoc.exists) {
-            console.warn(`⚠️ Recolección ${facturaId} no existe en la base de datos`);
+            console.warn(`âš ï¸ RecolecciÃ³n ${facturaId} no existe en la base de datos`);
             facturasConError++;
             erroresDetallados.push({
               indice: i,
@@ -294,7 +294,7 @@ export const confirmarRecepcion = async (req, res) => {
             continue;
           }
 
-          // ✅✅✅ SOLUCIÓN DEFINITIVA: Leer desde la factura ORIGINAL ✅✅✅
+          // âœ…âœ…âœ… SOLUCIÃ“N DEFINITIVA: Leer desde la factura ORIGINAL âœ…âœ…âœ…
           const facturaOriginal = recoleccionDoc.data();
 
           // Leer itemsTotal desde la factura original (fuente de verdad)
@@ -308,7 +308,7 @@ export const confirmarRecepcion = async (req, res) => {
           const estadoItems = calcularEstadoItems(itemsMarcados, itemsTotal);
           const estadoFactura = (estadoItems === ESTADOS_ITEMS.COMPLETO) ? 'completa' : 'incompleta';
 
-          console.log(`📊 Factura ${facturaId}:`, {
+          console.log(`ðŸ“Š Factura ${facturaId}:`, {
             itemsTotal,
             historial: FieldValue.arrayUnion({
               accion: 'recibido_rd',
@@ -323,10 +323,10 @@ export const confirmarRecepcion = async (req, res) => {
           });
 
           facturasActualizadas++;
-          console.log(`✅ Factura ${facturaId} preparada: ${itemsMarcados}/${itemsTotal} items - ${estadoItems}`);
+          console.log(`âœ… Factura ${facturaId} preparada: ${itemsMarcados}/${itemsTotal} items - ${estadoItems}`);
 
         } catch (error) {
-          console.error(`❌ Error procesando factura ${facturaId}:`, error.message);
+          console.error(`âŒ Error procesando factura ${facturaId}:`, error.message);
           facturasConError++;
           erroresDetallados.push({
             indice: i,
@@ -336,18 +336,18 @@ export const confirmarRecepcion = async (req, res) => {
         }
       }
     } else {
-      console.warn('⚠️ Contenedor sin facturas o facturas no es un array');
+      console.warn('âš ï¸ Contenedor sin facturas o facturas no es un array');
     }
 
     // Ejecutar batch si hay operaciones
     if (facturasActualizadas > 0) {
       await batch.commit();
-      console.log(`✅ Batch ejecutado: ${facturasActualizadas} facturas actualizadas`);
+      console.log(`âœ… Batch ejecutado: ${facturasActualizadas} facturas actualizadas`);
     } else {
-      console.warn('ℹ️ No había facturas válidas para actualizar');
+      console.warn('â„¹ï¸ No habÃ­a facturas vÃ¡lidas para actualizar');
     }
 
-    // ✅ CORRECCIÓN 3: Devolver contenedor actualizado en la respuesta
+    // âœ… CORRECCIÃ“N 3: Devolver contenedor actualizado en la respuesta
     const contenedorDocActualizado = await contenedorRef.get();
     const contenedorActualizadoData = {
       id: contenedorDocActualizado.id,
@@ -369,9 +369,9 @@ export const confirmarRecepcion = async (req, res) => {
       resultado.errores = erroresDetallados;
     }
 
-    // ✅ ENVIAR NOTIFICACIÓN A TODOS LOS REMITENTES (en segundo plano)
+    // âœ… ENVIAR NOTIFICACIÃ“N A TODOS LOS REMITENTES (en segundo plano)
     if (Array.isArray(contenedor.facturas) && contenedor.facturas.length > 0) {
-      // Obtener configuración de la compañía
+      // Obtener configuraciÃ³n de la compaÃ±Ã­a
       let companyConfig = null;
       try {
         const companyDoc = await db.collection('companies').doc(companyId).get();
@@ -379,7 +379,7 @@ export const confirmarRecepcion = async (req, res) => {
           companyConfig = companyDoc.data();
         }
       } catch (error) {
-        console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+        console.error('âš ï¸ Error obteniendo configuraciÃ³n de compaÃ±Ã­a:', error.message);
       }
 
       for (const factura of contenedor.facturas) {
@@ -391,35 +391,35 @@ export const confirmarRecepcion = async (req, res) => {
           if (!recoleccionDoc.exists) continue;
 
           const facturaData = recoleccionDoc.data();
-          const remitenteEmail = facturaData.remitente?.email;
+          const destinatarioEmail = facturaData.destinatario?.email;
 
-          if (remitenteEmail) {
-            const subject = `🏭 Recibido en Almacén RD - ${facturaData.codigoTracking}`;
+          if (destinatarioEmail) {
+            const subject = `ðŸ­ Recibido en AlmacÃ©n RD - ${facturaData.codigoTracking}`;
             const contentHTML = `
-              <h2 style="color: #2c3e50; margin-top: 0;">🏭 Recibido en Almacén RD</h2>
-              <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
-              <p>Tu paquete ha llegado a nuestro almacén en República Dominicana y está siendo procesado.</p>
+              <h2 style="color: #2c3e50; margin-top: 0;">ðŸ­ Recibido en AlmacÃ©n RD</h2>
+              <p>Hola <strong>${facturaData.destinatario?.nombre}</strong>,</p>
+              <p>Tu paquete ha llegado a nuestro almacÃ©n en RepÃºblica Dominicana y estÃ¡ siendo procesado.</p>
 
               <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Detalles del Envío</h3>
-                <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                <h3 style="margin-top: 0;">Detalles del EnvÃ­o</h3>
+                <p><strong>CÃ³digo de Tracking:</strong> ${facturaData.codigoTracking}</p>
                 <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
                 <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
-                <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+                <p><strong>DirecciÃ³n de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
               </div>
 
-              <p>Pronto será asignado a una ruta para su entrega final.</p>
+              <p>Pronto serÃ¡ asignado a una ruta para su entrega final.</p>
               <p>Gracias por confiar en nosotros.</p>
             `;
 
             const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'recibida_rd', facturaData.codigoTracking);
 
-            sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
-              .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Recibido en RD`))
-              .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
+            sendEmail(destinatarioEmail, subject, brandedHTML, [], companyConfig)
+              .then(() => console.log(`ðŸ“§ NotificaciÃ³n enviada a ${destinatarioEmail} - Recibido en RD`))
+              .catch(err => console.error(`âŒ Error enviando notificaciÃ³n:`, err.message));
           }
         } catch (error) {
-          console.error(`❌ Error enviando notificación para factura ${facturaId}:`, error.message);
+          console.error(`âŒ Error enviando notificaciÃ³n para factura ${facturaId}:`, error.message);
         }
       }
     }
@@ -427,16 +427,16 @@ export const confirmarRecepcion = async (req, res) => {
     res.json({
       success: true,
       message: facturasConError > 0
-        ? `Recepción confirmada con ${facturasConError} error(es)`
-        : 'Recepción confirmada exitosamente',
+        ? `RecepciÃ³n confirmada con ${facturasConError} error(es)`
+        : 'RecepciÃ³n confirmada exitosamente',
       data: resultado
     });
 
   } catch (error) {
-    console.error('❌ Error confirmando recepción:', error);
+    console.error('âŒ Error confirmando recepciÃ³n:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al confirmar la recepción',
+      message: 'Error al confirmar la recepciÃ³n',
       error: error.message
     });
   }
@@ -453,7 +453,7 @@ export const getDetalleFactura = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
@@ -516,7 +516,7 @@ export const getDetalleFactura = async (req, res) => {
     res.json({ success: true, data: facturaDetallada });
 
   } catch (error) {
-    console.error('❌ Error obteniendo detalle de factura:', error);
+    console.error('âŒ Error obteniendo detalle de factura:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener el detalle de la factura',
@@ -526,7 +526,7 @@ export const getDetalleFactura = async (req, res) => {
 };
 
 // ========================================
-// EDITAR INFORMACIÓN DE PAGO
+// EDITAR INFORMACIÃ“N DE PAGO
 // ========================================
 export const editarPago = async (req, res) => {
   try {
@@ -540,7 +540,7 @@ export const editarPago = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
@@ -556,7 +556,7 @@ export const editarPago = async (req, res) => {
     if (!rolesPermitidos.includes(rol)) {
       return res.status(403).json({
         success: false,
-        message: 'No tiene permisos para editar información de pago'
+        message: 'No tiene permisos para editar informaciÃ³n de pago'
       });
     }
 
@@ -564,7 +564,7 @@ export const editarPago = async (req, res) => {
     if (estado && !estadosPermitidos.includes(estado)) {
       return res.status(400).json({
         success: false,
-        message: `Estado de pago no válido. Valores permitidos: ${estadosPermitidos.join(', ')}`
+        message: `Estado de pago no vÃ¡lido. Valores permitidos: ${estadosPermitidos.join(', ')}`
       });
     }
 
@@ -628,7 +628,7 @@ export const editarPago = async (req, res) => {
 
     const historialEntry = {
       accion: 'edicion_pago',
-      descripcion: `Información de pago actualizada: ${estadoPago}`,
+      descripcion: `InformaciÃ³n de pago actualizada: ${estadoPago}`,
       monto: nuevoMontoPagado,
       estadoPago: estadoPago,
       usuario: usuarioId,
@@ -641,7 +641,7 @@ export const editarPago = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Información de pago actualizada correctamente',
+      message: 'InformaciÃ³n de pago actualizada correctamente',
       data: {
         facturaId,
         codigoTracking: data.codigoTracking,
@@ -658,10 +658,10 @@ export const editarPago = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error editando información de pago:', error);
+    console.error('âŒ Error editando informaciÃ³n de pago:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al editar la información de pago',
+      message: 'Error al editar la informaciÃ³n de pago',
       error: error.message
     });
   }
@@ -680,7 +680,7 @@ export const asignarFacturaARuta = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
@@ -750,7 +750,7 @@ export const asignarFacturaARuta = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error asignando factura a ruta:', error);
+    console.error('âŒ Error asignando factura a ruta:', error);
     res.status(500).json({
       success: false,
       message: 'Error al asignar la factura a la ruta',
@@ -758,7 +758,6 @@ export const asignarFacturaARuta = async (req, res) => {
     });
   }
 };
-
 // ========================================
 // REASIGNAR FACTURA A NUEVA RUTA
 // ========================================
@@ -772,7 +771,7 @@ export const reasignarFactura = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
@@ -837,7 +836,7 @@ export const reasignarFactura = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error reasignando factura:', error);
+    console.error('âŒ Error reasignando factura:', error);
     res.status(500).json({
       success: false,
       message: 'Error al reasignar la factura',
@@ -859,7 +858,7 @@ export const quitarFacturaDeRuta = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
@@ -892,7 +891,7 @@ export const quitarFacturaDeRuta = async (req, res) => {
     if (!data.rutaAsignada) {
       return res.status(400).json({
         success: false,
-        message: 'La factura no está asignada a ninguna ruta'
+        message: 'La factura no estÃ¡ asignada a ninguna ruta'
       });
     }
 
@@ -922,7 +921,7 @@ export const quitarFacturaDeRuta = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error quitando factura de ruta:', error);
+    console.error('âŒ Error quitando factura de ruta:', error);
     res.status(500).json({
       success: false,
       message: 'Error al quitar la factura de la ruta',
@@ -932,7 +931,7 @@ export const quitarFacturaDeRuta = async (req, res) => {
 };
 
 // ========================================
-// MARCAR ITEM COMO DAÑADO
+// MARCAR ITEM COMO DAÃ‘ADO
 // ========================================
 export const marcarItemDanado = async (req, res) => {
   try {
@@ -944,14 +943,14 @@ export const marcarItemDanado = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
     if (itemIndex === undefined || itemIndex === null) {
       return res.status(400).json({
         success: false,
-        message: 'Índice de item requerido'
+        message: 'Ãndice de item requerido'
       });
     }
 
@@ -984,7 +983,7 @@ export const marcarItemDanado = async (req, res) => {
     if (!Array.isArray(data.items) || itemIndex < 0 || itemIndex >= data.items.length) {
       return res.status(400).json({
         success: false,
-        message: 'Índice de item inválido'
+        message: 'Ãndice de item invÃ¡lido'
       });
     }
 
@@ -1006,7 +1005,7 @@ export const marcarItemDanado = async (req, res) => {
     const historialEntry = {
       accion: danado ? 'item_danado' : 'item_normal',
       descripcion: danado
-        ? `Item marcado como dañado: ${item.descripcion}`
+        ? `Item marcado como daÃ±ado: ${item.descripcion}`
         : `Item marcado como normal: ${item.descripcion}`,
       itemIndex,
       usuario: usuarioId,
@@ -1021,7 +1020,7 @@ export const marcarItemDanado = async (req, res) => {
     if (danado) {
       updateData.itemsDanados = FieldValue.arrayUnion(itemDanado);
     } else {
-      // Remover de items dañados si se marca como normal
+      // Remover de items daÃ±ados si se marca como normal
       const itemsDanadosActuales = data.itemsDanados || [];
       const itemsDanadosFiltrados = itemsDanadosActuales.filter(
         id => id.itemIndex !== itemIndex
@@ -1033,12 +1032,12 @@ export const marcarItemDanado = async (req, res) => {
 
     res.json({
       success: true,
-      message: danado ? 'Item marcado como dañado' : 'Item marcado como normal',
+      message: danado ? 'Item marcado como daÃ±ado' : 'Item marcado como normal',
       data: itemDanado
     });
 
   } catch (error) {
-    console.error('❌ Error marcando item:', error);
+    console.error('âŒ Error marcando item:', error);
     res.status(500).json({
       success: false,
       message: 'Error al marcar el item',
@@ -1060,7 +1059,7 @@ export const reportarFacturaIncompleta = async (req, res) => {
     if (!facturaId || facturaId.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'ID de factura inválido'
+        message: 'ID de factura invÃ¡lido'
       });
     }
 
@@ -1120,7 +1119,7 @@ export const reportarFacturaIncompleta = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error reportando factura incompleta:', error);
+    console.error('âŒ Error reportando factura incompleta:', error);
     res.status(500).json({
       success: false,
       message: 'Error al reportar la factura',
@@ -1130,7 +1129,7 @@ export const reportarFacturaIncompleta = async (req, res) => {
 };
 
 // ========================================
-// OBTENER ESTADÍSTICAS DEL ALMACÉN RD
+// OBTENER ESTADÃSTICAS DEL ALMACÃ‰N RD
 // ========================================
 export const getEstadisticasAlmacenRD = async (req, res) => {
   try {
@@ -1143,7 +1142,7 @@ export const getEstadisticasAlmacenRD = async (req, res) => {
       });
     }
 
-    console.log('📊 Calculando estadísticas del almacén RD');
+    console.log('ðŸ“Š Calculando estadÃ­sticas del almacÃ©n RD');
 
     const contenedoresSnapshot = await db.collection('contenedores')
       .where('companyId', '==', companyId)
@@ -1252,15 +1251,15 @@ export const getEstadisticasAlmacenRD = async (req, res) => {
     estadisticas.montos.pagado = parseFloat(estadisticas.montos.pagado.toFixed(2));
     estadisticas.montos.pendiente = parseFloat(estadisticas.montos.pendiente.toFixed(2));
 
-    console.log('✅ Estadísticas calculadas');
+    console.log('âœ… EstadÃ­sticas calculadas');
 
     res.json({ success: true, data: estadisticas });
 
   } catch (error) {
-    console.error('❌ Error obteniendo estadísticas:', error);
+    console.error('âŒ Error obteniendo estadÃ­sticas:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener las estadísticas',
+      message: 'Error al obtener las estadÃ­sticas',
       error: error.message
     });
   }

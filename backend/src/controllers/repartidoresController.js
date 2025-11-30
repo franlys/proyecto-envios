@@ -55,21 +55,21 @@ export const getRutasAsignadas = async (req, res) => {
     console.error('❌ Error obteniendo rutas asignadas:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener las rutas asignadas',
+      message: 'Error al obtener rutas asignadas',
       error: error.message
     });
   }
 };
 
 // ==========================================================================
-// OBTENER DETALLE DE UNA RUTA
+// OBTENER DETALLE DE RUTA
 // ==========================================================================
 export const getDetalleRuta = async (req, res) => {
   try {
     const { rutaId } = req.params;
     const repartidorId = req.user?.uid || req.userData?.uid;
 
-    console.log('📍 Obteniendo detalle de ruta:', rutaId);
+    console.log(`🚚 Obteniendo detalle de ruta ${rutaId}`);
 
     const rutaRef = db.collection('rutas').doc(rutaId);
     const doc = await rutaRef.get();
@@ -83,24 +83,42 @@ export const getDetalleRuta = async (req, res) => {
 
     const data = doc.data();
 
-    // Validar que la ruta pertenezca al repartidor
     if (data.repartidorId !== repartidorId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para ver esta ruta'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: doc.id,
+        ...data,
+        fechaAsignacion: data.fechaAsignacion?.toDate?.() || data.fechaAsignacion,
+        fechaCreacion: data.fechaCreacion?.toDate?.() || data.fechaCreacion
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo detalle de ruta:', error);
+    res.status(500).json({
       success: false,
-        message: 'Error al obtener el detalle de la ruta',
-          error: error.message
+      message: 'Error al obtener detalle de ruta',
+      error: error.message
     });
   }
 };
 
 // ==========================================================================
-// INICIAR RUTA (CAMBIAR ESTADO A EN_RUTA)
+// INICIAR ENTREGAS (CAMBIAR ESTADO A EN_RUTA)
 // ==========================================================================
 export const iniciarEntregas = async (req, res) => {
   try {
     const { rutaId } = req.params;
     const repartidorId = req.user?.uid || req.userData?.uid;
 
-    console.log('🚀 Iniciando ruta:', rutaId);
+    console.log(`🚀 Iniciando entregas para ruta ${rutaId}`);
 
     const rutaRef = db.collection('rutas').doc(rutaId);
     const doc = await rutaRef.get();
@@ -242,25 +260,27 @@ export const subirFotos = async (req, res) => {
   try {
     const { facturaId } = req.params;
     const files = req.files; // Array de archivos subidos por multer
+    const { fotos } = req.body; // URLs enviadas por el frontend
 
-    if (!files || files.length === 0) {
+    let fotoUrls = [];
+
+    // CASO 1: URLs enviadas por el frontend (Firebase)
+    if (fotos && Array.isArray(fotos) && fotos.length > 0) {
+      fotoUrls = fotos;
+      console.log(`📸 Recibidas ${fotoUrls.length} URLs de fotos para factura ${facturaId}`);
+    }
+    // CASO 2: Archivos subidos directamente (Multer)
+    else if (files && files.length > 0) {
+      console.log(`📸 Subiendo ${files.length} archivos para factura ${facturaId}`);
+      fotoUrls = files.map(file => `/uploads/evidencia/${file.filename}`);
+    }
+    // ERROR: No hay fotos
+    else {
       return res.status(400).json({
         success: false,
-        message: 'No se subieron archivos'
+        message: 'No se subieron archivos ni se enviaron URLs'
       });
     }
-
-    console.log(`📸 Subiendo ${files.length} fotos para factura ${facturaId}`);
-
-    // En un entorno real, aquí se subirían los archivos a Cloud Storage (Firebase Storage / S3)
-    // y se obtendrían las URLs públicas.
-    // Como estamos simulando, asumimos que multer guardó los archivos y generamos URLs locales o simuladas.
-
-    // NOTA: Para producción, implementar subida real a Firebase Storage
-    const fotoUrls = files.map(file => {
-      // URL simulada o ruta relativa al servidor
-      return `/uploads/evidencia/${file.filename}`;
-    });
 
     const facturaRef = db.collection('recolecciones').doc(facturaId);
 
@@ -271,7 +291,7 @@ export const subirFotos = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Fotos subidas exitosamente',
+      message: 'Fotos guardadas exitosamente',
       data: fotoUrls
     });
 
@@ -312,16 +332,8 @@ export const confirmarPago = async (req, res) => {
     }
 
     const data = doc.data();
-    const montoTotal = data.facturacion?.total || 0;
+    const montoTotal = data.pago?.total || 0;
     const montoPagadoNum = parseFloat(montoPagado);
-
-    // Validar monto
-    if (isNaN(montoPagadoNum) || montoPagadoNum <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Monto pagado inválido'
-      });
-    }
 
     const montoPendiente = Math.max(0, montoTotal - montoPagadoNum);
     const estadoPago = montoPendiente === 0 ? 'pagada' : 'parcial';
@@ -522,119 +534,44 @@ export const entregarFactura = async (req, res) => {
       });
     }
 
-    const historialEntry = {
-      accion: 'factura_entregada',
-      descripcion: `Factura entregada por ${nombreRepartidor}`,
-      nombreReceptor: nombreReceptor || '',
-      usuario: repartidorId,
-      nombreUsuario: nombreRepartidor,
-      rol: 'repartidor',
-      fecha: new Date().toISOString()
-    };
-
     await facturaRef.update({
       estado: 'entregada',
-      estadoGeneral: 'entregada', // ✅ Sincronizar estadoGeneral
-      estadoEntrega: 'completo',
-      firmaCliente: firmaCliente || null,
+      estadoGeneral: 'entregada',
+      fechaEntrega: new Date().toISOString(),
+      firmaCliente: firmaCliente || '',
       nombreReceptor: nombreReceptor || '',
       notasEntrega: notasEntrega || '',
-      entregadoPor: repartidorId,
-      entregadoPorNombre: nombreRepartidor,
-      fechaEntrega: new Date().toISOString(),
-      fechaActualizacion: new Date().toISOString(),
-      historial: FieldValue.arrayUnion(historialEntry)
+      fechaActualizacion: new Date().toISOString()
     });
 
-    // Actualizar ruta si existe
-    if (data.rutaId) {
-      const rutaRef = db.collection('rutas').doc(data.rutaId);
-      await db.runTransaction(async (transaction) => {
-        const rDoc = await transaction.get(rutaRef);
-        if (rDoc.exists) {
-          const rData = rDoc.data();
-          const facturas = [...(rData.facturas || [])];
-          const idx = facturas.findIndex(f => (f.id === facturaId || f.facturaId === facturaId));
-
-          if (idx !== -1) {
-            facturas[idx].estado = 'entregada';
-            const facturasEntregadas = (rData.facturasEntregadas || 0) + 1;
-
-            transaction.update(rutaRef, {
-              facturas,
-              facturasEntregadas,
-              updatedAt: new Date().toISOString()
-            });
-          }
-        }
-      });
-    }
-
-    console.log('✅ Factura marcada como entregada');
-
-    // 📧 ENVIAR EMAIL AL REMITENTE CON FOTOS DE EVIDENCIA
-    const remitenteEmail = data.remitente?.email || data.remitenteEmail;
-
-    if (remitenteEmail) {
-      console.log(`📧 Enviando notificación de entrega a: ${remitenteEmail}`);
-
-      // Obtener configuración de la compañía
-      let companyConfig = null;
-      if (data.companyId) {
-        try {
-          const companyDoc = await db.collection('companies').doc(data.companyId).get();
-          if (companyDoc.exists) {
-            companyConfig = companyDoc.data();
-          }
-        } catch (error) {
-          console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
-        }
+    // Enviar correo de confirmación
+    try {
+      const remitenteEmail = data.remitente?.email || data.cliente?.email;
+      if (remitenteEmail) {
+        const html = generateBrandedEmailHTML(
+          'Entrega Exitosa',
+          `Su envío ${data.numeroFactura || facturaId} ha sido entregado a ${nombreReceptor || 'Destinatario'}.`,
+          [
+            { label: 'Recibido por', value: nombreReceptor || 'N/A' },
+            { label: 'Fecha', value: new Date().toLocaleString() }
+          ]
+        );
+        await sendEmail(remitenteEmail, 'Entrega Confirmada - ProLogix', html);
       }
-
-      const subject = `📦 ¡Paquete Entregado! - ${data.codigoTracking}`;
-      const contentHTML = `
-        <h2 style="color: #2c3e50; margin-top: 0;">¡Tu paquete ha sido entregado! 🎉</h2>
-        <p>Hola <strong>${data.remitente?.nombre || 'Cliente'}</strong>,</p>
-        <p>Nos complace informarte que tu envío ha sido entregado exitosamente.</p>
-
-        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Detalles de la Entrega</h3>
-          <p><strong>Código:</strong> ${data.codigoTracking}</p>
-          <p><strong>Recibido por:</strong> ${nombreReceptor || 'No especificado'}</p>
-          <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-DO')}</p>
-          ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
-        </div>
-
-        <p>Adjunto encontrarás las fotos de evidencia de la entrega.</p>
-        <p>Gracias por confiar en nosotros.</p>
-      `;
-
-      const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'entregada', data.codigoTracking);
-
-      // Enviar correo (sin adjuntos reales por ahora, las fotos están en el link de tracking)
-      sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
-        .then(() => console.log(`📧 Notificación de entrega enviada a ${remitenteEmail}`))
-        .catch(err => console.error(`❌ Error enviando notificación de entrega:`, err.message));
-    } else {
-      console.warn('⚠️ No se encontró email del remitente para notificar entrega');
+    } catch (emailError) {
+      console.warn('⚠️ Error enviando correo de confirmación:', emailError);
     }
 
     res.json({
       success: true,
-      message: 'Factura entregada exitosamente',
-      data: {
-        facturaId,
-        codigoTracking: data.codigoTracking,
-        entregadoPor: nombreRepartidor,
-        fechaEntrega: new Date().toISOString()
-      }
+      message: 'Factura marcada como entregada exitosamente'
     });
 
   } catch (error) {
-    console.error('❌ Error marcando factura entregada:', error);
+    console.error('❌ Error entregando factura:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al marcar la factura como entregada',
+      message: 'Error al entregar la factura',
       error: error.message
     });
   }
@@ -644,283 +581,60 @@ export const entregarFactura = async (req, res) => {
 export const marcarFacturaEntregada = entregarFactura;
 
 // ==========================================================================
-// 🚫 REPORTAR FACTURA NO ENTREGADA
+// REPORTAR FACTURA COMO NO ENTREGADA
 // ==========================================================================
 export const reportarNoEntrega = async (req, res) => {
   try {
     const { facturaId } = req.params;
     const { motivo, descripcion, fotos, intentarNuevamente } = req.body;
     const repartidorId = req.user?.uid || req.userData?.uid;
-    const userDoc = await db.collection('usuarios').doc(repartidorId).get();
-    const nombreRepartidor = userDoc.data()?.nombre || req.userData?.nombre || 'Repartidor';
 
-    console.log(`⚠️ Reportando factura no entregada:`, facturaId);
-
-    if (!motivo) {
-      return res.status(400).json({
-        success: false,
-        message: 'El motivo es requerido'
-      });
-    }
+    console.log(`🚫 Reportando NO entrega para factura ${facturaId}`);
 
     const facturaRef = db.collection('recolecciones').doc(facturaId);
-    const doc = await facturaRef.get();
-
-    if (!doc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Factura no encontrada'
-      });
-    }
-
-    const data = doc.data();
-
-    const reporteNoEntrega = {
-      motivo, // 'cliente_ausente', 'direccion_incorrecta', 'cliente_rechazo', 'otro'
-      descripcion: descripcion || '',
-      fotos: fotos || [],
-      reportadoPor: repartidorId,
-      nombreReportador: nombreRepartidor,
-      intentarNuevamente: intentarNuevamente !== false, // Por defecto true
-      fecha: new Date().toISOString()
-    };
-
-    const historialEntry = {
-      accion: 'factura_no_entregada',
-      descripcion: `No entregada: ${motivo} - ${descripcion || ''}`,
-      motivo,
-      usuario: repartidorId,
-      nombreUsuario: nombreRepartidor,
-      rol: 'repartidor',
-      fecha: new Date().toISOString()
-    };
-
-    // Determinar nuevo estado
-    // Si se intenta nuevamente, vuelve a 'confirmada_secretaria'
-    const nuevoEstado = intentarNuevamente !== false ? 'confirmada_secretaria' : 'no_entregada';
-
     await facturaRef.update({
-      estado: nuevoEstado,
-      estadoGeneral: nuevoEstado, // ✅ Sincronizar estadoGeneral
-      reporteNoEntrega,
-      fechaActualizacion: new Date().toISOString(),
-      historial: FieldValue.arrayUnion(historialEntry),
-      // Limpiar información de ruta para reasignación
-      rutaId: null,
-      repartidorId: null,
-      repartidorNombre: null,
-      ordenCarga: null,
-      ordenEntrega: null,
-      fechaAsignacionRuta: null
+      estado: 'no_entregada',
+      estadoGeneral: 'no_entregada',
+      motivoNoEntrega: motivo,
+      descripcionNoEntrega: descripcion,
+      fotosNoEntrega: fotos || [],
+      intentarNuevamente: intentarNuevamente || false,
+      fechaNoEntrega: new Date().toISOString(),
+      fechaActualizacion: new Date().toISOString()
     });
-
-    // Actualizar ruta si existe
-    if (data.rutaId) {
-      const rutaRef = db.collection('rutas').doc(data.rutaId);
-      await db.runTransaction(async (transaction) => {
-        const rDoc = await transaction.get(rutaRef);
-        if (rDoc.exists) {
-          const rData = rDoc.data();
-          const facturas = [...(rData.facturas || [])];
-          const idx = facturas.findIndex(f => (f.id === facturaId || f.facturaId === facturaId));
-
-          if (idx !== -1) {
-            facturas[idx].estado = 'no_entregada';
-            facturas[idx].reporteNoEntrega = reporteNoEntrega;
-
-            transaction.update(rutaRef, {
-              facturas,
-              updatedAt: new Date().toISOString()
-            });
-          }
-        }
-      });
-    }
-
-    console.log('✅ Factura reportada como no entregada');
 
     res.json({
       success: true,
-      message: 'Factura reportada como no entregada',
-      data: {
-        facturaId,
-        motivo,
-        intentarNuevamente: intentarNuevamente !== false,
-        nuevoEstado
-      }
+      message: 'Reporte de no entrega registrado'
     });
 
   } catch (error) {
     console.error('❌ Error reportando no entrega:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al reportar la no entrega',
+      message: 'Error al reportar no entrega',
       error: error.message
     });
   }
 };
 
-// Alias para compatibilidad
 export const reportarFacturaNoEntregada = reportarNoEntrega;
 
-// ==========================================================================
-// 🏁 FINALIZAR RUTA COMPLETA
-// ==========================================================================
 export const finalizarRuta = async (req, res) => {
   try {
     const { rutaId } = req.params;
     const { notas } = req.body;
-    const repartidorId = req.user?.uid || req.userData?.uid;
-    const userDoc = await db.collection('usuarios').doc(repartidorId).get();
-    const companyId = userDoc.data()?.companyId;
-    const nombreRepartidor = userDoc.data()?.nombre || req.userData?.nombre || 'Repartidor';
-
-    console.log('🏁 Finalizando ruta:', rutaId);
 
     const rutaRef = db.collection('rutas').doc(rutaId);
-    const doc = await rutaRef.get();
-
-    if (!doc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Ruta no encontrada'
-      });
-    }
-
-    const data = doc.data();
-
-    // Validar permisos
-    if (data.companyId !== companyId || data.repartidorId !== repartidorId) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tiene permisos para finalizar esta ruta'
-      });
-    }
-
-    // Calcular resumen final
-    const facturas = data.facturas || [];
-    const facturasEntregadas = facturas.filter(f => f.estado === 'entregada').length;
-    const facturasNoEntregadas = facturas.filter(f => f.estado === 'no_entregada').length;
-    const facturasPendientes = facturas.length - facturasEntregadas - facturasNoEntregadas;
-
-    // Procesar facturas pendientes - marcarlas automáticamente como no_entregadas
-    const batch = db.batch();
-    const now = new Date().toISOString();
-
-    if (facturasPendientes > 0) {
-      console.log(`⚠️ Marcando ${facturasPendientes} factura(s) pendiente(s) como no entregadas automáticamente`);
-
-      for (const facturaRuta of facturas) {
-        if (facturaRuta.estado !== 'entregada' && facturaRuta.estado !== 'no_entregada') {
-          const facturaId = facturaRuta.facturaId || facturaRuta.id;
-          const recoleccionRef = db.collection('recolecciones').doc(facturaId);
-
-          // Crear reporte de no entrega
-          const reporteNoEntrega = {
-            motivo: 'ruta_cerrada_sin_entregar',
-            descripcion: 'Factura no entregada al cerrar la ruta',
-            reportadoPor: repartidorId,
-            nombreReportador: nombreRepartidor,
-            intentarNuevamente: true,
-            fecha: now
-          };
-
-          const historialFacturaEntry = {
-            accion: 'factura_no_entregada',
-            descripcion: 'Ruta cerrada sin entregar esta factura',
-            motivo: 'ruta_cerrada_sin_entregar',
-            usuarioId: repartidorId,
-            nombreUsuario: nombreRepartidor,
-            rol: 'repartidor',
-            fecha: now
-          };
-
-          // Actualizar el documento de la recolección
-          batch.update(recoleccionRef, {
-            estado: 'no_entregada',
-            estadoGeneral: 'no_entregada', // ✅ Sincronizar estadoGeneral
-            reporteNoEntrega,
-            rutaId: FieldValue.delete(),
-            repartidorId: FieldValue.delete(),
-            repartidorNombre: FieldValue.delete(),
-            ordenCarga: FieldValue.delete(),
-            ordenEntrega: FieldValue.delete(),
-            fechaAsignacionRuta: FieldValue.delete(),
-            historial: FieldValue.arrayUnion(historialFacturaEntry),
-            fechaActualizacion: now
-          });
-
-          // Actualizar en el array de facturas de la ruta
-          facturaRuta.estado = 'no_entregada';
-          facturaRuta.reporteNoEntrega = reporteNoEntrega;
-        }
-      }
-    }
-
-    // Recalcular resumen después de procesar pendientes
-    const facturasEntregadasFinal = facturas.filter(f => f.estado === 'entregada').length;
-    const facturasNoEntregadasFinal = facturas.filter(f => f.estado === 'no_entregada').length;
-    const facturasPendientesFinal = facturas.length - facturasEntregadasFinal - facturasNoEntregadasFinal;
-
-    const historialEntry = {
-      accion: 'finalizar_ruta',
-      descripcion: `Ruta finalizada por ${nombreRepartidor}`,
-      facturasEntregadas: facturasEntregadasFinal,
-      facturasNoEntregadas: facturasNoEntregadasFinal,
-      facturasPendientes: facturasPendientesFinal,
-      facturasAutoMarcadas: facturasPendientes,
-      notas: notas || '',
-      usuario: repartidorId,
-      nombreUsuario: nombreRepartidor,
-      rol: 'repartidor',
-      fecha: now
-    };
-
-    batch.update(rutaRef, {
-      estado: 'completada',
-      fechaFinalizacion: now,
-      notasRepartidor: notas || '',
-      facturas: facturas,
-      resumenFinal: {
-        entregadas: facturasEntregadasFinal,
-        noEntregadas: facturasNoEntregadasFinal,
-        pendientes: facturasPendientesFinal
-      },
-      resumenEntregas: {
-        entregadas: facturasEntregadasFinal,
-        noEntregadas: facturasNoEntregadasFinal,
-        pendientes: facturasPendientesFinal
-      },
-      fechaActualizacion: now,
-      updatedAt: now,
-      historial: FieldValue.arrayUnion(historialEntry)
+    await rutaRef.update({
+      estado: 'finalizada',
+      fechaFin: new Date().toISOString(),
+      notasFinalizacion: notas || ''
     });
 
-    await batch.commit();
-
-    console.log('✅ Ruta finalizada exitosamente');
-
-    res.json({
-      success: true,
-      message: facturasPendientes > 0
-        ? `Ruta finalizada. ${facturasPendientes} factura(s) pendiente(s) marcadas como no entregadas automáticamente.`
-        : 'Ruta finalizada exitosamente',
-      data: {
-        rutaId,
-        facturasEntregadas: facturasEntregadasFinal,
-        facturasNoEntregadas: facturasNoEntregadasFinal,
-        facturasPendientes: facturasPendientesFinal,
-        facturasAutoMarcadas: facturasPendientes
-      }
-    });
-
+    res.json({ success: true, message: 'Ruta finalizada' });
   } catch (error) {
-    console.error('❌ Error finalizando ruta:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al finalizar la ruta',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
