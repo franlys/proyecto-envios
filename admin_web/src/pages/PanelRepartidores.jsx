@@ -224,7 +224,16 @@ const PanelRepartidores = () => {
   const handleEntregarItem = async (itemIndex) => {
     if (!facturaActual) return;
 
+    // Prevenir doble click o múltiples entregas del mismo item
+    const item = facturaActual.items[itemIndex];
+    if (item?.entregado || item?._optimistic) {
+      console.warn('⚠️ Item ya entregado, ignorando acción duplicada');
+      return;
+    }
+
     try {
+      console.log(`📦 Entregando item ${itemIndex} de factura ${facturaActual.id}`);
+
       // ✅ Actualización optimista inmediata
       const nuevosItems = [...facturaActual.items];
       if (nuevosItems[itemIndex]) {
@@ -244,12 +253,13 @@ const PanelRepartidores = () => {
       );
 
       if (response.data.success) {
+        console.log(`✅ Item ${itemIndex} entregado exitosamente en servidor`);
         toast.success('📦 Item entregado');
         // ✅ Recargar ruta para obtener datos actualizados
         await cargarDetalleRuta(rutaSeleccionada.id);
       }
     } catch (error) {
-      console.error('Error al entregar item:', error);
+      console.error('❌ Error al entregar item:', error);
       toast.error('❌ Error al entregar item');
       // ✅ Rollback en caso de error
       await cargarDetalleRuta(rutaSeleccionada.id);
