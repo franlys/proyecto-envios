@@ -768,47 +768,77 @@ const PanelRepartidores = () => {
               <Package size={20} /> Items a Entregar
             </h3>
             <div className="space-y-3 mb-6">
-              {facturaActual.items?.map((item, index) => (
-                <div
-                  key={index}
-                  className={`p-3 border rounded-lg flex justify-between items-center ${item.entregado ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600'} ${item._optimistic ? 'opacity-70' : ''}`}
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {item.producto || item.descripcion || 'Item sin nombre'}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Cant: {item.cantidad}</p>
+              {facturaActual.items?.map((item, index) => {
+                // Determinar el estado del item
+                const isDanado = item.danado || item.estadoItem === 'danado';
+                const isEntregado = item.entregado || item.estadoItem === 'entregado';
+                const isNoEntregado = item.estadoItem === 'no_entregado';
+
+                // Clases de fondo según estado
+                let bgClasses = 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600';
+                if (isEntregado) {
+                  bgClasses = 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800';
+                } else if (isDanado) {
+                  bgClasses = 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800';
+                } else if (isNoEntregado) {
+                  bgClasses = 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800';
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`p-3 border rounded-lg flex justify-between items-center ${bgClasses} ${item._optimistic ? 'opacity-70' : ''}`}
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {item.producto || item.descripcion || 'Item sin nombre'}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Cant: {item.cantidad}</p>
+                      {isDanado && item.descripcionDano && (
+                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">⚠️ {item.descripcionDano}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {isEntregado ? (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                          <CheckCircle size={20} className="fill-current" />
+                          <span className="font-medium text-sm">Entregado</span>
+                        </div>
+                      ) : isDanado ? (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full">
+                          <AlertTriangle size={20} className="fill-current" />
+                          <span className="font-medium text-sm">Dañado</span>
+                        </div>
+                      ) : isNoEntregado ? (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
+                          <XCircle size={20} className="fill-current" />
+                          <span className="font-medium text-sm">No Entregado</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleEntregarItem(index)}
+                            className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition"
+                            title="Marcar entregado"
+                          >
+                            <CheckCircle size={20} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setItemDanado({ ...item, index });
+                              setShowModalDano(true);
+                            }}
+                            className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition"
+                            title="Reportar Daño"
+                          >
+                            <AlertTriangle size={20} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {item.entregado ? (
-                      <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
-                        <CheckCircle size={20} className="fill-current" />
-                        <span className="font-medium text-sm">Entregado</span>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleEntregarItem(index)}
-                          className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition"
-                          title="Marcar entregado"
-                        >
-                          <CheckCircle size={20} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setItemDanado({ ...item, index });
-                            setShowModalDano(true);
-                          }}
-                          className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition"
-                          title="Reportar Daño"
-                        >
-                          <AlertTriangle size={20} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Evidencia Fotográfica Section */}
