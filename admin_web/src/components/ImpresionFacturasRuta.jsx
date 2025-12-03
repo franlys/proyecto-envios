@@ -153,192 +153,235 @@ const ImpresionFacturasRuta = () => {
         </button>
       </div>
 
-      {/* Contenido para impresión */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-8 print:p-0">
+      {/* Cada factura en su propia página */}
+      {facturas.map((factura, index) => (
+        <div key={factura.id} className="page-break max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-8 print:p-6 mb-8 print:mb-0">
 
-        {/* Encabezado con logo - se repite en cada página */}
-        <div className="print:block">
-          <div className="flex items-start justify-between mb-6 pb-4 border-b-2 border-gray-300">
-            {/* Logo y nombre de empresa */}
-            <div className="flex items-center gap-4">
-              {company.logo ? (
-                <img
-                  src={company.logo}
-                  alt={company.nombre}
-                  className="h-16 w-auto object-contain"
-                />
-              ) : (
-                <div className="h-16 w-16 bg-blue-600 text-white flex items-center justify-center rounded-lg text-2xl font-bold">
-                  {company.nombre?.charAt(0) || 'E'}
-                </div>
-              )}
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">{company.nombre}</h1>
-                {company.telefono && <p className="text-sm text-gray-600">Tel: {company.telefono}</p>}
-                {company.email && <p className="text-sm text-gray-600">{company.email}</p>}
-              </div>
-            </div>
-
-            {/* Información de la ruta */}
-            <div className="text-right">
-              <h2 className="text-xl font-bold text-gray-800">HOJA DE RUTA</h2>
-              <p className="text-sm text-gray-600">Fecha: {formatearFecha(new Date())}</p>
-              <p className="text-sm font-semibold text-gray-700 mt-1">{ruta.nombre}</p>
-              {ruta.zona && <p className="text-sm text-gray-600">Zona: {ruta.zona}</p>}
-            </div>
-          </div>
-
-          {/* Información del repartidor y resumen */}
-          <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 rounded-lg print:bg-gray-100">
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">Repartidor</h3>
-              {ruta.repartidor ? (
-                <>
-                  <p className="text-sm text-gray-800">{ruta.repartidor.nombre}</p>
-                  {ruta.repartidor.telefono && (
-                    <p className="text-sm text-gray-600">Tel: {ruta.repartidor.telefono}</p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">No asignado</p>
-              )}
-              {ruta.vehiculo && (
-                <p className="text-sm text-gray-600 mt-1">Vehículo: {ruta.vehiculo}</p>
-              )}
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">Resumen</h3>
-              <div className="space-y-1 text-sm">
-                <p className="text-gray-800">Total facturas: <span className="font-semibold">{stats.totalFacturas}</span></p>
-                <p className="text-gray-800">Total items: <span className="font-semibold">{stats.totalItems}</span></p>
-                <p className="text-gray-800">Monto total: <span className="font-semibold">{formatearMoneda(stats.montoTotal)}</span></p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Lista de facturas */}
-        <div className="space-y-6">
-          {facturas.map((factura, index) => (
-            <div
-              key={factura.id}
-              className="border-2 border-gray-300 rounded-lg p-4 print:break-inside-avoid print:page-break-inside-avoid"
-            >
-              {/* Encabezado de factura */}
-              <div className="flex items-start justify-between mb-3 pb-2 border-b border-gray-200">
+          {/* Encabezado con logo - se repite en CADA factura */}
+          <div className="mb-6 pb-4 border-b-2 border-gray-300">
+            <div className="flex items-start justify-between">
+              {/* Logo y nombre de empresa */}
+              <div className="flex items-center gap-4">
+                {company.logo ? (
+                  <img
+                    src={company.logo}
+                    alt={company.nombre}
+                    className="h-16 w-auto object-contain"
+                  />
+                ) : (
+                  <div className="h-16 w-16 bg-blue-600 text-white flex items-center justify-center rounded-lg text-2xl font-bold">
+                    {company.nombre?.charAt(0) || 'E'}
+                  </div>
+                )}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800">
-                    #{index + 1} - {factura.codigoTracking}
-                  </h3>
-                  <p className="text-sm text-gray-600">Factura: {factura.numeroFactura}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeColor(factura.estado)}`}>
-                    {factura.estado.replace('_', ' ').toUpperCase()}
-                  </span>
-                  {factura.pago && (
-                    <p className="text-sm font-semibold text-gray-700 mt-1">
-                      {formatearMoneda(factura.pago.total)}
-                    </p>
-                  )}
+                  <h1 className="text-2xl font-bold text-gray-800">{company.nombre}</h1>
+                  {company.telefono && <p className="text-sm text-gray-600">Tel: {company.telefono}</p>}
+                  {company.email && <p className="text-sm text-gray-600">{company.email}</p>}
+                  {company.direccion && <p className="text-xs text-gray-500 mt-1">{company.direccion}</p>}
                 </div>
               </div>
 
-              {/* Información del destinatario */}
-              <div className="mb-3 bg-blue-50 p-3 rounded print:bg-blue-100">
-                <h4 className="font-semibold text-gray-700 text-sm mb-1">DESTINATARIO</h4>
-                <p className="text-sm font-semibold text-gray-800">{factura.destinatario.nombre}</p>
-                <p className="text-sm text-gray-700">{factura.destinatario.direccion}</p>
-                {factura.destinatario.sector && (
-                  <p className="text-sm text-gray-600">Sector: {factura.destinatario.sector}</p>
-                )}
-                {factura.destinatario.telefono && (
-                  <p className="text-sm text-gray-600">Tel: {factura.destinatario.telefono}</p>
+              {/* Información de la ruta */}
+              <div className="text-right">
+                <h2 className="text-xl font-bold text-gray-800">HOJA DE ENTREGA</h2>
+                <p className="text-sm text-gray-600">Fecha: {formatearFecha(new Date())}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-1">{ruta.nombre}</p>
+                {ruta.zona && <p className="text-sm text-gray-600">Zona: {ruta.zona}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Información del repartidor */}
+          <div className="mb-4 p-3 bg-gray-50 rounded print:bg-gray-100">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-semibold text-gray-700 text-sm">Repartidor</h3>
+                {ruta.repartidor ? (
+                  <>
+                    <p className="text-sm text-gray-800">{ruta.repartidor.nombre}</p>
+                    {ruta.repartidor.telefono && (
+                      <p className="text-sm text-gray-600">Tel: {ruta.repartidor.telefono}</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500">No asignado</p>
                 )}
               </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-600">Factura</p>
+                <p className="text-lg font-bold text-gray-800">#{index + 1} de {facturas.length}</p>
+              </div>
+            </div>
+          </div>
 
-              {/* Items */}
-              {factura.items && factura.items.length > 0 && (
-                <div className="mb-3">
-                  <h4 className="font-semibold text-gray-700 text-sm mb-2">ITEMS ({factura.items.length})</h4>
-                  <div className="space-y-1">
-                    {factura.items.map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-sm">
-                        <span className="text-gray-500 min-w-[20px]">{idx + 1}.</span>
-                        <div className="flex-1">
-                          <span className="text-gray-700">{item.descripcion}</span>
-                          {item.cantidad > 1 && (
-                            <span className="text-gray-500 ml-2">(x{item.cantidad})</span>
+          {/* Información de la factura */}
+          <div className="border-2 border-gray-300 rounded-lg p-4 mb-4">
+            <div className="flex items-start justify-between mb-3 pb-3 border-b-2 border-gray-200">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">{factura.codigoTracking}</h3>
+                <p className="text-sm text-gray-600">Factura: {factura.numeroFactura}</p>
+              </div>
+              <div className="text-right">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeColor(factura.estado)}`}>
+                  {factura.estado.replace('_', ' ').toUpperCase()}
+                </span>
+                {factura.pago && (
+                  <p className="text-lg font-bold text-gray-800 mt-1">
+                    {formatearMoneda(factura.pago.total)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Información del remitente */}
+            {factura.remitente && (
+              <div className="mb-3 p-3 bg-green-50 rounded print:bg-green-100">
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">REMITENTE</h4>
+                <p className="text-sm font-semibold text-gray-800">{factura.remitente.nombre}</p>
+                {factura.remitente.telefono && (
+                  <p className="text-sm text-gray-600">Tel: {factura.remitente.telefono}</p>
+                )}
+              </div>
+            )}
+
+            {/* Información del destinatario */}
+            <div className="mb-4 p-3 bg-blue-50 rounded print:bg-blue-100">
+              <h4 className="font-semibold text-gray-700 text-sm mb-1">DESTINATARIO</h4>
+              <p className="text-base font-bold text-gray-800">{factura.destinatario.nombre}</p>
+              <p className="text-sm text-gray-700 mt-1">{factura.destinatario.direccion}</p>
+              {factura.destinatario.sector && (
+                <p className="text-sm text-gray-600">Sector: {factura.destinatario.sector}</p>
+              )}
+              {factura.destinatario.ciudad && (
+                <p className="text-sm text-gray-600">
+                  {factura.destinatario.ciudad}{factura.destinatario.provincia && `, ${factura.destinatario.provincia}`}
+                </p>
+              )}
+              {factura.destinatario.telefono && (
+                <p className="text-sm font-semibold text-gray-800 mt-1">Tel: {factura.destinatario.telefono}</p>
+              )}
+            </div>
+
+            {/* Items con checkboxes */}
+            {factura.items && factura.items.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-semibold text-gray-700 text-sm mb-3 pb-2 border-b border-gray-300">
+                  ITEMS A ENTREGAR ({factura.items.length})
+                </h4>
+                <div className="space-y-2">
+                  {factura.items.map((item, idx) => (
+                    <div key={idx} className="flex items-start gap-3 p-2 bg-gray-50 rounded print:bg-white print:border print:border-gray-300">
+                      {/* Checkbox */}
+                      <div className="flex-shrink-0 mt-1">
+                        <div className="w-5 h-5 border-2 border-gray-400 rounded print:border-black"></div>
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-800">{item.descripcion}</p>
+                            {item.cantidad > 1 && (
+                              <p className="text-xs text-gray-600">Cantidad: {item.cantidad}</p>
+                            )}
+                            {item.peso && (
+                              <p className="text-xs text-gray-600">Peso: {item.peso}</p>
+                            )}
+                          </div>
+                          {item.entregado && (
+                            <span className="text-green-600 font-semibold text-xs bg-green-100 px-2 py-1 rounded">
+                              ✓ ENTREGADO
+                            </span>
                           )}
                         </div>
-                        {item.entregado && (
-                          <span className="text-green-600 font-semibold text-xs">✓ ENTREGADO</span>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Información de pago */}
-              {factura.pago && (
-                <div className="mb-3 p-2 bg-yellow-50 rounded print:bg-yellow-100">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Estado pago:</span>
-                      <span className={`ml-2 font-semibold ${factura.pago.estado === 'pagada' ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {factura.pago.estado === 'pagada' ? '✓ PAGADO' : 'PENDIENTE'}
-                      </span>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Monto pendiente:</span>
-                      <span className="ml-2 font-semibold text-gray-800">
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Información de pago */}
+            {factura.pago && (
+              <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-300 rounded print:bg-yellow-100">
+                <h4 className="font-semibold text-gray-700 text-sm mb-2">INFORMACIÓN DE PAGO</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-600">Monto Total:</span>
+                    <span className="ml-2 font-bold text-gray-900 text-base">
+                      {formatearMoneda(factura.pago.total)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Estado:</span>
+                    <span className={`ml-2 font-semibold ${factura.pago.estado === 'pagada' ? 'text-green-600' : 'text-yellow-700'}`}>
+                      {factura.pago.estado === 'pagada' ? '✓ PAGADO' : 'PENDIENTE'}
+                    </span>
+                  </div>
+                  {factura.pago.montoPendiente > 0 && (
+                    <div className="col-span-2 pt-2 border-t border-yellow-400">
+                      <span className="text-gray-700 font-semibold">Monto a Cobrar:</span>
+                      <span className="ml-2 font-bold text-red-600 text-lg">
                         {formatearMoneda(factura.pago.montoPendiente)}
                       </span>
                     </div>
-                    {factura.pago.metodoPago && (
-                      <div className="col-span-2">
-                        <span className="text-gray-600">Método:</span>
-                        <span className="ml-2 text-gray-800">{factura.pago.metodoPago}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Notas */}
-              {factura.notas && (
-                <div className="p-2 bg-gray-50 rounded print:bg-gray-100">
-                  <p className="text-xs text-gray-600">
-                    <span className="font-semibold">Notas:</span> {factura.notas}
-                  </p>
-                </div>
-              )}
-
-              {/* Área de firma */}
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Firma del cliente:</p>
-                    <div className="border-b border-gray-400 h-12"></div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 mb-1">Hora de entrega:</p>
-                    <div className="border-b border-gray-400 h-12"></div>
-                  </div>
+                  )}
+                  {factura.pago.metodoPago && (
+                    <div className="col-span-2">
+                      <span className="text-gray-600">Método de pago:</span>
+                      <span className="ml-2 text-gray-800 font-medium">{factura.pago.metodoPago}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
 
-        {/* Pie de página */}
-        <div className="mt-8 pt-4 border-t-2 border-gray-300 text-center text-sm text-gray-600">
-          <p>Documento generado el {formatearFecha(new Date())}</p>
-          <p className="mt-1">{company.nombre} - Sistema de Gestión de Envíos</p>
+            {/* Notas */}
+            {(factura.notas || factura.notasInternas) && (
+              <div className="mb-4 p-3 bg-orange-50 border-l-4 border-orange-400 rounded print:bg-orange-100">
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">⚠️ NOTAS IMPORTANTES</h4>
+                {factura.notas && (
+                  <p className="text-sm text-gray-800 mb-1">{factura.notas}</p>
+                )}
+                {factura.notasInternas && (
+                  <p className="text-xs text-gray-600 italic">{factura.notasInternas}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Área de firma y confirmación */}
+          <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50 print:bg-white">
+            <h4 className="font-semibold text-gray-700 text-sm mb-3">CONFIRMACIÓN DE ENTREGA</h4>
+            <div className="grid grid-cols-2 gap-6 mb-4">
+              <div>
+                <p className="text-xs text-gray-600 mb-2 font-semibold">Nombre de quien recibe:</p>
+                <div className="border-b-2 border-gray-400 h-10"></div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-2 font-semibold">Cédula / Identificación:</p>
+                <div className="border-b-2 border-gray-400 h-10"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs text-gray-600 mb-2 font-semibold">Firma del cliente:</p>
+                <div className="border-2 border-gray-400 h-20 rounded"></div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-2 font-semibold">Hora de entrega:</p>
+                <div className="border-b-2 border-gray-400 h-10 mt-2"></div>
+                <p className="text-xs text-gray-500 mt-4">Fecha: {formatearFecha(new Date())}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pie de página */}
+          <div className="mt-6 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
+            <p>{company.nombre} - Sistema de Gestión de Envíos</p>
+            <p className="mt-1">Documento generado el {formatearFecha(new Date())}</p>
+          </div>
         </div>
-      </div>
+      ))}
 
       {/* Estilos para impresión */}
       <style>{`
@@ -366,10 +409,77 @@ const ImpresionFacturasRuta = () => {
             page-break-inside: avoid;
           }
 
+          /* Cada factura en su propia página */
+          .page-break {
+            page-break-after: always;
+            break-after: page;
+          }
+
+          .page-break:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+
+          /* Estilos específicos para impresión */
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+
+          .print\\:p-6 {
+            padding: 1.5rem !important;
+          }
+
+          .print\\:mb-0 {
+            margin-bottom: 0 !important;
+          }
+
+          .print\\:bg-gray-100 {
+            background-color: #f3f4f6 !important;
+          }
+
+          .print\\:bg-blue-100 {
+            background-color: #dbeafe !important;
+          }
+
+          .print\\:bg-green-100 {
+            background-color: #dcfce7 !important;
+          }
+
+          .print\\:bg-yellow-100 {
+            background-color: #fef3c7 !important;
+          }
+
+          .print\\:bg-orange-100 {
+            background-color: #ffedd5 !important;
+          }
+
+          .print\\:bg-white {
+            background-color: white !important;
+          }
+
+          .print\\:border {
+            border-width: 1px !important;
+          }
+
+          .print\\:border-gray-300 {
+            border-color: #d1d5db !important;
+          }
+
+          .print\\:border-black {
+            border: 2px solid black !important;
+          }
+
           /* Asegurar que el contenido no se corte */
           * {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
+          }
+        }
+
+        /* Estilos para pantalla */
+        @media screen {
+          .page-break {
+            margin-bottom: 2rem;
           }
         }
       `}</style>
