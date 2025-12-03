@@ -1015,7 +1015,7 @@ export const exportarFacturasRutaParaImpresion = async (req, res) => {
     let repartidorInfo = null;
     if (rutaData.repartidorId) {
       try {
-        const repartidorDoc = await db.collection('users').doc(rutaData.repartidorId).get();
+        const repartidorDoc = await db.collection('usuarios').doc(rutaData.repartidorId).get();
         if (repartidorDoc.exists) {
           const repartidorData = repartidorDoc.data();
           repartidorInfo = {
