@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, X, Loader, AlertCircle } from 'lucide-react';
 import api from '../services/api';
+import { auth } from '../services/firebase';
 
 const ImpresionFacturasRuta = () => {
   const { rutaId } = useParams();
@@ -18,13 +19,27 @@ const ImpresionFacturasRuta = () => {
   const [datos, setDatos] = useState(null);
 
   useEffect(() => {
-    cargarDatosImpresion();
+    // Esperar a que Firebase Auth esté listo antes de cargar datos
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log('✅ Usuario autenticado, cargando datos de impresión...');
+        cargarDatosImpresion();
+      } else {
+        console.error('❌ No hay usuario autenticado para imprimir');
+        setError('Debes estar autenticado para imprimir. Por favor, inicia sesión.');
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, [rutaId]);
 
   const cargarDatosImpresion = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      console.log(`🖨️ Solicitando datos de impresión para ruta ${rutaId}...`);
       const response = await api.get(`/repartidores/rutas/${rutaId}/exportar-impresion`);
 
       if (response.data.success) {
@@ -35,8 +50,8 @@ const ImpresionFacturasRuta = () => {
         setError('No se pudieron cargar los datos');
       }
     } catch (err) {
-      console.error('Error cargando datos para impresión:', err);
-      setError(err.response?.data?.message || 'Error al cargar los datos');
+      console.error('❌ Error cargando datos para impresión:', err);
+      setError(err.response?.data?.message || 'Error al cargar los datos. Por favor, intenta nuevamente.');
     } finally {
       setLoading(false);
     }
