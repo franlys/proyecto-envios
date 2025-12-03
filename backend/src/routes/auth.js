@@ -4,7 +4,7 @@ import { db, admin } from '../config/firebase.js';
 import { verifyToken } from '../middleware/auth.js';
 
 // ✅ 1. IMPORTAR LA FUNCIÓN CORRECTA DEL CONTROLADOR
-import { register } from '../controllers/authController.js';
+import { register, forgotPassword, resetPassword } from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -152,6 +152,18 @@ router.post('/change-password', verifyToken, async (req, res) => {
     });
   }
 });
+
+/**
+ * POST /api/auth/forgot-password
+ * Solicitar recuperacion de contrasena
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * POST /api/auth/reset-password
+ * Restablecer contrasena con token
+ */
+router.post('/reset-password', resetPassword);
 
 /**
  * GET /api/auth/verify-role/:rol

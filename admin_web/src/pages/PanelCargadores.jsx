@@ -17,7 +17,8 @@ import {
   MapPin,
   ArrowLeft,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Printer
 } from 'lucide-react';
 
 const PanelCargadores = () => {
@@ -528,6 +529,13 @@ const PanelCargadores = () => {
               </div>
 
               <div className="flex gap-3">
+                <button
+                  onClick={() => window.open(`/rutas/${rutaSeleccionada.id}/imprimir`, '_blank')}
+                  className="p-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                  title="Imprimir Facturas"
+                >
+                  <Printer size={18} />
+                </button>
                 {rutaSeleccionada.estado === 'asignada' ? (
                   <button
                     onClick={handleIniciarCarga}
@@ -798,11 +806,11 @@ const PanelCargadores = () => {
 
       {/* Modal Galería */}
       {showModalGaleria && fotosGaleria.length > 0 && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="relative w-full max-w-4xl flex flex-col items-center">
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999] p-4">
+          <div className="relative w-full max-w-6xl max-h-[90vh] flex flex-col items-center justify-center">
             <button
               onClick={() => { setShowModalGaleria(false); setFotosGaleria([]); }}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 p-2"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 bg-black/50 rounded-full z-[10000]"
             >
               <X size={32} />
             </button>
@@ -810,7 +818,7 @@ const PanelCargadores = () => {
             <SmartImage
               src={fotosGaleria[fotoActual]}
               alt={`Foto ${fotoActual + 1}`}
-              className="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
+              className="max-h-[calc(90vh-120px)] max-w-full object-contain rounded-lg shadow-2xl"
               showOptimizedBadge={true}
               showZoomIcon={false}
             />

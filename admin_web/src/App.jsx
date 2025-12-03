@@ -29,6 +29,9 @@ import PanelAlmacenUSA from './pages/PanelAlmacenUSA';
 import PanelAlmacenRD from './pages/PanelAlmacenRD';
 import FacturasPendientesPago from './pages/FacturasPendientesPago';
 import PublicTracking from './pages/PublicTracking'; // ✅ NUEVO - Tracking Público
+import ImpresionFacturasRuta from './components/ImpresionFacturasRuta'; // ✅ NUEVO - Impresión de facturas
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Componente que decide qué Dashboard mostrar según el rol
 const DashboardRouter = () => {
@@ -208,6 +211,13 @@ function App() {
           {/* ============================================ */}
           <Route path="/tracking" element={<PublicTracking />} />
           <Route path="/tracking/:codigo" element={<PublicTracking />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* ============================================ */}
+          {/* RUTA DE IMPRESIÓN (sin Layout) */}
+          {/* ============================================ */}
+          <Route path="/rutas/:rutaId/imprimir" element={<ImpresionFacturasRuta />} />
 
           {/* ============================================ */}
           {/* RUTAS PRIVADAS (requieren autenticación) */}

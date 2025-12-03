@@ -19,7 +19,8 @@ import {
   reportarItemDanado,
   marcarFacturaEntregada,
   reportarFacturaNoEntregada,
-  finalizarRuta
+  finalizarRuta,
+  exportarFacturasRutaParaImpresion
 } from '../controllers/repartidoresController.js';
 
 const router = express.Router();
@@ -42,11 +43,12 @@ router.use(verifyToken);
 router.get('/rutas', getRutasAsignadas);
 
 /**
- * GET /api/repartidores/rutas/:rutaId
- * Obtener detalle completo de una ruta con facturas ordenadas para entrega
- * Roles: repartidor, admin_general, super_admin
+ * GET /api/repartidores/rutas/:rutaId/exportar-impresion
+ * Exportar facturas de ruta para impresión con logo y detalles completos
+ * Roles: repartidor, cargador, admin_general, super_admin
+ * IMPORTANTE: Debe estar ANTES de /rutas/:rutaId para evitar conflictos
  */
-router.get('/rutas/:rutaId', getDetalleRuta);
+router.get('/rutas/:rutaId/exportar-impresion', exportarFacturasRutaParaImpresion);
 
 /**
  * POST /api/repartidores/rutas/:rutaId/iniciar-entregas
@@ -63,6 +65,14 @@ router.post('/rutas/:rutaId/iniciar-entregas', iniciarEntregas);
  * Roles: repartidor, admin_general, super_admin
  */
 router.post('/rutas/:rutaId/finalizar', finalizarRuta);
+
+/**
+ * GET /api/repartidores/rutas/:rutaId
+ * Obtener detalle completo de una ruta con facturas ordenadas para entrega
+ * Roles: repartidor, admin_general, super_admin
+ * IMPORTANTE: Debe estar DESPUÉS de rutas específicas como /exportar-impresion
+ */
+router.get('/rutas/:rutaId', getDetalleRuta);
 
 // ========================================
 // RUTAS DE ENTREGAS (Gestión de facturas individuales)

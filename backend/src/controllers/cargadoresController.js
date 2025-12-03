@@ -1,5 +1,6 @@
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ==========================================================================
 // 📋 OBTENER RUTAS ASIGNADAS AL CARGADOR (Soporte Híbrido + Robusto)
@@ -445,9 +446,90 @@ export const confirmarItemCargado = async (req, res) => {
 
     console.log('✅ Item confirmado como cargado');
 
-    res.json({ 
-      success: true, 
-      message: 'Item marcado como cargado exitosamente' 
+    // Enviar notificacion si la factura completa fue cargada
+    const rutaDoc = await rutaRef.get();
+    const rutaData = rutaDoc.data();
+    const facturaActualizada = rutaData.facturas.find(f => f.id === facturaId || f.facturaId === facturaId);
+
+    if (facturaActualizada && facturaActualizada.estadoCarga === 'cargada') {
+      // Obtener datos completos de la factura
+      const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+      if (facturaDoc.exists) {
+        const facturaData = facturaDoc.data();
+        const destinatarioEmail = facturaData.destinatario?.email;
+        const remitenteEmail = facturaData.remitente?.email;
+
+        // Obtener configuracion de la compania
+        const companyId = rutaData.companyId;
+        let companyConfig = null;
+        try {
+          const companyDoc = await db.collection('companies').doc(companyId).get();
+          if (companyDoc.exists) {
+            companyConfig = companyDoc.data();
+          }
+        } catch (error) {
+          console.error('Error obteniendo configuracion de compania:', error.message);
+        }
+
+        // Enviar correo al DESTINATARIO
+        if (destinatarioEmail) {
+          const subject = `Tu paquete fue cargado para entrega - ${facturaData.codigoTracking}`;
+          const contentHTML = `
+            <h2 style="color: #2c3e50; margin-top: 0;">Tu paquete fue cargado en el camion</h2>
+            <p>Hola <strong>${facturaData.destinatario?.nombre}</strong>,</p>
+            <p>Tu paquete ha sido cargado en el camion de reparto y saldra pronto para entrega.</p>
+
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Detalles del Envio</h3>
+              <p><strong>Codigo de Tracking:</strong> ${facturaData.codigoTracking}</p>
+              <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+              <p><strong>Direccion de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+              <p><strong>Sector:</strong> ${facturaData.destinatario?.sector || 'N/A'}</p>
+            </div>
+
+            <p>Pronto recibiras otra notificacion cuando el camion salga en ruta.</p>
+            <p>Gracias por confiar en nosotros.</p>
+          `;
+
+          const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'cargada', facturaData.codigoTracking);
+
+          sendEmail(destinatarioEmail, subject, brandedHTML, [], companyConfig)
+            .then(() => console.log(`Notificacion enviada al DESTINATARIO: ${destinatarioEmail} - Cargada`))
+            .catch(err => console.error(`Error enviando notificacion al destinatario:`, err.message));
+        }
+
+        // Enviar correo al REMITENTE
+        if (remitenteEmail) {
+          const subject = `Tu envio a ${facturaData.destinatario?.nombre} fue cargado - ${facturaData.codigoTracking}`;
+          const contentHTML = `
+            <h2 style="color: #2c3e50; margin-top: 0;">Tu envio fue cargado para entrega</h2>
+            <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
+            <p>El paquete que enviaste a <strong>${facturaData.destinatario?.nombre}</strong> ha sido cargado en el camion de reparto y saldra pronto para entrega.</p>
+
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Detalles del Envio</h3>
+              <p><strong>Codigo de Tracking:</strong> ${facturaData.codigoTracking}</p>
+              <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+              <p><strong>Direccion de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+              <p><strong>Sector:</strong> ${facturaData.destinatario?.sector || 'N/A'}</p>
+            </div>
+
+            <p>Pronto recibiras otra notificacion cuando el camion salga en ruta.</p>
+            <p>Gracias por confiar en nosotros.</p>
+          `;
+
+          const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'cargada', facturaData.codigoTracking);
+
+          sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
+            .then(() => console.log(`Notificacion enviada al REMITENTE: ${remitenteEmail} - Cargada`))
+            .catch(err => console.error(`Error enviando notificacion al remitente:`, err.message));
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Item marcado como cargado exitosamente'
     });
 
   } catch (error) {

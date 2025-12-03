@@ -5,21 +5,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Package,
-  MapPin,
   Calendar,
   Phone,
-  User,
   CheckCircle,
   Clock,
   Truck,
-  Home,
   AlertCircle,
   Copy,
-  Share2,
-  Camera
+  Share2
 } from 'lucide-react';
 import axios from 'axios';
-import SmartImage, { useImageLightbox } from '../components/common/SmartImage';
 import TrackingAnimation from '../components/tracking/animations';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -33,9 +28,6 @@ const PublicTracking = () => {
   const [error, setError] = useState(null);
   const [codigoBusqueda, setCodigoBusqueda] = useState(codigo || '');
   const [copied, setCopied] = useState(false);
-
-  // ✅ Hook para lightbox de imágenes
-  const { openLightbox, LightboxComponent } = useImageLightbox();
 
   useEffect(() => {
     if (codigo) {
@@ -206,186 +198,78 @@ const PublicTracking = () => {
         </h3>
 
         <div className="space-y-4">
-          {timeline.map((item, index) => (
-            <div key={index} className="flex gap-4">
-              {/* Línea vertical */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${item.completado
-                    ? 'bg-green-100 text-green-600'
-                    : 'bg-gray-100 text-gray-400'
-                    }`}
-                >
-                  {item.completado ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <Clock className="w-5 h-5" />
-                  )}
-                </div>
-                {index < timeline.length - 1 && (
+          {timeline.map((item, index) => {
+            // ✅ Verificar explícitamente que completado sea true
+            const isCompletado = item.completado === true;
+            const isActual = item.actual === true;
+
+            return (
+              <div key={index} className="flex gap-4">
+                {/* Línea vertical */}
+                <div className="flex flex-col items-center">
                   <div
-                    className={`w-0.5 h-12 ${item.completado ? 'bg-green-300' : 'bg-gray-200'
-                      }`}
-                  />
-                )}
-              </div>
-
-              {/* Contenido */}
-              <div className="flex-1 pb-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">{item.icono}</span>
-                  <h4 className={`font-semibold ${item.actual ? 'text-blue-600' : item.completado ? 'text-gray-800' : 'text-gray-400'
-                    }`}>
-                    {item.nombre}
-                  </h4>
-                  {item.actual && (
-                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
-                      ACTUAL
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600">{item.descripcion}</p>
-                {item.fecha && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(item.fecha).toLocaleString('es-DO')}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Renderizar información del paquete
-  const renderInfoPaquete = () => {
-    const { recoleccion } = trackingData;
-
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
-          Información del Paquete
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Código de tracking */}
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <Package className="w-5 h-5 text-gray-600 mt-0.5" />
-            <div>
-              <p className="text-sm text-gray-600">Código de Tracking</p>
-              <p className="font-semibold text-gray-800">{recoleccion.codigoTracking}</p>
-            </div>
-          </div>
-
-          {/* Destinatario */}
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <User className="w-5 h-5 text-gray-600 mt-0.5" />
-            <div>
-              <p className="text-sm text-gray-600">Destinatario</p>
-              <p className="font-semibold text-gray-800">{recoleccion.cliente}</p>
-            </div>
-          </div>
-
-          {/* Dirección */}
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <MapPin className="w-5 h-5 text-gray-600 mt-0.5" />
-            <div>
-              <p className="text-sm text-gray-600">Dirección de Entrega</p>
-              <p className="font-semibold text-gray-800">{recoleccion.direccion}</p>
-              {recoleccion.zona && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Zona: {recoleccion.zona} {recoleccion.sector && `- ${recoleccion.sector}`}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Empresa */}
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-            <Home className="w-5 h-5 text-gray-600 mt-0.5" />
-            <div>
-              <p className="text-sm text-gray-600">Empresa</p>
-              <p className="font-semibold text-gray-800">{recoleccion.nombreEmpresa}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Items */}
-        {recoleccion.items && recoleccion.items.length > 0 && (
-          <div className="mt-6">
-            <h4 className="font-semibold text-gray-800 mb-3">Artículos ({recoleccion.items.length})</h4>
-            <div className="space-y-2">
-              {recoleccion.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-800">{item.descripcion}</p>
-                    {item.cantidad > 1 && (
-                      <p className="text-sm text-gray-600">Cantidad: {item.cantidad}</p>
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
+                      isCompletado
+                        ? 'bg-green-500 text-white ring-4 ring-green-100'
+                        : 'bg-gray-200 text-gray-400'
+                    }`}
+                  >
+                    {isCompletado ? (
+                      <CheckCircle className="w-6 h-6 fill-current" />
+                    ) : (
+                      <Clock className="w-6 h-6" />
                     )}
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.estado === 'entregado'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-blue-100 text-blue-700'
-                    }`}>
-                    {item.estado === 'entregado' ? 'Entregado' : 'En proceso'}
-                  </span>
+                  {index < timeline.length - 1 && (
+                    <div
+                      className={`w-1 h-12 transition-all ${
+                        isCompletado ? 'bg-green-400' : 'bg-gray-200'
+                      }`}
+                    />
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Notas */}
-        {recoleccion.notas && (
-          <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
-            <p className="text-sm text-gray-700">
-              <strong>Nota:</strong> {recoleccion.notas}
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Renderizar fotos
-  const renderFotos = () => {
-    const { recoleccion } = trackingData;
-    const todasLasFotos = [
-      ...(recoleccion.fotosRecoleccion || []),
-      ...(recoleccion.fotosEntrega || [])
-    ];
-
-    if (todasLasFotos.length === 0) return null;
-
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <Camera className="w-5 h-5" />
-          Fotos del Paquete
-        </h3>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {todasLasFotos.map((foto, index) => (
-            <div
-              key={index}
-              className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => openLightbox(todasLasFotos, index)}
-            >
-              <SmartImage
-                src={foto}
-                alt={`Foto ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
+                {/* Contenido */}
+                <div className="flex-1 pb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{item.icono}</span>
+                    <h4 className={`font-semibold ${
+                      isActual
+                        ? 'text-blue-600 font-bold'
+                        : isCompletado
+                          ? 'text-gray-800'
+                          : 'text-gray-400'
+                    }`}>
+                      {item.nombre}
+                    </h4>
+                    {isActual && (
+                      <span className="px-3 py-1 text-xs bg-blue-500 text-white rounded-full font-semibold animate-pulse">
+                        ACTUAL
+                      </span>
+                    )}
+                    {isCompletado && !isActual && (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    )}
+                  </div>
+                  <p className={`text-sm ${isCompletado ? 'text-gray-600' : 'text-gray-400'}`}>
+                    {item.descripcion}
+                  </p>
+                  {item.fecha && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(item.fecha).toLocaleString('es-DO')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   };
+
+  // 🔒 FUNCIONES REMOVIDAS: renderInfoPaquete() y renderFotos()
+  // Ya no se muestra información sensible en el tracking público
 
   // Renderizar loading
   if (loading) {
@@ -485,15 +369,7 @@ const PublicTracking = () => {
         {/* Timeline */}
         {renderTimeline()}
 
-        {/* Información del paquete */}
-        {renderInfoPaquete()}
-
-        {/* Fotos */}
-        {renderFotos()}
-
-        {/* Lightbox */}
-        {/* Lightbox */}
-        {LightboxComponent}
+        {/* 🔒 INFORMACIÓN SENSIBLE OCULTA - Solo se muestra el timeline */}
       </div>
     </div>
   );

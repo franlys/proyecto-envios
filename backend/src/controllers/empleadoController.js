@@ -8,13 +8,21 @@ export const empleadoController = {
     try {
       console.log('🔍 Datos recibidos para crear empleado:', req.body);
       
-      const { email, password, nombre, telefono, rol, companyId } = req.body;
+      const { email, password, nombre, telefono, rol, companyId, emailPersonal } = req.body;
 
       // Validaciones
       if (!email || !password || !nombre) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'Email, contraseña y nombre son requeridos' 
+          error: 'Email, contraseña y nombre son requeridos'
+        });
+      }
+
+      // Validar email personal obligatorio
+      if (!emailPersonal || !emailPersonal.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'El email personal es obligatorio para recuperación de contraseña'
         });
       }
 
@@ -87,6 +95,7 @@ export const empleadoController = {
       const empleadoData = {
         uid: userRecord.uid,
         email,
+        emailPersonal: emailPersonal.trim(),
         nombre,
         telefono: telefono || '',
         rol: rol || 'repartidor',
@@ -107,6 +116,7 @@ export const empleadoController = {
         empleado: {
           uid: userRecord.uid,
           email,
+          emailPersonal: emailPersonal.trim(),
           nombre,
           telefono: telefono || '',
           rol: rol || 'repartidor',

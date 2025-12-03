@@ -71,42 +71,15 @@ export const getPublicTracking = async (req, res) => {
       }
     }
 
-    // 4. Sanitizar datos sensibles (solo mostrar lo necesario para tracking)
+    // 4. Sanitizar datos sensibles (solo mostrar tracking code y empresa)
+    // 🔒 SEGURIDAD: Solo exponer información pública mínima
     const datosPublicos = {
       codigoTracking: recoleccion.codigoTracking,
       estadoGeneral: recoleccion.estadoGeneral,
-      cliente: recoleccion.cliente || 'Cliente',
-      direccion: recoleccion.direccion || '',
-      zona: recoleccion.zona || '',
-      sector: recoleccion.sector || '',
-
-      // Fotos (si existen)
-      fotosRecoleccion: recoleccion.fotosRecoleccion || [],
-      fotosEntrega: recoleccion.fotosEntrega || [],
-
-      // Items (sin información sensible)
-      items: (recoleccion.items || []).map(item => ({
-        descripcion: item.descripcion || 'Artículo',
-        cantidad: item.cantidad || 1,
-        estado: item.estado || 'recolectado'
-      })),
-
-      // Fechas
-      createdAt: recoleccion.createdAt || null,
-      updatedAt: recoleccion.updatedAt || null,
-
-      // Información de entrega (si fue entregada)
-      fechaEntrega: recoleccion.fechaEntrega || null,
-
-      // Contenedor (si aplica)
-      contenedorId: recoleccion.contenedorId || null,
-      itemsCompletos: recoleccion.itemsCompletos !== undefined ? recoleccion.itemsCompletos : true,
-
-      // Empresa
       nombreEmpresa,
 
-      // Notas públicas (si existen)
-      notas: recoleccion.notas || ''
+      // Fecha de última actualización (solo para referencia)
+      updatedAt: recoleccion.updatedAt || null
     };
 
     // 5. Generar historial de estados (timeline)
@@ -165,7 +138,10 @@ function generarTimeline(recoleccion) {
     'en_contenedor': 'en_contenedor_usa',
     'en_transito': 'en_transito_rd',
     'recibida': 'recibida_rd',
-    'sin_confirmar': 'pendiente_recoleccion'
+    'recibida_rd': 'recibida_rd', // Ya está normalizado
+    'sin_confirmar': 'pendiente_confirmacion',
+    'confirmada_secretaria': 'confirmada',
+    'pagada_secretaria': 'confirmada' // Facturas pagadas también se consideran confirmadas
   };
   if (mapaEstados[estadoActual]) {
     estadoActual = mapaEstados[estadoActual];
@@ -176,14 +152,20 @@ function generarTimeline(recoleccion) {
   estados.forEach((estado, index) => {
     const info = obtenerEstadoLegible(estado);
 
+    // ✅ Marcar como completado si el índice es menor al actual
+    // Asegurar que -1 (estado no encontrado) no marque todo como completado
+    const completado = estadoActualIndex >= 0 && index <= estadoActualIndex;
+    const esActual = estado === estadoActual;
+
     timeline.push({
       estado,
       nombre: info.nombre,
       descripcion: info.descripcion,
       icono: info.icono,
-      completado: index <= estadoActualIndex,
-      actual: estado === estadoActual,
-      fecha: estado === estadoActual ? recoleccion.updatedAt : null
+      color: info.color,
+      completado,
+      actual: esActual,
+      fecha: esActual ? recoleccion.updatedAt : null
     });
   });
 
@@ -274,7 +256,10 @@ function obtenerEstadoLegible(estadoCodigo) {
     'en_contenedor': 'en_contenedor_usa',
     'en_transito': 'en_transito_rd',
     'recibida': 'recibida_rd',
-    'sin_confirmar': 'pendiente_recoleccion'
+    'recibida_rd': 'recibida_rd', // Ya normalizado
+    'sin_confirmar': 'pendiente_confirmacion',
+    'confirmada_secretaria': 'confirmada',
+    'pagada_secretaria': 'confirmada' // Facturas pagadas también confirmadas
   }[estadoCodigo] || estadoCodigo;
 
   return estados[estadoNormalizado] || {

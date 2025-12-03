@@ -23,7 +23,8 @@ import {
   ArrowLeft,
   X,
   Plus,
-  Image
+  Image,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PullToRefresh from '../components/common/PullToRefresh';
@@ -223,42 +224,36 @@ const PanelRepartidores = () => {
   const handleEntregarItem = async (itemIndex) => {
     if (!facturaActual) return;
 
-    const estadoPrevio = {
-      items: [...facturaActual.items],
-      itemsEntregados: facturaActual.itemsEntregados
-    };
+    try {
+      // ✅ Actualización optimista inmediata
+      const nuevosItems = [...facturaActual.items];
+      if (nuevosItems[itemIndex]) {
+        nuevosItems[itemIndex].entregado = true;
+        nuevosItems[itemIndex]._optimistic = true;
+      }
+      setFacturaActual(prev => ({
+        ...prev,
+        items: nuevosItems,
+        itemsEntregados: (prev.itemsEntregados || 0) + 1
+      }));
 
-    await executeWithOptimism({
-      optimisticUpdate: () => {
-        const nuevosItems = [...facturaActual.items];
-        if (nuevosItems[itemIndex]) {
-          nuevosItems[itemIndex].entregado = true;
-          nuevosItems[itemIndex]._optimistic = true;
-        }
-        setFacturaActual(prev => ({
-          ...prev,
-          items: nuevosItems,
-          itemsEntregados: (prev.itemsEntregados || 0) + 1
-        }));
-      },
-      serverAction: async () => {
-        const response = await api.post(
-          `/repartidores/facturas/${facturaActual.id}/items/entregar`,
-          { itemIndex }
-        );
+      // ✅ Llamada al servidor
+      const response = await api.post(
+        `/repartidores/facturas/${facturaActual.id}/items/entregar`,
+        { itemIndex }
+      );
+
+      if (response.data.success) {
+        toast.success('📦 Item entregado');
+        // ✅ Recargar ruta para obtener datos actualizados
         await cargarDetalleRuta(rutaSeleccionada.id);
-        return response;
-      },
-      rollback: () => {
-        setFacturaActual(prev => ({
-          ...prev,
-          items: estadoPrevio.items,
-          itemsEntregados: estadoPrevio.itemsEntregados
-        }));
-      },
-      successMessage: '📦 Item entregado',
-      errorMessage: '❌ Error al entregar item'
-    });
+      }
+    } catch (error) {
+      console.error('Error al entregar item:', error);
+      toast.error('❌ Error al entregar item');
+      // ✅ Rollback en caso de error
+      await cargarDetalleRuta(rutaSeleccionada.id);
+    }
   };
 
   const handleSubirFotos = async () => {
@@ -305,6 +300,12 @@ const PanelRepartidores = () => {
       return;
     }
 
+    // Validar que se hayan subido fotos del daño
+    if (!fotosDano || fotosDano.length === 0) {
+      toast.warning('Debe tomar al menos una foto del item dañado como evidencia.');
+      return;
+    }
+
     try {
       setProcesando(true);
       const fotosUrls = await subirArchivosAFirebase(fotosDano, 'danos_reparto');
@@ -335,6 +336,12 @@ const PanelRepartidores = () => {
   const handleReportarNoEntrega = async () => {
     if (!facturaActual || !motivoNoEntrega || !descripcionNoEntrega.trim()) {
       toast.warning('Motivo y descripción son obligatorios');
+      return;
+    }
+
+    // Validar que se hayan subido fotos de evidencia
+    if (!fotosNoEntrega || fotosNoEntrega.length === 0) {
+      toast.warning('Debe tomar al menos una foto como evidencia de la no entrega.');
       return;
     }
 
@@ -410,6 +417,12 @@ const PanelRepartidores = () => {
       return;
     }
 
+    // Validar que se hayan subido fotos de evidencia
+    if (!facturaActual.fotosEntrega || facturaActual.fotosEntrega.length === 0) {
+      toast.warning('Debe subir al menos una foto de evidencia antes de finalizar la entrega.');
+      return;
+    }
+
     try {
       setProcesando(true);
       const response = await api.post(
@@ -428,8 +441,20 @@ const PanelRepartidores = () => {
         volverARuta();
       }
     } catch (e) {
-      toast.error('Error al confirmar entrega');
-      console.error(e);
+      const errorMsg = e.response?.data?.message || 'Error al confirmar entrega';
+      toast.error(errorMsg);
+      console.error('Error confirmando entrega:', e);
+
+      // Recargar datos de la ruta para reflejar el estado correcto
+      if (rutaSeleccionada?.id) {
+        await cargarDetalleRuta(rutaSeleccionada.id);
+      }
+
+      // Si ya fue entregada, cerrar el modal
+      if (errorMsg.includes('ya fue entregada')) {
+        setShowModalEntregar(false);
+        resetFormEntregar();
+      }
     } finally {
       setProcesando(false);
     }
@@ -622,6 +647,16 @@ const PanelRepartidores = () => {
                 ) : (
                   <div className="flex gap-2">
                     <button
+                      onClick={() => {
+                        const printUrl = `${window.location.origin}/rutas/${rutaSeleccionada.id}/imprimir`;
+                        window.open(printUrl, '_blank');
+                      }}
+                      className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                      title="Imprimir Facturas"
+                    >
+                      <Printer size={20} />
+                    </button>
+                    <button
                       onClick={() => setShowModalGasto(true)}
                       className="p-2 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
                       title="Registrar Gasto"
@@ -745,7 +780,12 @@ const PanelRepartidores = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Cant: {item.cantidad}</p>
                   </div>
                   <div className="flex gap-2">
-                    {!item.entregado && (
+                    {item.entregado ? (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                        <CheckCircle size={20} className="fill-current" />
+                        <span className="font-medium text-sm">Entregado</span>
+                      </div>
+                    ) : (
                       <>
                         <button
                           onClick={() => handleEntregarItem(index)}
@@ -876,10 +916,17 @@ const PanelRepartidores = () => {
 
               <button
                 onClick={() => setShowModalEntregar(true)}
-                className="col-span-2 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-lg"
+                disabled={facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'}
+                className={`col-span-2 p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${
+                  facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
               >
                 <CheckCircle size={24} />
-                <span className="font-bold text-lg">Finalizar Entrega</span>
+                <span className="font-bold text-lg">
+                  {facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada' ? 'Ya Entregada' : 'Finalizar Entrega'}
+                </span>
               </button>
             </div>
           </div>
@@ -1014,7 +1061,7 @@ const PanelRepartidores = () => {
             <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
               <h3 className="text-xl font-bold mb-4 text-green-600 flex items-center gap-2"><DollarSign /> Confirmar Pago</h3>
               <p className="mb-4 text-gray-800 dark:text-white">
-                Monto a cobrar: <span className="font-bold text-lg">RD$ {facturaActual.pago?.total.toFixed(2)}</span>
+                Monto a cobrar: <span className="font-bold text-lg">RD$ {(facturaActual.pago?.total || 0).toFixed(2)}</span>
               </p>
               <div className="space-y-3">
                 <div>

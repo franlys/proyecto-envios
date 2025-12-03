@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { Loader2, AlertCircle, Package } from 'lucide-react';
 
@@ -169,13 +169,14 @@ const Login = ({ onLoginStart, onExitComplete }) => {
             </button>
           </form>
 
-          {import.meta.env.DEV && (
-            <div className="mt-8 text-center opacity-60 hover:opacity-100 transition-opacity">
-              <p className="font-mono text-[10px] text-blue-300 bg-blue-950/50 inline-block px-3 py-1 rounded-full border border-blue-500/20">
-                DEV: admin@envios.com / Admin123456
-              </p>
-            </div>
-          )}
+          <div className="mt-6 text-center">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-300 hover:text-white transition-colors underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
         </div>
       </div>
     </div>

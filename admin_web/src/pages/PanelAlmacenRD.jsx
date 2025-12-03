@@ -13,7 +13,7 @@ import api from '../services/api';
 import {
   Package, Truck, CheckCircle, AlertTriangle, Eye, ArrowLeft, Loader, MapPin,
   FileText, Settings, X, Edit, Box, User, Phone, Mail, DollarSign, Calendar,
-  CreditCard, Clock
+  CreditCard, Clock, Printer
 } from 'lucide-react';
 
 const PanelAlmacenRD = () => {
@@ -685,10 +685,16 @@ const PanelAlmacenRD = () => {
                             </button>
                             <button
                               onClick={() => handleAbrirEditarPago(factura)}
-                              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm flex items-center gap-1"
+                              disabled={factura.pago?.estado === 'pagada'}
+                              className={`px-3 py-1 rounded transition text-sm flex items-center gap-1 ${
+                                factura.pago?.estado === 'pagada'
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-green-600 text-white hover:bg-green-700'
+                              }`}
+                              title={factura.pago?.estado === 'pagada' ? 'Factura ya pagada' : 'Editar pago'}
                             >
                               <CreditCard size={16} />
-                              Pago
+                              {factura.pago?.estado === 'pagada' ? 'Pagado' : 'Pago'}
                             </button>
                             {contenedorActivo.estado === 'recibido_rd' && esCompleta && (
                               <>
@@ -702,6 +708,14 @@ const PanelAlmacenRD = () => {
                                   </button>
                                 ) : (
                                   <>
+                                    <button
+                                      onClick={() => window.open(`/rutas/${factura.rutaAsignada}/imprimir`, '_blank')}
+                                      className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition text-sm flex items-center gap-1"
+                                      title="Imprimir Ruta"
+                                    >
+                                      <Printer size={16} />
+                                      Imprimir
+                                    </button>
                                     <button
                                       onClick={() => setModalReasignarRuta(factura)}
                                       className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition text-sm flex items-center gap-1"
@@ -1287,13 +1301,15 @@ const PanelAlmacenRD = () => {
                     <CreditCard size={18} />
                     Información de Pago
                   </h4>
-                  <button
-                    onClick={() => handleAbrirEditarPago(facturaSeleccionada)}
-                    className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-1"
-                  >
-                    <Edit size={14} />
-                    Editar
-                  </button>
+                  {facturaSeleccionada.pago?.estado !== 'pagada' && (
+                    <button
+                      onClick={() => handleAbrirEditarPago(facturaSeleccionada)}
+                      className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-1"
+                    >
+                      <Edit size={14} />
+                      Editar
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">

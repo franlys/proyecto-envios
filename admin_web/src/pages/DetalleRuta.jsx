@@ -411,18 +411,18 @@ const TablaFacturas = ({ facturas }) => {
 
       {/* Modal para ver fotos en pantalla completa */}
       {modalFoto && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-[9999] flex items-center justify-center p-4">
           <button
             onClick={() => setModalFoto(null)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition z-[10000] bg-black/50 p-2 rounded-full"
           >
             <X size={32} />
           </button>
-          <div className="max-w-4xl w-full">
+          <div className="max-w-6xl w-full max-h-[90vh] flex flex-col items-center justify-center">
             <img
               src={modalFoto.fotos[modalFoto.index]}
               alt={`Foto ${modalFoto.index + 1}`}
-              className="w-full h-auto rounded-lg"
+              className="max-w-full max-h-[calc(90vh-120px)] h-auto object-contain rounded-lg shadow-2xl"
             />
             <div className="flex justify-center gap-2 mt-4">
               {modalFoto.fotos.map((foto, idx) => (

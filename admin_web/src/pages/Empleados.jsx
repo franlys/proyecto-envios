@@ -1,7 +1,7 @@
 // admin_web/src/pages/Empleados.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Users, Plus, Search, Edit, Trash2, X, Shield, AlertCircle, Check, Eye, EyeOff } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, X, Shield, AlertCircle, Check, Eye, EyeOff, Key } from 'lucide-react';
 import api from '../services/api';
 
 export default function Empleados() {
@@ -22,6 +22,7 @@ export default function Empleados() {
   const [nuevoEmpleado, setNuevoEmpleado] = useState({
     nombre: '',
     email: '',
+    emailPersonal: '',
     password: '',
     telefono: '',
     rol: '',
@@ -124,7 +125,7 @@ export default function Empleados() {
       setError(null);
 
       // Validaciones
-      if (!nuevoEmpleado.nombre || !nuevoEmpleado.email || !nuevoEmpleado.password || !nuevoEmpleado.rol) {
+      if (!nuevoEmpleado.nombre || !nuevoEmpleado.email || !nuevoEmpleado.emailPersonal || !nuevoEmpleado.password || !nuevoEmpleado.rol) {
         throw new Error('Por favor completa todos los campos obligatorios');
       }
 
@@ -136,6 +137,7 @@ export default function Empleados() {
       const empleadoData = {
         nombre: nuevoEmpleado.nombre,
         email: nuevoEmpleado.email,
+        emailPersonal: nuevoEmpleado.emailPersonal,
         password: nuevoEmpleado.password,
         telefono: nuevoEmpleado.telefono || null,
         rol: nuevoEmpleado.rol,
@@ -156,6 +158,7 @@ export default function Empleados() {
         setNuevoEmpleado({
           nombre: '',
           email: '',
+          emailPersonal: '',
           password: '',
           telefono: '',
           rol: '',
@@ -201,7 +204,7 @@ export default function Empleados() {
   const handleCambiarEstado = async (empleadoId, nuevoEstado) => {
     try {
       setLoading(true);
-      await api.patch(`/empleados/${empleadoId}/estado`, 
+      await api.patch(`/empleados/${empleadoId}/estado`,
         { activo: nuevoEstado },
         {
           headers: {
@@ -209,13 +212,47 @@ export default function Empleados() {
           }
         }
       );
-      
+
       setSuccessMessage(`Empleado ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
       cargarEmpleados();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('Error cambiando estado:', err);
       setError(err.response?.data?.error || 'Error al cambiar estado');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetearPassword = async (empleado) => {
+    if (!empleado.emailPersonal) {
+      setError('Este empleado no tiene un email personal configurado para recuperación de contraseña');
+      setTimeout(() => setError(null), 5000);
+      return;
+    }
+
+    const confirmacion = window.confirm(
+      `¿Enviar enlace de recuperación al email personal de ${empleado.nombre}?\n\nSe enviará a: ${empleado.emailPersonal}`
+    );
+
+    if (!confirmacion) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.post('/auth/forgot-password', {
+        email: empleado.email
+      });
+
+      if (response.data.success) {
+        setSuccessMessage(`Enlace de recuperación enviado a ${empleado.emailPersonal}`);
+        setTimeout(() => setSuccessMessage(null), 5000);
+      }
+    } catch (err) {
+      console.error('Error enviando enlace de recuperación:', err);
+      setError(err.response?.data?.error || 'Error al enviar el enlace de recuperación');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -415,6 +452,15 @@ export default function Empleados() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
+                        {userData?.rol === 'super_admin' && (
+                          <button
+                            onClick={() => handleResetearPassword(empleado)}
+                            className="text-orange-600 hover:text-orange-900 transition-colors"
+                            title="Resetear contraseña"
+                          >
+                            <Key className="w-5 h-5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEliminar(empleado.id)}
                           className="text-red-600 hover:text-red-900 transition-colors"
@@ -465,10 +511,10 @@ export default function Empleados() {
                 />
               </div>
 
-              {/* Email */}
+              {/* Email de Empresa */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email <span className="text-red-500">*</span>
+                  Email de Empresa <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -477,7 +523,26 @@ export default function Empleados() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
+                  placeholder="ejemplo@empresa.com"
                 />
+                <p className="text-xs text-gray-500 mt-1">Email que el empleado usará para iniciar sesión</p>
+              </div>
+
+              {/* Email Personal */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Personal <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="emailPersonal"
+                  value={nuevoEmpleado.emailPersonal}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                  placeholder="ejemplo@gmail.com"
+                />
+                <p className="text-xs text-gray-500 mt-1">Email para recuperación de contraseña</p>
               </div>
 
               {/* Contraseña */}

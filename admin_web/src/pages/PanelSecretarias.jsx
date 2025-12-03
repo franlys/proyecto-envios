@@ -26,6 +26,7 @@ const PanelSecretarias = () => {
   const [observaciones, setObservaciones] = useState('');
   const [estadoPago, setEstadoPago] = useState('pago_recibir');
   const [estadoPagoOriginal, setEstadoPagoOriginal] = useState(''); // Estado original para validación
+  const [facturaPagada, setFacturaPagada] = useState(false); // 🔒 Bandera para bloquear edición de facturas pagadas
   const [contenedoresRecibidos, setContenedoresRecibidos] = useState([]);
   const [contenedorSeleccionado, setContenedorSeleccionado] = useState('');
   const [rutaFiltro, setRutaFiltro] = useState('todas');
@@ -297,6 +298,9 @@ const PanelSecretarias = () => {
       const estadoActual = factura.pago?.estado || 'pago_recibir';
       setEstadoPago(estadoActual);
       setEstadoPagoOriginal(estadoActual); // Guardar estado original
+
+      // 🔒 Guardar también si la factura ya está pagada (para bloquear edición)
+      setFacturaPagada(estadoActual === 'pagada' || estadoActual === 'pagado');
     } else {
       setSelectedFactura(factura);
       setTelefono(factura.telefono || '');
@@ -307,6 +311,9 @@ const PanelSecretarias = () => {
       const estadoActual = factura.estadoPago || 'pago_recibir';
       setEstadoPago(estadoActual);
       setEstadoPagoOriginal(estadoActual); // Guardar estado original
+
+      // 🔒 Guardar también si la factura ya está pagada (para bloquear edición)
+      setFacturaPagada(estadoActual === 'pagada' || estadoActual === 'pagado');
     }
 
     setShowConfirmModal(true);
@@ -1267,16 +1274,16 @@ const PanelSecretarias = () => {
                     </label>
 
                     {/* Alerta si ya está pagada */}
-                    {estadoPagoOriginal === 'pagado' && (
+                    {facturaPagada && (
                       <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                         <div className="flex items-start gap-2">
                           <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={18} />
                           <div>
                             <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                              Factura Ya Pagada
+                              🔒 Factura Ya Pagada
                             </p>
                             <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                              Esta factura ya fue pagada. No se puede modificar el estado de pago.
+                              Esta factura ya fue pagada en Estados Unidos. No se puede modificar el estado de pago.
                             </p>
                           </div>
                         </div>
@@ -1286,13 +1293,14 @@ const PanelSecretarias = () => {
                     <select
                       value={estadoPago}
                       onChange={(e) => setEstadoPago(e.target.value)}
-                      disabled={estadoPagoOriginal === 'pagado'}
+                      disabled={facturaPagada}
                       className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        estadoPagoOriginal === 'pagado' ? 'opacity-50 cursor-not-allowed' : ''
+                        facturaPagada ? 'bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
                       <option value="pago_recibir">💵 Pago al recibir</option>
                       <option value="pagado">✅ Ya pagado</option>
+                      <option value="pagada">✅ Ya pagada</option>
                       <option value="parcial">📊 Pago Parcial</option>
                       <option value="contraentrega">🚚 Contra Entrega</option>
                     </select>

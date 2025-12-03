@@ -6,6 +6,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import multer from 'multer';
 import path from 'path';
 import { sendEmail, generateTrackingButtonHTML, generateBrandedEmailHTML } from '../services/notificationService.js';
+import { generateInvoicePDF } from '../services/pdfService.js';
 
 // ========================================
 // CONFIGURACIÓN DE MULTER
@@ -274,7 +275,7 @@ export const createRecoleccion = async (req, res) => {
       console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
     }
 
-    // Enviar notificación por correo al remitente (en segundo plano)
+    // Enviar notificación por correo al remitente (en segundo plano) con factura PDF
     if (remitenteEmail) {
       const subject = `Recolección Confirmada - ${codigoTracking}`;
       const trackingButton = generateTrackingButtonHTML(codigoTracking);
@@ -282,7 +283,7 @@ export const createRecoleccion = async (req, res) => {
       const contentHtml = `
           <h2 style="color: #333; margin-top: 0;">Recolección Creada Exitosamente</h2>
           <p>Hola <strong>${remitenteNombre}</strong>,</p>
-          <p>Tu recolección ha sido registrada correctamente.</p>
+          <p>Tu recolección ha sido registrada correctamente. Adjuntamos tu factura en formato PDF.</p>
 
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #555;">Detalles de la Recolección</h3>
@@ -300,6 +301,12 @@ export const createRecoleccion = async (req, res) => {
             </ul>
           </div>
 
+          <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #1976D2;">
+            <p style="margin: 0; color: #1565C0;">
+              📄 <strong>Factura adjunta:</strong> Hemos incluido tu factura en PDF como archivo adjunto en este correo.
+            </p>
+          </div>
+
           ${trackingButton}
 
           <p>Gracias por confiar en nosotros.</p>
@@ -307,9 +314,25 @@ export const createRecoleccion = async (req, res) => {
 
       const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'pendiente_recoleccion');
 
-      sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
-        .then(() => console.log(`📧 Correo de confirmación enviado a ${remitenteEmail}`))
-        .catch(err => console.error(`❌ Error enviando correo a ${remitenteEmail}:`, err.message));
+      // Generar PDF de la factura
+      generateInvoicePDF(recoleccionData, companyConfig)
+        .then(pdfBuffer => {
+          const attachments = [{
+            filename: `Factura_${codigoTracking}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }];
+
+          return sendEmail(remitenteEmail, subject, brandedHtml, attachments, companyConfig);
+        })
+        .then(() => console.log(`📧 Correo con factura PDF enviado a ${remitenteEmail}`))
+        .catch(err => {
+          console.error(`❌ Error enviando correo con PDF a ${remitenteEmail}:`, err.message);
+          // Si falla el PDF, intentar enviar sin adjunto
+          sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
+            .then(() => console.log(`📧 Correo enviado sin PDF a ${remitenteEmail}`))
+            .catch(err2 => console.error(`❌ Error enviando correo alternativo:`, err2.message));
+        });
     }
 
     res.status(201).json({

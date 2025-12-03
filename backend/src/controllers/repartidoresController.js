@@ -90,11 +90,56 @@ export const getDetalleRuta = async (req, res) => {
       });
     }
 
+    // ✅ Enriquecer facturas con información completa desde recolecciones
+    let facturasEnriquecidas = [];
+    if (data.facturas && Array.isArray(data.facturas)) {
+      for (const factura of data.facturas) {
+        try {
+          const facturaId = factura.id || factura.facturaId || factura.recoleccionId;
+          if (!facturaId) {
+            console.warn('⚠️ Factura sin ID en ruta:', rutaId);
+            facturasEnriquecidas.push(factura);
+            continue;
+          }
+
+          const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+          if (facturaDoc.exists) {
+            const facturaData = facturaDoc.data();
+            facturasEnriquecidas.push({
+              id: facturaDoc.id,
+              numeroFactura: facturaData.numeroFactura || facturaData.codigoTracking,
+              codigoTracking: facturaData.codigoTracking,
+              estado: facturaData.estado || 'pendiente',
+              destinatario: facturaData.destinatario || {},
+              items: facturaData.items || [],
+              itemsTotal: facturaData.itemsTotal || (facturaData.items?.length || 0),
+              itemsEntregados: (facturaData.items || []).filter(i => i.entregado).length,
+              pago: facturaData.pago || {
+                total: 0,
+                estado: 'pendiente',
+                montoPagado: 0,
+                montoPendiente: 0
+              },
+              fotosEntrega: facturaData.fotosEntrega || [],
+              ...factura
+            });
+          } else {
+            console.warn('⚠️ Factura no encontrada:', facturaId);
+            facturasEnriquecidas.push(factura);
+          }
+        } catch (error) {
+          console.error('❌ Error enriqueciendo factura:', error);
+          facturasEnriquecidas.push(factura);
+        }
+      }
+    }
+
     res.json({
       success: true,
       data: {
         id: doc.id,
         ...data,
+        facturas: facturasEnriquecidas,
         fechaAsignacion: data.fechaAsignacion?.toDate?.() || data.fechaAsignacion,
         fechaCreacion: data.fechaCreacion?.toDate?.() || data.fechaCreacion
       }
@@ -173,6 +218,99 @@ export const iniciarEntregas = async (req, res) => {
     await batch.commit();
 
     console.log('✅ Ruta iniciada exitosamente');
+
+    // ✅ Enviar correos de notificación a destinatarios
+    if (data.facturas && data.facturas.length > 0) {
+      // Obtener configuración de la compañía
+      let companyConfig = null;
+      const companyId = data.companyId;
+      if (companyId) {
+        try {
+          const companyDoc = await db.collection('companies').doc(companyId).get();
+          if (companyDoc.exists) {
+            companyConfig = companyDoc.data();
+          }
+        } catch (error) {
+          console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+        }
+      }
+
+      // Enviar notificación a cada destinatario
+      for (const factura of data.facturas) {
+        const facturaId = factura.id || factura.facturaId;
+        if (!facturaId) continue;
+
+        try {
+          const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+          if (!facturaDoc.exists) continue;
+
+          const facturaData = facturaDoc.data();
+          const destinatarioEmail = facturaData.destinatario?.email;
+          const remitenteEmail = facturaData.remitente?.email;
+
+          console.log(`📬 Datos de correo para ${facturaData.codigoTracking}:`);
+          console.log(`   Remitente: ${facturaData.remitente?.nombre} (${remitenteEmail || 'sin email'})`);
+          console.log(`   Destinatario: ${facturaData.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
+
+          // ✅ ENVIAR CORREO AL DESTINATARIO (quien recibe)
+          if (destinatarioEmail) {
+            const subjectDestinatario = `🚚 Tu paquete está en camino - ${facturaData.codigoTracking}`;
+            const contentDestinatario = `
+              <h2 style="color: #2c3e50; margin-top: 0;">🚚 Tu paquete está en camino</h2>
+              <p>Hola <strong>${facturaData.destinatario?.nombre}</strong>,</p>
+              <p>¡Buenas noticias! El paquete que te envió <strong>${facturaData.remitente?.nombre}</strong> ha salido para entrega y pronto llegará a tu dirección.</p>
+
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalles del Envío</h3>
+                <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                <p><strong>Remitente:</strong> ${facturaData.remitente?.nombre}</p>
+                <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+                <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+                ${facturaData.destinatario?.telefono ? `<p><strong>Teléfono:</strong> ${facturaData.destinatario.telefono}</p>` : ''}
+              </div>
+
+              <p style="color: #666;">Por favor, mantente atento a nuestro repartidor. Te contactará pronto.</p>
+              <p>Gracias por confiar en nosotros.</p>
+            `;
+
+            const brandedHTMLDestinatario = generateBrandedEmailHTML(contentDestinatario, companyConfig, 'en_ruta', facturaData.codigoTracking);
+
+            sendEmail(destinatarioEmail, subjectDestinatario, brandedHTMLDestinatario, [], companyConfig)
+              .then(() => console.log(`📧 Notificación enviada al DESTINATARIO: ${destinatarioEmail}`))
+              .catch(err => console.error(`❌ Error enviando a destinatario:`, err.message));
+          }
+
+          // ✅ ENVIAR CORREO AL REMITENTE (quien envía)
+          if (remitenteEmail) {
+            const subjectRemitente = `🚚 Paquete en camino a ${facturaData.destinatario?.nombre} - ${facturaData.codigoTracking}`;
+            const contentRemitente = `
+              <h2 style="color: #2c3e50; margin-top: 0;">🚚 Tu envío está en camino</h2>
+              <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
+              <p>Te informamos que el paquete que enviaste a <strong>${facturaData.destinatario?.nombre}</strong> ha salido para entrega.</p>
+
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalles del Envío</h3>
+                <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+                <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+                ${facturaData.destinatario?.telefono ? `<p><strong>Teléfono del Destinatario:</strong> ${facturaData.destinatario.telefono}</p>` : ''}
+              </div>
+
+              <p>El paquete llegará pronto a su destino. Te notificaremos cuando sea entregado.</p>
+              <p>Gracias por confiar en nosotros.</p>
+            `;
+
+            const brandedHTMLRemitente = generateBrandedEmailHTML(contentRemitente, companyConfig, 'en_ruta', facturaData.codigoTracking);
+
+            sendEmail(remitenteEmail, subjectRemitente, brandedHTMLRemitente, [], companyConfig)
+              .then(() => console.log(`📧 Notificación enviada al REMITENTE: ${remitenteEmail}`))
+              .catch(err => console.error(`❌ Error enviando a remitente:`, err.message));
+          }
+        } catch (error) {
+          console.error(`❌ Error enviando notificación para factura ${facturaId}:`, error.message);
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -512,6 +650,15 @@ export const entregarFactura = async (req, res) => {
 
     const data = doc.data();
 
+    // ✅ Validar que la factura no haya sido entregada ya
+    if (data.estado === 'entregada' || data.estadoGeneral === 'entregada') {
+      return res.status(400).json({
+        success: false,
+        message: 'Esta factura ya fue entregada anteriormente',
+        fechaEntrega: data.fechaEntrega
+      });
+    }
+
     // Validar que todos los items estén entregados
     const itemsTotal = data.items?.length || 0;
     const itemsEntregados = (data.items || []).filter(i => i.entregado).length;
@@ -544,19 +691,126 @@ export const entregarFactura = async (req, res) => {
       fechaActualizacion: new Date().toISOString()
     });
 
-    // Enviar correo de confirmación
+    // ✅ Enviar correo de confirmación con información completa
     try {
-      const remitenteEmail = data.remitente?.email || data.cliente?.email;
+      // Obtener configuración de la compañía
+      let companyConfig = null;
+      const companyId = data.companyId;
+      if (companyId) {
+        try {
+          const companyDoc = await db.collection('companies').doc(companyId).get();
+          if (companyDoc.exists) {
+            companyConfig = companyDoc.data();
+          }
+        } catch (error) {
+          console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+        }
+      }
+
+      const destinatarioEmail = data.destinatario?.email;
+      const remitenteEmail = data.remitente?.email;
+
+      console.log(`📬 Datos de correo de entrega para ${data.codigoTracking}:`);
+      console.log(`   Remitente: ${data.remitente?.nombre} (${remitenteEmail || 'sin email'})`);
+      console.log(`   Destinatario: ${data.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
+
+      // Calcular totales de items
+      const totalItems = data.items?.length || 0;
+      const itemsEntregados = (data.items || []).filter(i => i.entregado).length;
+
+      // ✅ ENVIAR CORREO AL DESTINATARIO (quien recibió)
+      if (destinatarioEmail) {
+        const subjectDestinatario = `✅ Entrega Exitosa - ${data.codigoTracking}`;
+        const contentDestinatario = `
+          <h2 style="color: #2c3e50; margin-top: 0;">✅ ¡Entrega Exitosa!</h2>
+          <p>Hola <strong>${data.destinatario?.nombre}</strong>,</p>
+          <p>El paquete que te envió <strong>${data.remitente?.nombre}</strong> ha sido entregado exitosamente.</p>
+
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Detalles de la Entrega</h3>
+            <p><strong>Código de Tracking:</strong> ${data.codigoTracking}</p>
+            <p><strong>Remitente:</strong> ${data.remitente?.nombre}</p>
+            <p><strong>Recibido por:</strong> ${nombreReceptor || data.destinatario?.nombre}</p>
+            <p><strong>Fecha y Hora:</strong> ${new Date().toLocaleString('es-DO', {
+              dateStyle: 'full',
+              timeStyle: 'short'
+            })}</p>
+            <p><strong>Dirección:</strong> ${data.destinatario?.direccion}</p>
+            <p><strong>Items Entregados:</strong> ${itemsEntregados} de ${totalItems}</p>
+            ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
+            ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
+          </div>
+
+          ${data.fotosEntrega && data.fotosEntrega.length > 0 ? `
+          <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica</h3>
+            <p style="margin-bottom: 15px;">Se capturaron ${data.fotosEntrega.length} foto(s) como evidencia de la entrega:</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+              ${data.fotosEntrega.map((foto, idx) => `
+                <div style="text-align: center;">
+                  <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                  <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <p>Gracias por confiar en nosotros para tu envío.</p>
+          <p style="color: #666; font-size: 14px;">Si tienes alguna pregunta sobre tu entrega, no dudes en contactarnos.</p>
+        `;
+
+        const brandedHTMLDestinatario = generateBrandedEmailHTML(contentDestinatario, companyConfig, 'entregada', data.codigoTracking);
+
+        await sendEmail(destinatarioEmail, subjectDestinatario, brandedHTMLDestinatario, [], companyConfig);
+        console.log(`📧 Correo de entrega enviado al DESTINATARIO: ${destinatarioEmail}`);
+      }
+
+      // ✅ ENVIAR CORREO AL REMITENTE (quien envió)
       if (remitenteEmail) {
-        const html = generateBrandedEmailHTML(
-          'Entrega Exitosa',
-          `Su envío ${data.numeroFactura || facturaId} ha sido entregado a ${nombreReceptor || 'Destinatario'}.`,
-          [
-            { label: 'Recibido por', value: nombreReceptor || 'N/A' },
-            { label: 'Fecha', value: new Date().toLocaleString() }
-          ]
-        );
-        await sendEmail(remitenteEmail, 'Entrega Confirmada - ProLogix', html);
+        const subjectRemitente = `✅ Paquete entregado a ${data.destinatario?.nombre} - ${data.codigoTracking}`;
+        const contentRemitente = `
+          <h2 style="color: #2c3e50; margin-top: 0;">✅ ¡Tu envío fue entregado!</h2>
+          <p>Hola <strong>${data.remitente?.nombre}</strong>,</p>
+          <p>Te confirmamos que el paquete que enviaste a <strong>${data.destinatario?.nombre}</strong> ha sido entregado exitosamente.</p>
+
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Detalles de la Entrega</h3>
+            <p><strong>Código de Tracking:</strong> ${data.codigoTracking}</p>
+            <p><strong>Destinatario:</strong> ${data.destinatario?.nombre}</p>
+            <p><strong>Recibido por:</strong> ${nombreReceptor || data.destinatario?.nombre}</p>
+            <p><strong>Fecha y Hora:</strong> ${new Date().toLocaleString('es-DO', {
+              dateStyle: 'full',
+              timeStyle: 'short'
+            })}</p>
+            <p><strong>Dirección de Entrega:</strong> ${data.destinatario?.direccion}</p>
+            <p><strong>Items Entregados:</strong> ${itemsEntregados} de ${totalItems}</p>
+            ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
+          </div>
+
+          ${data.fotosEntrega && data.fotosEntrega.length > 0 ? `
+          <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica de la Entrega</h3>
+            <p style="margin-bottom: 15px;">Se capturaron ${data.fotosEntrega.length} foto(s) como evidencia:</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+              ${data.fotosEntrega.map((foto, idx) => `
+                <div style="text-align: center;">
+                  <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                  <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
+
+          <p>Gracias por confiar en nosotros para tus envíos.</p>
+          <p style="color: #666; font-size: 14px;">Si tienes alguna pregunta, no dudes en contactarnos.</p>
+        `;
+
+        const brandedHTMLRemitente = generateBrandedEmailHTML(contentRemitente, companyConfig, 'entregada', data.codigoTracking);
+
+        await sendEmail(remitenteEmail, subjectRemitente, brandedHTMLRemitente, [], companyConfig);
+        console.log(`📧 Correo de entrega enviado al REMITENTE: ${remitenteEmail}`);
       }
     } catch (emailError) {
       console.warn('⚠️ Error enviando correo de confirmación:', emailError);
@@ -639,6 +893,191 @@ export const finalizarRuta = async (req, res) => {
 };
 
 // ==========================================================================
+// EXPORTAR FACTURAS DE RUTA PARA IMPRESIÓN
+// ==========================================================================
+export const exportarFacturasRutaParaImpresion = async (req, res) => {
+  try {
+    const { rutaId } = req.params;
+    const companyId = req.userData?.companyId;
+    const repartidorId = req.user?.uid || req.userData?.uid;
+
+    console.log(`🖨️ Exportando facturas de ruta ${rutaId} para impresión`);
+
+    // Obtener datos de la ruta
+    const rutaRef = db.collection('rutas').doc(rutaId);
+    const rutaDoc = await rutaRef.get();
+
+    if (!rutaDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ruta no encontrada'
+      });
+    }
+
+    const rutaData = rutaDoc.data();
+
+    // Verificar permisos
+    if (rutaData.companyId !== companyId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tiene permisos para acceder a esta ruta'
+      });
+    }
+
+    // Obtener configuración de la compañía (logo, nombre, etc.)
+    let companyConfig = null;
+    try {
+      console.log(`🏢 Obteniendo configuración de compañía ID: ${companyId}`);
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+        console.log(`✅ Compañía encontrada: ${companyConfig.nombre || companyConfig.name || 'Sin nombre'}`);
+        console.log(`📷 Logo URL: ${companyConfig.invoiceDesign?.logoUrl || companyConfig.logo || 'Sin logo'}`);
+      } else {
+        console.warn(`⚠️ No se encontró compañía con ID: ${companyId}`);
+      }
+    } catch (error) {
+      console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    // Enriquecer facturas con información completa
+    const facturasCompletas = [];
+    if (rutaData.facturas && Array.isArray(rutaData.facturas)) {
+      for (const factura of rutaData.facturas) {
+        try {
+          const facturaId = factura.id || factura.facturaId || factura.recoleccionId;
+          if (!facturaId) continue;
+
+          const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+          if (facturaDoc.exists) {
+            const facturaData = facturaDoc.data();
+            facturasCompletas.push({
+              id: facturaDoc.id,
+              numeroFactura: facturaData.numeroFactura || facturaData.codigoTracking,
+              codigoTracking: facturaData.codigoTracking,
+
+              // Información del destinatario
+              destinatario: {
+                nombre: facturaData.destinatario?.nombre || '',
+                telefono: facturaData.destinatario?.telefono || '',
+                direccion: facturaData.destinatario?.direccion || '',
+                sector: facturaData.destinatario?.sector || '',
+                ciudad: facturaData.destinatario?.ciudad || '',
+                provincia: facturaData.destinatario?.provincia || ''
+              },
+
+              // Información del remitente
+              remitente: {
+                nombre: facturaData.remitente?.nombre || '',
+                telefono: facturaData.remitente?.telefono || ''
+              },
+
+              // Items
+              items: (facturaData.items || []).map(item => ({
+                descripcion: item.descripcion || '',
+                cantidad: item.cantidad || 1,
+                peso: item.peso || 0,
+                entregado: item.entregado || false
+              })),
+              itemsTotal: facturaData.itemsTotal || (facturaData.items?.length || 0),
+              itemsEntregados: (facturaData.items || []).filter(i => i.entregado).length,
+
+              // Información de pago
+              pago: {
+                total: facturaData.pago?.total || 0,
+                estado: facturaData.pago?.estado || 'pendiente',
+                montoPagado: facturaData.pago?.montoPagado || 0,
+                montoPendiente: facturaData.pago?.montoPendiente || (facturaData.pago?.total || 0),
+                metodoPago: facturaData.pago?.metodoPago || '',
+                referenciaPago: facturaData.pago?.referenciaPago || ''
+              },
+
+              // Estado
+              estado: facturaData.estado || 'pendiente',
+              estadoGeneral: facturaData.estadoGeneral || facturaData.estado || 'pendiente',
+
+              // Notas
+              notas: facturaData.notas || '',
+              notasInternas: facturaData.notasInternas || '',
+
+              // Fechas
+              fechaCreacion: facturaData.fechaCreacion?.toDate?.() || facturaData.fechaCreacion,
+              fechaEntrega: facturaData.fechaEntrega?.toDate?.() || facturaData.fechaEntrega
+            });
+          }
+        } catch (error) {
+          console.error(`❌ Error procesando factura ${factura.id}:`, error);
+        }
+      }
+    }
+
+    // Obtener información del repartidor
+    let repartidorInfo = null;
+    if (rutaData.repartidorId) {
+      try {
+        const repartidorDoc = await db.collection('users').doc(rutaData.repartidorId).get();
+        if (repartidorDoc.exists) {
+          const repartidorData = repartidorDoc.data();
+          repartidorInfo = {
+            nombre: repartidorData.name || repartidorData.nombre || '',
+            telefono: repartidorData.phone || repartidorData.telefono || ''
+          };
+        }
+      } catch (error) {
+        console.error('⚠️ Error obteniendo info del repartidor:', error.message);
+      }
+    }
+
+    // Responder con todos los datos necesarios para la impresión
+    res.json({
+      success: true,
+      data: {
+        // Información de la ruta
+        ruta: {
+          id: rutaDoc.id,
+          nombre: rutaData.nombre || '',
+          zona: rutaData.zona || '',
+          estado: rutaData.estado || '',
+          fechaCreacion: rutaData.fechaCreacion?.toDate?.() || rutaData.fechaCreacion,
+          fechaAsignacion: rutaData.fechaAsignacion?.toDate?.() || rutaData.fechaAsignacion,
+          vehiculo: rutaData.vehiculo || '',
+          repartidor: repartidorInfo
+        },
+
+        // Información de la compañía
+        company: {
+          nombre: companyConfig?.nombre || companyConfig?.name || 'Empresa',
+          logo: companyConfig?.invoiceDesign?.logoUrl || companyConfig?.logo || '',
+          telefono: companyConfig?.telefono || companyConfig?.phone || '',
+          email: companyConfig?.emailConfig?.from || companyConfig?.adminEmail || companyConfig?.email || '',
+          direccion: companyConfig?.direccion || companyConfig?.address || ''
+        },
+
+        // Facturas completas
+        facturas: facturasCompletas,
+
+        // Estadísticas
+        stats: {
+          totalFacturas: facturasCompletas.length,
+          totalItems: facturasCompletas.reduce((sum, f) => sum + f.itemsTotal, 0),
+          itemsEntregados: facturasCompletas.reduce((sum, f) => sum + f.itemsEntregados, 0),
+          montoTotal: facturasCompletas.reduce((sum, f) => sum + (f.pago?.total || 0), 0),
+          montoPendiente: facturasCompletas.reduce((sum, f) => sum + (f.pago?.montoPendiente || 0), 0)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error exportando facturas de ruta:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al exportar facturas de ruta',
+      error: error.message
+    });
+  }
+};
+
+// ==========================================================================
 // EXPORTACIÓN DE TODAS LAS FUNCIONES
 // ==========================================================================
 export default {
@@ -657,5 +1096,6 @@ export default {
   marcarFacturaEntregada,
   reportarNoEntrega,
   reportarFacturaNoEntregada,
-  finalizarRuta
+  finalizarRuta,
+  exportarFacturasRutaParaImpresion
 };

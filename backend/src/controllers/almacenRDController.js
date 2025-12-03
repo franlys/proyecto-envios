@@ -72,7 +72,7 @@ export const getContenedoresEnTransito = async (req, res) => {
       });
     }
 
-    console.log('ðŸ“¦ Obteniendo contenedores en trÃ¡nsito para company:', companyId);
+    console.log('ðŸ“¦ Obteniendo contenedores en tránsito para company:', companyId);
 
     const snapshot = await db.collection('contenedores')
       .where('companyId', '==', companyId)
@@ -97,7 +97,7 @@ export const getContenedoresEnTransito = async (req, res) => {
       };
     });
 
-    console.log(`âœ… ${contenedores.length} contenedores en trÃ¡nsito encontrados`);
+    console.log(`âœ… ${contenedores.length} contenedores en tránsito encontrados`);
 
     res.json({
       success: true,
@@ -106,7 +106,7 @@ export const getContenedoresEnTransito = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('âŒ Error obteniendo contenedores en trÃ¡nsito:', error);
+    console.error('âŒ Error obteniendo contenedores en tránsito:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener los contenedores',
@@ -227,14 +227,14 @@ export const confirmarRecepcion = async (req, res) => {
     if (contenedor.estado !== ESTADOS_CONTENEDOR.EN_TRANSITO) {
       return res.status(400).json({
         success: false,
-        message: `El contenedor no estÃ¡ en trÃ¡nsito. Estado actual: ${contenedor.estado}`
+        message: `El contenedor no está en tránsito. Estado actual: ${contenedor.estado}`
       });
     }
 
     // Crear entrada de historial
     const historialEntry = {
       accion: 'confirmar_recepcion',
-      descripcion: 'Contenedor recibido en almacÃ©n RD',
+      descripcion: 'Contenedor recibido en almacén RD',
       usuario: usuarioId,
       fecha: new Date().toISOString(),
       notas: notas || ''
@@ -371,7 +371,7 @@ export const confirmarRecepcion = async (req, res) => {
 
     // âœ… ENVIAR NOTIFICACIÃ“N A TODOS LOS REMITENTES (en segundo plano)
     if (Array.isArray(contenedor.facturas) && contenedor.facturas.length > 0) {
-      // Obtener configuraciÃ³n de la compaÃ±Ã­a
+      // Obtener configuración de la compañía
       let companyConfig = null;
       try {
         const companyDoc = await db.collection('companies').doc(companyId).get();
@@ -379,7 +379,7 @@ export const confirmarRecepcion = async (req, res) => {
           companyConfig = companyDoc.data();
         }
       } catch (error) {
-        console.error('âš ï¸ Error obteniendo configuraciÃ³n de compaÃ±Ã­a:', error.message);
+        console.error('âš ï¸ Error obteniendo configuración de compañía:', error.message);
       }
 
       for (const factura of contenedor.facturas) {
@@ -392,34 +392,63 @@ export const confirmarRecepcion = async (req, res) => {
 
           const facturaData = recoleccionDoc.data();
           const destinatarioEmail = facturaData.destinatario?.email;
+          const remitenteEmail = facturaData.remitente?.email;
 
+          // Enviar correo al DESTINATARIO (quien recibe)
           if (destinatarioEmail) {
-            const subject = `ðŸ­ Recibido en AlmacÃ©n RD - ${facturaData.codigoTracking}`;
+            const subject = `Tu paquete llego a RD - ${facturaData.codigoTracking}`;
             const contentHTML = `
-              <h2 style="color: #2c3e50; margin-top: 0;">ðŸ­ Recibido en AlmacÃ©n RD</h2>
+              <h2 style="color: #2c3e50; margin-top: 0;">Tu paquete llego a Republica Dominicana</h2>
               <p>Hola <strong>${facturaData.destinatario?.nombre}</strong>,</p>
-              <p>Tu paquete ha llegado a nuestro almacÃ©n en RepÃºblica Dominicana y estÃ¡ siendo procesado.</p>
+              <p>Tu paquete ha llegado a nuestro almacen en Republica Dominicana y esta siendo procesado.</p>
 
               <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Detalles del EnvÃ­o</h3>
-                <p><strong>CÃ³digo de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                <h3 style="margin-top: 0;">Detalles del Envio</h3>
+                <p><strong>Codigo de Tracking:</strong> ${facturaData.codigoTracking}</p>
                 <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
                 <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
-                <p><strong>DirecciÃ³n de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+                <p><strong>Direccion de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
               </div>
 
-              <p>Pronto serÃ¡ asignado a una ruta para su entrega final.</p>
+              <p>Pronto sera asignado a una ruta para su entrega final.</p>
               <p>Gracias por confiar en nosotros.</p>
             `;
 
             const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'recibida_rd', facturaData.codigoTracking);
 
             sendEmail(destinatarioEmail, subject, brandedHTML, [], companyConfig)
-              .then(() => console.log(`ðŸ“§ NotificaciÃ³n enviada a ${destinatarioEmail} - Recibido en RD`))
-              .catch(err => console.error(`âŒ Error enviando notificaciÃ³n:`, err.message));
+              .then(() => console.log(`Notificacion enviada al DESTINATARIO: ${destinatarioEmail} - Recibido en RD`))
+              .catch(err => console.error(`Error enviando notificacion al destinatario:`, err.message));
+          }
+
+          // Enviar correo al REMITENTE (quien envia)
+          if (remitenteEmail) {
+            const subject = `Tu envio a ${facturaData.destinatario?.nombre} llego a RD - ${facturaData.codigoTracking}`;
+            const contentHTML = `
+              <h2 style="color: #2c3e50; margin-top: 0;">Tu envio llego a Republica Dominicana</h2>
+              <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
+              <p>Te informamos que el paquete que enviaste a <strong>${facturaData.destinatario?.nombre}</strong> ha llegado a nuestro almacen en Republica Dominicana y esta siendo procesado.</p>
+
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalles del Envio</h3>
+                <p><strong>Codigo de Tracking:</strong> ${facturaData.codigoTracking}</p>
+                <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
+                <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
+                <p><strong>Direccion de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
+              </div>
+
+              <p>Pronto sera asignado a una ruta para su entrega final.</p>
+              <p>Gracias por confiar en nosotros.</p>
+            `;
+
+            const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'recibida_rd', facturaData.codigoTracking);
+
+            sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
+              .then(() => console.log(`Notificacion enviada al REMITENTE: ${remitenteEmail} - Recibido en RD`))
+              .catch(err => console.error(`Error enviando notificacion al remitente:`, err.message));
           }
         } catch (error) {
-          console.error(`âŒ Error enviando notificaciÃ³n para factura ${facturaId}:`, error.message);
+          console.error(`âŒ Error enviando notificación para factura ${facturaId}:`, error.message);
         }
       }
     }
@@ -427,8 +456,8 @@ export const confirmarRecepcion = async (req, res) => {
     res.json({
       success: true,
       message: facturasConError > 0
-        ? `RecepciÃ³n confirmada con ${facturasConError} error(es)`
-        : 'RecepciÃ³n confirmada exitosamente',
+        ? `Recepción confirmada con ${facturasConError} error(es)`
+        : 'Recepción confirmada exitosamente',
       data: resultado
     });
 
@@ -891,7 +920,7 @@ export const quitarFacturaDeRuta = async (req, res) => {
     if (!data.rutaAsignada) {
       return res.status(400).json({
         success: false,
-        message: 'La factura no estÃ¡ asignada a ninguna ruta'
+        message: 'La factura no está asignada a ninguna ruta'
       });
     }
 
@@ -1142,7 +1171,7 @@ export const getEstadisticasAlmacenRD = async (req, res) => {
       });
     }
 
-    console.log('ðŸ“Š Calculando estadÃ­sticas del almacÃ©n RD');
+    console.log('ðŸ“Š Calculando estadÃ­sticas del almacén RD');
 
     const contenedoresSnapshot = await db.collection('contenedores')
       .where('companyId', '==', companyId)

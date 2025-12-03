@@ -13,6 +13,7 @@
 
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ========================================
 // OBTENER CONTENEDORES RECIBIDOS
@@ -291,6 +292,52 @@ export const confirmarFactura = async (req, res) => {
 
     console.log('✅ Factura confirmada exitosamente');
 
+    // Enviar notificacion por email al remitente
+    const remitenteEmail = data.remitente?.email;
+    if (remitenteEmail) {
+      // Obtener configuracion de la compania
+      let companyConfig = null;
+      try {
+        const companyDoc = await db.collection('companies').doc(companyId).get();
+        if (companyDoc.exists) {
+          companyConfig = companyDoc.data();
+        }
+      } catch (error) {
+        console.error('Error obteniendo configuracion de compania:', error.message);
+      }
+
+      const subject = `Informacion confirmada - ${data.codigoTracking}`;
+      const contentHTML = `
+        <h2 style="color: #2c3e50; margin-top: 0;">Informacion de tu envio confirmada</h2>
+        <p>Hola <strong>${data.remitente?.nombre}</strong>,</p>
+        <p>Te informamos que la informacion de tu envio ha sido revisada y confirmada por nuestro equipo.</p>
+
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Detalles del Envio</h3>
+          <p><strong>Codigo de Tracking:</strong> ${data.codigoTracking}</p>
+          <p><strong>Destinatario:</strong> ${data.destinatario?.nombre}</p>
+          <p><strong>Direccion de Entrega:</strong> ${data.destinatario?.direccion}</p>
+          <p><strong>Sector:</strong> ${data.destinatario?.sector || 'N/A'}</p>
+          ${data.destinatario?.telefono ? `<p><strong>Telefono:</strong> ${data.destinatario.telefono}</p>` : ''}
+        </div>
+
+        ${notasSecretaria ? `<div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #856404;">Notas de confirmacion:</h4>
+          <p style="color: #856404;">${notasSecretaria}</p>
+        </div>` : ''}
+
+        <p>Tu paquete esta listo para ser asignado a una ruta de entrega.</p>
+        <p>Te notificaremos cuando sea cargado en el camion.</p>
+        <p>Gracias por confiar en nosotros.</p>
+      `;
+
+      const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'confirmada_secretaria', data.codigoTracking);
+
+      sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
+        .then(() => console.log(`Notificacion enviada al remitente: ${remitenteEmail} - Confirmada`))
+        .catch(err => console.error(`Error enviando notificacion:`, err.message));
+    }
+
     res.json({
       success: true,
       message: 'Factura confirmada exitosamente',
@@ -349,6 +396,15 @@ export const editarFactura = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'No tiene permisos'
+      });
+    }
+
+    // 🔒 VALIDACIÓN: Prevenir edición de pago si ya está pagada
+    if (pago && (data.pago?.estado === 'pagada' || data.pago?.estado === 'pagado')) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede modificar el pago de una factura que ya está pagada en Estados Unidos',
+        error: 'factura_ya_pagada'
       });
     }
 
