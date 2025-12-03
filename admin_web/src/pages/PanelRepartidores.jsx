@@ -113,12 +113,37 @@ const PanelRepartidores = () => {
       setLoadingDetalle(true);
       const response = await api.get(`/repartidores/rutas/${rutaId}`);
       if (response.data.success) {
+        console.log('📥 Datos recibidos del servidor:', {
+          totalFacturas: response.data.data.facturas?.length,
+          facturas: response.data.data.facturas?.map(f => ({
+            id: f.id,
+            numeroFactura: f.numeroFactura,
+            itemsTotal: f.items?.length,
+            items: f.items?.map((item, idx) => ({
+              index: idx,
+              descripcion: item.descripcion || item.producto,
+              entregado: item.entregado,
+              estadoItem: item.estadoItem
+            }))
+          }))
+        });
+
         setRutaSeleccionada(response.data.data);
         cargarGastos(rutaId);
 
         if (vistaActual === 'factura' && facturaActual) {
           const updatedFactura = response.data.data.facturas.find(f => f.id === facturaActual.id);
           if (updatedFactura) {
+            console.log('🔄 Actualizando facturaActual:', {
+              facturaId: updatedFactura.id,
+              numeroFactura: updatedFactura.numeroFactura,
+              items: updatedFactura.items?.map((item, idx) => ({
+                index: idx,
+                descripcion: item.descripcion || item.producto,
+                entregado: item.entregado,
+                estadoItem: item.estadoItem
+              }))
+            });
             setFacturaActual(updatedFactura);
           }
         }
@@ -784,15 +809,6 @@ const PanelRepartidores = () => {
                 const isEntregado = item.entregado || item.estadoItem === 'entregado';
                 const isNoEntregado = item.estadoItem === 'no_entregado';
 
-                // Debug: mostrar estado del item
-                if (import.meta.env.DEV && item.entregado) {
-                  console.log(`✅ Item ${index} entregado:`, {
-                    entregado: item.entregado,
-                    isEntregado,
-                    descripcion: item.descripcion
-                  });
-                }
-
                 // Clases de fondo según estado
                 let bgClasses = 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600';
                 if (isEntregado) {
@@ -801,6 +817,25 @@ const PanelRepartidores = () => {
                   bgClasses = 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800';
                 } else if (isNoEntregado) {
                   bgClasses = 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800';
+                }
+
+                // 🔍 DEBUG: Log completo del ciclo de render
+                if (import.meta.env.DEV) {
+                  console.log(`🎨 RENDER Item ${index}:`, {
+                    descripcion: item.descripcion || item.producto,
+                    'item.entregado': item.entregado,
+                    'item.estadoItem': item.estadoItem,
+                    'item.danado': item.danado,
+                    'item._optimistic': item._optimistic,
+                    '---COMPUTED---': '---',
+                    'isDanado': isDanado,
+                    'isEntregado': isEntregado,
+                    'isNoEntregado': isNoEntregado,
+                    '---RENDER---': '---',
+                    'bgClasses': bgClasses,
+                    'willShowEntregadoBadge': isEntregado,
+                    'willShowButtons': !isEntregado && !isDanado && !isNoEntregado
+                  });
                 }
 
                 return (
