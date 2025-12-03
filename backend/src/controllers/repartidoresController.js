@@ -105,6 +105,17 @@ export const getDetalleRuta = async (req, res) => {
           const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
           if (facturaDoc.exists) {
             const facturaData = facturaDoc.data();
+
+            // 🔍 DEBUG: Log items para ver si tienen el flag entregado
+            console.log(`🔍 DEBUG Factura ${facturaId} items desde Firestore:`,
+              facturaData.items?.map((item, idx) => ({
+                index: idx,
+                descripcion: item.descripcion,
+                entregado: item.entregado,
+                fechaEntrega: item.fechaEntrega
+              }))
+            );
+
             facturasEnriquecidas.push({
               id: facturaDoc.id,
               numeroFactura: facturaData.numeroFactura || facturaData.codigoTracking,
@@ -367,10 +378,18 @@ export const entregarItem = async (req, res) => {
     items[itemIndex].entregado = true;
     items[itemIndex].fechaEntrega = new Date().toISOString();
 
+    console.log(`🔍 DEBUG Guardando item ${itemIndex} con entregado=true:`, {
+      descripcion: items[itemIndex].descripcion,
+      entregado: items[itemIndex].entregado,
+      fechaEntrega: items[itemIndex].fechaEntrega
+    });
+
     await facturaRef.update({
       items,
       fechaActualizacion: new Date().toISOString()
     });
+
+    console.log(`✅ Item ${itemIndex} guardado en Firestore`);
 
     res.json({
       success: true,
