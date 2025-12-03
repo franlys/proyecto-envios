@@ -391,6 +391,61 @@ export const entregarItem = async (req, res) => {
 
     console.log(`✅ Item ${itemIndex} guardado en Firestore`);
 
+    // 🔄 ACTUALIZAR CONTADORES EN LA COLECCIÓN RUTAS
+    // Buscar la ruta que contiene esta factura y actualizar itemsEntregadosRuta
+    try {
+      // Buscar rutas activas que contengan esta factura
+      const rutasSnapshot = await db.collection('rutas')
+        .where('companyId', '==', data.companyId)
+        .where('estado', 'in', ['asignada', 'cargada', 'en_entrega'])
+        .get();
+
+      let rutaEncontrada = null;
+
+      for (const rutaDoc of rutasSnapshot.docs) {
+        const rutaData = rutaDoc.data();
+        const tieneFactura = (rutaData.facturas || []).some(f => f.id === facturaId);
+
+        if (tieneFactura) {
+          rutaEncontrada = { id: rutaDoc.id, data: rutaData };
+          break;
+        }
+      }
+
+      if (rutaEncontrada) {
+        // 🔄 CONTAR FACTURAS COMPLETAMENTE ENTREGADAS (no items individuales)
+        let facturasEntregadas = 0;
+
+        for (const factura of (rutaEncontrada.data.facturas || [])) {
+          const facturaSnapshot = await db.collection('recolecciones').doc(factura.id).get();
+          if (facturaSnapshot.exists) {
+            const facturaData = facturaSnapshot.data();
+            const items = facturaData.items || [];
+
+            // Una factura está completamente entregada si TODOS sus items están entregados
+            const todosEntregados = items.length > 0 && items.every(i => i.entregado === true);
+
+            if (todosEntregados) {
+              facturasEntregadas++;
+            }
+          }
+        }
+
+        // Actualizar el contador de FACTURAS entregadas en la ruta
+        await db.collection('rutas').doc(rutaEncontrada.id).update({
+          facturasEntregadas: facturasEntregadas,
+          fechaActualizacion: new Date().toISOString()
+        });
+
+        console.log(`✅ Contador de ruta ${rutaEncontrada.id} actualizado: ${facturasEntregadas} facturas completamente entregadas`);
+      } else {
+        console.log('ℹ️ No se encontró ruta activa para esta factura');
+      }
+    } catch (rutaError) {
+      console.warn('⚠️ No se pudo actualizar contador de ruta:', rutaError.message);
+      // No fallar la operación principal si falla la actualización de ruta
+    }
+
     res.json({
       success: true,
       message: 'Item marcado como entregado',

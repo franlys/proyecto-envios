@@ -109,12 +109,19 @@ const MonitorRepartidores = () => {
           <div className="space-y-3">
             {rutasConRepartidor.map((ruta) => {
               const repartidor = repartidores.find(r => r.uid === ruta.repartidorId);
-              const totalFacturas = ruta.totalFacturas || 0;
-              const entregadas = ruta.facturasEntregadas || 0;
+
+              // 📦 CONTAR FACTURAS (no items individuales)
               const facturas = ruta.facturas || [];
+              const totalFacturas = facturas.length;
+
+              // Usar el contador de facturas entregadas de la ruta (actualizado en tiempo real)
+              const facturasEntregadasCompletas = ruta.facturasEntregadas || 0;
+
+              // Contar facturas no entregadas
               const noEntregadas = facturas.filter(f => f.estado === 'no_entregada').length;
-              const pendientes = totalFacturas - entregadas - noEntregadas;
-              const progreso = totalFacturas > 0 ? Math.round((entregadas / totalFacturas) * 100) : 0;
+
+              // Progreso basado en FACTURAS completas
+              const progreso = totalFacturas > 0 ? Math.round((facturasEntregadasCompletas / totalFacturas) * 100) : 0;
 
               // Calcular tiempo en ruta
               let tiempoEnRuta = '';
@@ -169,11 +176,11 @@ const MonitorRepartidores = () => {
                     </div>
                   </div>
 
-                  {/* Barra de progreso */}
+                  {/* Barra de progreso - BASADA EN FACTURAS */}
                   <div className="mb-2">
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Progreso de entregas</span>
-                      <span className="font-medium">{entregadas} / {totalFacturas}</span>
+                      <span className="font-medium">{facturasEntregadasCompletas} / {totalFacturas}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                       <div
@@ -185,8 +192,8 @@ const MonitorRepartidores = () => {
                     </div>
                   </div>
 
-                  {/* Estadísticas de entregas */}
-                  <div className="grid grid-cols-4 gap-2 text-xs mt-3 pt-3 border-t border-blue-200">
+                  {/* Estadísticas de entregas - MUESTRA FACTURAS */}
+                  <div className="grid grid-cols-3 gap-2 text-xs mt-3 pt-3 border-t border-blue-200">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Package className="w-3.5 h-3.5 text-gray-500" />
@@ -198,21 +205,14 @@ const MonitorRepartidores = () => {
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <CheckCircle className="w-3.5 h-3.5 text-green-500" />
                       </div>
-                      <div className="font-semibold text-green-600">{entregadas}</div>
+                      <div className="font-semibold text-green-600">{facturasEntregadasCompletas}</div>
                       <div className="text-gray-500">Entregadas</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <XCircle className="w-3.5 h-3.5 text-red-500" />
-                      </div>
-                      <div className="font-semibold text-red-600">{noEntregadas}</div>
-                      <div className="text-gray-500">No Entregadas</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Clock className="w-3.5 h-3.5 text-amber-500" />
                       </div>
-                      <div className="font-semibold text-amber-600">{pendientes}</div>
+                      <div className="font-semibold text-amber-600">{totalFacturas - facturasEntregadasCompletas}</div>
                       <div className="text-gray-500">Pendientes</div>
                     </div>
                   </div>
@@ -230,8 +230,8 @@ const MonitorRepartidores = () => {
                   {/* Indicador de progreso visual */}
                   <div className="mt-3 flex items-center justify-center gap-1">
                     {Array.from({ length: Math.min(totalFacturas, 10) }).map((_, i) => {
-                      const isEntregada = i < entregadas;
-                      const isNoEntregada = i >= entregadas && i < (entregadas + noEntregadas);
+                      const isEntregada = i < facturasEntregadasCompletas;
+                      const isNoEntregada = i >= facturasEntregadasCompletas && i < (facturasEntregadasCompletas + noEntregadas);
 
                       return (
                         <div
