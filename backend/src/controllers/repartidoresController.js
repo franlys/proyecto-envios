@@ -117,12 +117,13 @@ export const getDetalleRuta = async (req, res) => {
             );
 
             facturasEnriquecidas.push({
+              ...factura,  // ✅ Spread PRIMERO (para no sobreescribir datos de Firestore)
               id: facturaDoc.id,
               numeroFactura: facturaData.numeroFactura || facturaData.codigoTracking,
               codigoTracking: facturaData.codigoTracking,
               estado: facturaData.estado || 'pendiente',
               destinatario: facturaData.destinatario || {},
-              items: facturaData.items || [],
+              items: facturaData.items || [],  // ✅ Esto ahora NO será sobreescrito
               itemsTotal: facturaData.itemsTotal || (facturaData.items?.length || 0),
               itemsEntregados: (facturaData.items || []).filter(i => i.entregado).length,
               pago: facturaData.pago || {
@@ -131,8 +132,7 @@ export const getDetalleRuta = async (req, res) => {
                 montoPagado: 0,
                 montoPendiente: 0
               },
-              fotosEntrega: facturaData.fotosEntrega || [],
-              ...factura
+              fotosEntrega: facturaData.fotosEntrega || []
             });
           } else {
             console.warn('⚠️ Factura no encontrada:', facturaId);
