@@ -774,6 +774,15 @@ const PanelRepartidores = () => {
                 const isEntregado = item.entregado || item.estadoItem === 'entregado';
                 const isNoEntregado = item.estadoItem === 'no_entregado';
 
+                // Debug: mostrar estado del item
+                if (import.meta.env.DEV && item.entregado) {
+                  console.log(`✅ Item ${index} entregado:`, {
+                    entregado: item.entregado,
+                    isEntregado,
+                    descripcion: item.descripcion
+                  });
+                }
+
                 // Clases de fondo según estado
                 let bgClasses = 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600';
                 if (isEntregado) {
