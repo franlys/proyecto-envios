@@ -245,6 +245,12 @@ const Reportes = () => {
   const renderResumenCards = () => {
     if (!datosReporte?.resumen) return null;
 
+    // Determinar si un campo debe mostrar signo de dólar (solo campos monetarios)
+    const shouldShowCurrency = (key) => {
+      const currencyFields = ['monto', 'gastos', 'balance', 'asignado'];
+      return currencyFields.some(field => key.toLowerCase().includes(field));
+    };
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {Object.entries(datosReporte.resumen).map(([key, value]) => (
@@ -253,7 +259,7 @@ const Reportes = () => {
               {key.replace(/_/g, ' ')}
             </p>
             <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">
-              {typeof value === 'number' && key.includes('total') ? `$${value}` : value}
+              {typeof value === 'number' && shouldShowCurrency(key) ? `$${value}` : value}
             </p>
           </div>
         ))}
