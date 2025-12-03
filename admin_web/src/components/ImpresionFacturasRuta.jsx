@@ -153,143 +153,134 @@ const ImpresionFacturasRuta = () => {
         </button>
       </div>
 
-      {/* Cada factura en su propia página */}
+      {/* Cada factura en su propia página - Formato A4 */}
       {facturas.map((factura, index) => (
-        <div key={factura.id} className="page-break max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-8 print:p-6 mb-8 print:mb-0">
+        <div key={factura.id} className="page-break w-[210mm] h-[297mm] mx-auto bg-white shadow-lg print:shadow-none p-6 print:p-4 mb-8 print:mb-0 overflow-hidden">
 
-          {/* Encabezado con logo - se repite en CADA factura */}
-          <div className="mb-6 pb-4 border-b-2 border-gray-300">
+          {/* Encabezado con logo - se repite en CADA factura - Optimizado A4 */}
+          <div className="mb-4 pb-3 border-b-2 border-gray-300">
             <div className="flex items-start justify-between">
               {/* Logo y nombre de empresa */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {company.logo ? (
                   <img
                     src={company.logo}
                     alt={company.nombre}
-                    className="h-16 w-auto object-contain"
+                    className="h-12 w-auto object-contain"
                   />
                 ) : (
-                  <div className="h-16 w-16 bg-blue-600 text-white flex items-center justify-center rounded-lg text-2xl font-bold">
+                  <div className="h-12 w-12 bg-blue-600 text-white flex items-center justify-center rounded-lg text-xl font-bold">
                     {company.nombre?.charAt(0) || 'E'}
                   </div>
                 )}
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-800">{company.nombre}</h1>
-                  {company.telefono && <p className="text-sm text-gray-600">Tel: {company.telefono}</p>}
-                  {company.email && <p className="text-sm text-gray-600">{company.email}</p>}
-                  {company.direccion && <p className="text-xs text-gray-500 mt-1">{company.direccion}</p>}
+                  <h1 className="text-xl font-bold text-gray-800">{company.nombre}</h1>
+                  <div className="flex gap-3 text-xs text-gray-600">
+                    {company.telefono && <span>Tel: {company.telefono}</span>}
+                    {company.email && <span>{company.email}</span>}
+                  </div>
                 </div>
               </div>
 
               {/* Información de la ruta */}
               <div className="text-right">
-                <h2 className="text-xl font-bold text-gray-800">HOJA DE ENTREGA</h2>
-                <p className="text-sm text-gray-600">Fecha: {formatearFecha(new Date())}</p>
-                <p className="text-sm font-semibold text-gray-700 mt-1">{ruta.nombre}</p>
-                {ruta.zona && <p className="text-sm text-gray-600">Zona: {ruta.zona}</p>}
+                <h2 className="text-lg font-bold text-gray-800">HOJA DE ENTREGA</h2>
+                <p className="text-xs text-gray-600">Fecha: {formatearFecha(new Date())}</p>
+                <p className="text-sm font-semibold text-gray-700">{ruta.nombre}</p>
+                {ruta.zona && <p className="text-xs text-gray-600">Zona: {ruta.zona}</p>}
               </div>
             </div>
           </div>
 
-          {/* Información del repartidor */}
-          <div className="mb-4 p-3 bg-gray-50 rounded print:bg-gray-100">
-            <div className="flex justify-between items-center">
+          {/* Información del repartidor - Compacta */}
+          <div className="mb-3 p-2 bg-gray-50 rounded print:bg-gray-100 flex justify-between items-center">
+            <div className="flex items-center gap-4">
               <div>
-                <h3 className="font-semibold text-gray-700 text-sm">Repartidor</h3>
-                {ruta.repartidor ? (
-                  <>
-                    <p className="text-sm text-gray-800">{ruta.repartidor.nombre}</p>
-                    {ruta.repartidor.telefono && (
-                      <p className="text-sm text-gray-600">Tel: {ruta.repartidor.telefono}</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500">No asignado</p>
+                <span className="text-xs text-gray-600">Repartidor: </span>
+                <span className="text-sm font-semibold text-gray-800">
+                  {ruta.repartidor?.nombre || 'No asignado'}
+                </span>
+                {ruta.repartidor?.telefono && (
+                  <span className="text-xs text-gray-600 ml-2">Tel: {ruta.repartidor.telefono}</span>
                 )}
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-600">Factura</p>
-                <p className="text-lg font-bold text-gray-800">#{index + 1} de {facturas.length}</p>
-              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-gray-600">Factura </span>
+              <span className="text-base font-bold text-gray-800">#{index + 1}/{facturas.length}</span>
             </div>
           </div>
 
-          {/* Información de la factura */}
-          <div className="border-2 border-gray-300 rounded-lg p-4 mb-4">
-            <div className="flex items-start justify-between mb-3 pb-3 border-b-2 border-gray-200">
+          {/* Información de la factura - Optimizada A4 */}
+          <div className="border-2 border-gray-300 rounded-lg p-3 mb-3">
+            <div className="flex items-start justify-between mb-2 pb-2 border-b border-gray-200">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">{factura.codigoTracking}</h3>
-                <p className="text-sm text-gray-600">Factura: {factura.numeroFactura}</p>
+                <h3 className="text-lg font-bold text-gray-800">{factura.codigoTracking}</h3>
+                <p className="text-xs text-gray-600">Factura: {factura.numeroFactura}</p>
               </div>
               <div className="text-right">
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getEstadoBadgeColor(factura.estado)}`}>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${getEstadoBadgeColor(factura.estado)}`}>
                   {factura.estado.replace('_', ' ').toUpperCase()}
                 </span>
                 {factura.pago && (
-                  <p className="text-lg font-bold text-gray-800 mt-1">
+                  <p className="text-base font-bold text-gray-800 mt-1">
                     {formatearMoneda(factura.pago.total)}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Información del remitente */}
-            {factura.remitente && (
-              <div className="mb-3 p-3 bg-green-50 rounded print:bg-green-100">
-                <h4 className="font-semibold text-gray-700 text-sm mb-1">REMITENTE</h4>
-                <p className="text-sm font-semibold text-gray-800">{factura.remitente.nombre}</p>
-                {factura.remitente.telefono && (
-                  <p className="text-sm text-gray-600">Tel: {factura.remitente.telefono}</p>
-                )}
-              </div>
-            )}
+            {/* Información del remitente y destinatario en grid */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {/* Remitente */}
+              {factura.remitente && (
+                <div className="p-2 bg-green-50 rounded print:bg-green-100">
+                  <h4 className="font-semibold text-gray-700 text-xs mb-1">REMITENTE</h4>
+                  <p className="text-xs font-semibold text-gray-800">{factura.remitente.nombre}</p>
+                  {factura.remitente.telefono && (
+                    <p className="text-xs text-gray-600">Tel: {factura.remitente.telefono}</p>
+                  )}
+                </div>
+              )}
 
-            {/* Información del destinatario */}
-            <div className="mb-4 p-3 bg-blue-50 rounded print:bg-blue-100">
-              <h4 className="font-semibold text-gray-700 text-sm mb-1">DESTINATARIO</h4>
-              <p className="text-base font-bold text-gray-800">{factura.destinatario.nombre}</p>
-              <p className="text-sm text-gray-700 mt-1">{factura.destinatario.direccion}</p>
-              {factura.destinatario.sector && (
-                <p className="text-sm text-gray-600">Sector: {factura.destinatario.sector}</p>
-              )}
-              {factura.destinatario.ciudad && (
-                <p className="text-sm text-gray-600">
-                  {factura.destinatario.ciudad}{factura.destinatario.provincia && `, ${factura.destinatario.provincia}`}
-                </p>
-              )}
-              {factura.destinatario.telefono && (
-                <p className="text-sm font-semibold text-gray-800 mt-1">Tel: {factura.destinatario.telefono}</p>
-              )}
+              {/* Destinatario */}
+              <div className={`p-2 bg-blue-50 rounded print:bg-blue-100 ${!factura.remitente ? 'col-span-2' : ''}`}>
+                <h4 className="font-semibold text-gray-700 text-xs mb-1">DESTINATARIO</h4>
+                <p className="text-sm font-bold text-gray-800">{factura.destinatario.nombre}</p>
+                <p className="text-xs text-gray-700">{factura.destinatario.direccion}</p>
+                <div className="flex gap-2 text-xs text-gray-600 mt-1">
+                  {factura.destinatario.sector && <span>Sector: {factura.destinatario.sector}</span>}
+                  {factura.destinatario.telefono && <span>Tel: {factura.destinatario.telefono}</span>}
+                </div>
+              </div>
             </div>
 
-            {/* Items con checkboxes */}
+            {/* Items con checkboxes - Compactos */}
             {factura.items && factura.items.length > 0 && (
-              <div className="mb-4">
-                <h4 className="font-semibold text-gray-700 text-sm mb-3 pb-2 border-b border-gray-300">
+              <div className="mb-3">
+                <h4 className="font-semibold text-gray-700 text-xs mb-2 pb-1 border-b border-gray-300">
                   ITEMS A ENTREGAR ({factura.items.length})
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {factura.items.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-3 p-2 bg-gray-50 rounded print:bg-white print:border print:border-gray-300">
+                    <div key={idx} className="flex items-start gap-2 p-1.5 bg-gray-50 rounded print:bg-white print:border print:border-gray-300">
                       {/* Checkbox */}
-                      <div className="flex-shrink-0 mt-1">
-                        <div className="w-5 h-5 border-2 border-gray-400 rounded print:border-black"></div>
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className="w-4 h-4 border-2 border-gray-400 rounded print:border-black"></div>
                       </div>
 
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-800">{item.descripcion}</p>
-                            {item.cantidad > 1 && (
-                              <p className="text-xs text-gray-600">Cantidad: {item.cantidad}</p>
-                            )}
-                            {item.peso && (
-                              <p className="text-xs text-gray-600">Peso: {item.peso}</p>
-                            )}
+                            <p className="text-xs font-semibold text-gray-800 leading-tight">{item.descripcion}</p>
+                            <div className="flex gap-2 text-xs text-gray-600">
+                              {item.cantidad > 1 && <span>Cant: {item.cantidad}</span>}
+                              {item.peso && <span>Peso: {item.peso}</span>}
+                            </div>
                           </div>
                           {item.entregado && (
-                            <span className="text-green-600 font-semibold text-xs bg-green-100 px-2 py-1 rounded">
-                              ✓ ENTREGADO
+                            <span className="text-green-600 font-semibold text-xs bg-green-100 px-1.5 py-0.5 rounded">
+                              ✓
                             </span>
                           )}
                         </div>
@@ -300,47 +291,41 @@ const ImpresionFacturasRuta = () => {
               </div>
             )}
 
-            {/* Información de pago */}
+            {/* Información de pago - Compacta */}
             {factura.pago && (
-              <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-300 rounded print:bg-yellow-100">
-                <h4 className="font-semibold text-gray-700 text-sm mb-2">INFORMACIÓN DE PAGO</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="mb-2 p-2 bg-yellow-50 border border-yellow-300 rounded print:bg-yellow-100">
+                <h4 className="font-semibold text-gray-700 text-xs mb-1">INFORMACIÓN DE PAGO</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-gray-600">Monto Total:</span>
-                    <span className="ml-2 font-bold text-gray-900 text-base">
+                    <span className="text-gray-600">Monto Total: </span>
+                    <span className="font-bold text-gray-900">
                       {formatearMoneda(factura.pago.total)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Estado:</span>
-                    <span className={`ml-2 font-semibold ${factura.pago.estado === 'pagada' ? 'text-green-600' : 'text-yellow-700'}`}>
+                    <span className="text-gray-600">Estado: </span>
+                    <span className={`font-semibold ${factura.pago.estado === 'pagada' ? 'text-green-600' : 'text-yellow-700'}`}>
                       {factura.pago.estado === 'pagada' ? '✓ PAGADO' : 'PENDIENTE'}
                     </span>
                   </div>
                   {factura.pago.montoPendiente > 0 && (
-                    <div className="col-span-2 pt-2 border-t border-yellow-400">
-                      <span className="text-gray-700 font-semibold">Monto a Cobrar:</span>
-                      <span className="ml-2 font-bold text-red-600 text-lg">
+                    <div className="col-span-2 pt-1 border-t border-yellow-400">
+                      <span className="text-gray-700 font-semibold">Monto a Cobrar: </span>
+                      <span className="font-bold text-red-600 text-sm">
                         {formatearMoneda(factura.pago.montoPendiente)}
                       </span>
-                    </div>
-                  )}
-                  {factura.pago.metodoPago && (
-                    <div className="col-span-2">
-                      <span className="text-gray-600">Método de pago:</span>
-                      <span className="ml-2 text-gray-800 font-medium">{factura.pago.metodoPago}</span>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Notas */}
+            {/* Notas - Compactas */}
             {(factura.notas || factura.notasInternas) && (
-              <div className="mb-4 p-3 bg-orange-50 border-l-4 border-orange-400 rounded print:bg-orange-100">
-                <h4 className="font-semibold text-gray-700 text-sm mb-1">⚠️ NOTAS IMPORTANTES</h4>
+              <div className="mb-2 p-2 bg-orange-50 border-l-2 border-orange-400 rounded print:bg-orange-100">
+                <h4 className="font-semibold text-gray-700 text-xs mb-0.5">⚠️ NOTAS</h4>
                 {factura.notas && (
-                  <p className="text-sm text-gray-800 mb-1">{factura.notas}</p>
+                  <p className="text-xs text-gray-800">{factura.notas}</p>
                 )}
                 {factura.notasInternas && (
                   <p className="text-xs text-gray-600 italic">{factura.notasInternas}</p>
@@ -349,41 +334,40 @@ const ImpresionFacturasRuta = () => {
             )}
           </div>
 
-          {/* Área de firma y confirmación */}
-          <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50 print:bg-white">
-            <h4 className="font-semibold text-gray-700 text-sm mb-3">CONFIRMACIÓN DE ENTREGA</h4>
-            <div className="grid grid-cols-2 gap-6 mb-4">
+          {/* Área de firma y confirmación - Compacta */}
+          <div className="border-2 border-gray-300 rounded-lg p-3 bg-gray-50 print:bg-white">
+            <h4 className="font-semibold text-gray-700 text-xs mb-2">CONFIRMACIÓN DE ENTREGA</h4>
+            <div className="grid grid-cols-2 gap-3 mb-2">
               <div>
-                <p className="text-xs text-gray-600 mb-2 font-semibold">Nombre de quien recibe:</p>
-                <div className="border-b-2 border-gray-400 h-10"></div>
+                <p className="text-xs text-gray-600 mb-1">Nombre de quien recibe:</p>
+                <div className="border-b-2 border-gray-400 h-8"></div>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-2 font-semibold">Cédula / Identificación:</p>
-                <div className="border-b-2 border-gray-400 h-10"></div>
+                <p className="text-xs text-gray-600 mb-1">Cédula / ID:</p>
+                <div className="border-b-2 border-gray-400 h-8"></div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-gray-600 mb-2 font-semibold">Firma del cliente:</p>
-                <div className="border-2 border-gray-400 h-20 rounded"></div>
+                <p className="text-xs text-gray-600 mb-1">Firma del cliente:</p>
+                <div className="border-2 border-gray-400 h-16 rounded"></div>
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-2 font-semibold">Hora de entrega:</p>
-                <div className="border-b-2 border-gray-400 h-10 mt-2"></div>
-                <p className="text-xs text-gray-500 mt-4">Fecha: {formatearFecha(new Date())}</p>
+                <p className="text-xs text-gray-600 mb-1">Hora de entrega:</p>
+                <div className="border-b-2 border-gray-400 h-8 mt-1"></div>
+                <p className="text-xs text-gray-500 mt-2">Fecha: {formatearFecha(new Date())}</p>
               </div>
             </div>
           </div>
 
-          {/* Pie de página */}
-          <div className="mt-6 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
+          {/* Pie de página - Compacto */}
+          <div className="absolute bottom-4 left-6 right-6 pt-2 border-t border-gray-300 text-center text-xs text-gray-500">
             <p>{company.nombre} - Sistema de Gestión de Envíos</p>
-            <p className="mt-1">Documento generado el {formatearFecha(new Date())}</p>
           </div>
         </div>
       ))}
 
-      {/* Estilos para impresión */}
+      {/* Estilos para impresión - Formato A4 */}
       <style>{`
         @media print {
           body {
@@ -395,9 +379,10 @@ const ImpresionFacturasRuta = () => {
             display: none !important;
           }
 
+          /* Configuración para papel A4 (210mm x 297mm) */
           @page {
-            size: letter;
-            margin: 1cm;
+            size: A4;
+            margin: 0;
           }
 
           .print\\:break-inside-avoid {
