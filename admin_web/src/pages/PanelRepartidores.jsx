@@ -113,20 +113,18 @@ const PanelRepartidores = () => {
       setLoadingDetalle(true);
       const response = await api.get(`/repartidores/rutas/${rutaId}`);
       if (response.data.success) {
-        console.log('📥 Datos recibidos del servidor:', {
-          totalFacturas: response.data.data.facturas?.length,
-          facturas: response.data.data.facturas?.map(f => ({
-            id: f.id,
-            numeroFactura: f.numeroFactura,
-            itemsTotal: f.items?.length,
-            items: f.items?.map((item, idx) => ({
-              index: idx,
-              descripcion: item.descripcion || item.producto,
-              entregado: item.entregado,
-              estadoItem: item.estadoItem
-            }))
-          }))
-        });
+        console.log('📥 Datos recibidos del servidor - Total facturas:', response.data.data.facturas?.length);
+
+        // Log detallado de la primera factura para debugging
+        if (response.data.data.facturas?.[0]) {
+          const primeraFactura = response.data.data.facturas[0];
+          console.log('📥 Primera factura completa:', {
+            id: primeraFactura.id,
+            numeroFactura: primeraFactura.numeroFactura,
+            items: primeraFactura.items
+          });
+          console.log('📥 Items RAW de primera factura:', JSON.stringify(primeraFactura.items, null, 2));
+        }
 
         setRutaSeleccionada(response.data.data);
         cargarGastos(rutaId);
@@ -134,17 +132,13 @@ const PanelRepartidores = () => {
         if (vistaActual === 'factura' && facturaActual) {
           const updatedFactura = response.data.data.facturas.find(f => f.id === facturaActual.id);
           if (updatedFactura) {
-            console.log('🔄 Actualizando facturaActual:', {
-              facturaId: updatedFactura.id,
-              numeroFactura: updatedFactura.numeroFactura,
-              items: updatedFactura.items?.map((item, idx) => ({
-                index: idx,
-                descripcion: item.descripcion || item.producto,
-                entregado: item.entregado,
-                estadoItem: item.estadoItem
-              }))
-            });
+            console.log('🔄 Actualizando facturaActual ID:', updatedFactura.id);
+            console.log('🔄 Items RAW que se van a guardar en estado:', JSON.stringify(updatedFactura.items, null, 2));
             setFacturaActual(updatedFactura);
+            console.log('✅ setFacturaActual llamado con items:', updatedFactura.items?.map(i => ({
+              desc: i.descripcion,
+              entregado: i.entregado
+            })));
           }
         }
         if (vistaActual === 'lista') setVistaActual('ruta');
