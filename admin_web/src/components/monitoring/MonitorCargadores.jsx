@@ -1,13 +1,24 @@
 // Componente de monitoreo en tiempo real de cargadores
+import { useState } from 'react';
 import { useRealtimeRutasEnCarga, useRealtimeUsuarios } from '../../hooks/useRealtimeCollection';
-import { Package, Clock, CheckCircle, Box, User, AlertTriangle } from 'lucide-react';
+import { Package, Clock, CheckCircle, Box, User, AlertTriangle, RefreshCw } from 'lucide-react';
 
 const MonitorCargadores = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // Obtener rutas en carga en tiempo real
   const { data: rutasEnCarga, loading: loadingRutas } = useRealtimeRutasEnCarga();
 
   // Obtener cargadores activos en tiempo real
   const { data: cargadores, loading: loadingCargadores } = useRealtimeUsuarios('cargador');
+
+  // Función para forzar actualización manual
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setRefreshKey(prev => prev + 1);
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   // Calcular estadísticas
   const cargadoresActivos = rutasEnCarga.filter(r => r.estado === 'en_carga').length;
@@ -40,9 +51,19 @@ const MonitorCargadores = () => {
               <p className="text-sm text-gray-500">Actividad en tiempo real</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-500 ml-1">En vivo</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-2 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 transition-colors disabled:opacity-50"
+              title="Actualizar manualmente"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-gray-500 ml-1">En vivo</span>
+            </div>
           </div>
         </div>
       </div>

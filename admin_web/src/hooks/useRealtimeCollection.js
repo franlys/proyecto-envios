@@ -1,6 +1,6 @@
 // Hook reutilizable para escuchar colecciones de Firestore en tiempo real
 // con aislamiento automático por companyId
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { db } from '../services/firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
@@ -25,9 +25,14 @@ export const useRealtimeCollection = (
   const [error, setError] = useState(null);
   const unsubscribeRef = useRef(null);
 
+  // ✅ FIX: Estabilizar las dependencias con useMemo para evitar re-subscripciones innecesarias
+  const stableFilters = useMemo(() => additionalFilters, [JSON.stringify(additionalFilters)]);
+  const stableOrderBy = useMemo(() => orderByFields, [JSON.stringify(orderByFields)]);
+  const companyId = userData?.companyId;
+
   useEffect(() => {
     // Si no hay userData o no tiene companyId, no hacer nada
-    if (!userData || !userData.companyId) {
+    if (!companyId) {
       setLoading(false);
       return;
     }
@@ -42,17 +47,19 @@ export const useRealtimeCollection = (
         let q = query(collectionRef);
 
         // CRÍTICO: Siempre filtrar por companyId para aislar datos
-        q = query(q, where('companyId', '==', userData.companyId));
+        q = query(q, where('companyId', '==', companyId));
 
         // Aplicar filtros adicionales
-        additionalFilters.forEach(([field, operator, value]) => {
+        stableFilters.forEach(([field, operator, value]) => {
           q = query(q, where(field, operator, value));
         });
 
         // Aplicar ordenamiento
-        orderByFields.forEach(([field, direction = 'asc']) => {
+        stableOrderBy.forEach(([field, direction = 'asc']) => {
           q = query(q, orderBy(field, direction));
         });
+
+        console.log(`🔄 Configurando listener para ${collectionName} con ${stableFilters.length} filtros`);
 
         // Configurar el listener de tiempo real
         unsubscribeRef.current = onSnapshot(
@@ -66,6 +73,7 @@ export const useRealtimeCollection = (
               });
             });
 
+            console.log(`✅ ${collectionName} actualizado: ${documents.length} documentos`);
             setData(documents);
             setLoading(false);
 
@@ -74,7 +82,7 @@ export const useRealtimeCollection = (
             }
           },
           (err) => {
-            console.error(`Error en listener de ${collectionName}:`, err);
+            console.error(`❌ Error en listener de ${collectionName}:`, err);
             setError(err.message);
             setLoading(false);
 
@@ -84,7 +92,7 @@ export const useRealtimeCollection = (
           }
         );
       } catch (err) {
-        console.error(`Error configurando listener de ${collectionName}:`, err);
+        console.error(`❌ Error configurando listener de ${collectionName}:`, err);
         setError(err.message);
         setLoading(false);
       }
@@ -95,10 +103,11 @@ export const useRealtimeCollection = (
     // Cleanup: Desuscribirse cuando el componente se desmonte
     return () => {
       if (unsubscribeRef.current) {
+        console.log(`🔌 Desconectando listener de ${collectionName}`);
         unsubscribeRef.current();
       }
     };
-  }, [collectionName, userData, JSON.stringify(additionalFilters), JSON.stringify(orderByFields)]);
+  }, [collectionName, companyId, stableFilters, stableOrderBy]);
 
   return { data, loading, error };
 };
