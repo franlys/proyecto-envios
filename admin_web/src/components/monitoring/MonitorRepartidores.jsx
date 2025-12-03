@@ -1,14 +1,14 @@
 // Componente de monitoreo en tiempo real de repartidores
 import { useState } from 'react';
-import { useRealtimeRutasEnEntrega, useRealtimeUsuarios } from '../../hooks/useRealtimeCollection';
+import { useRealtimeRutasActivas, useRealtimeUsuarios } from '../../hooks/useRealtimeCollection';
 import { Truck, MapPin, Clock, Package, CheckCircle, User, XCircle, RefreshCw } from 'lucide-react';
 
 const MonitorRepartidores = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Obtener rutas en entrega en tiempo real
-  const { data: rutasEnEntrega, loading: loadingRutas } = useRealtimeRutasEnEntrega();
+  // Obtener rutas activas de repartidores en tiempo real (asignadas, cargadas, en_entrega, etc)
+  const { data: rutasEnEntrega, loading: loadingRutas } = useRealtimeRutasActivas();
 
   // Obtener repartidores activos en tiempo real
   const { data: repartidores, loading: loadingRepartidores } = useRealtimeUsuarios('repartidor');
@@ -31,10 +31,13 @@ const MonitorRepartidores = () => {
     );
   }
 
+  // Filtrar solo rutas que tienen repartidor asignado
+  const rutasConRepartidor = rutasEnEntrega.filter(ruta => ruta.repartidorId);
+
   // Calcular estadísticas agregadas
-  const totalFacturas = rutasEnEntrega.reduce((sum, r) => sum + (r.totalFacturas || 0), 0);
-  const totalEntregadas = rutasEnEntrega.reduce((sum, r) => sum + (r.facturasEntregadas || 0), 0);
-  const totalNoEntregadas = rutasEnEntrega.reduce((sum, r) => {
+  const totalFacturas = rutasConRepartidor.reduce((sum, r) => sum + (r.totalFacturas || 0), 0);
+  const totalEntregadas = rutasConRepartidor.reduce((sum, r) => sum + (r.facturasEntregadas || 0), 0);
+  const totalNoEntregadas = rutasConRepartidor.reduce((sum, r) => {
     const facturas = r.facturas || [];
     return sum + facturas.filter(f => f.estado === 'no_entregada').length;
   }, 0);
@@ -77,7 +80,7 @@ const MonitorRepartidores = () => {
           <div className="text-xs text-gray-600 mt-1">Repartidores</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-purple-600">{rutasEnEntrega.length}</div>
+          <div className="text-2xl font-bold text-purple-600">{rutasConRepartidor.length}</div>
           <div className="text-xs text-gray-600 mt-1">En Ruta</div>
         </div>
         <div className="text-center">
@@ -97,14 +100,14 @@ const MonitorRepartidores = () => {
           Rutas Activas
         </h4>
 
-        {rutasEnEntrega.length === 0 ? (
+        {rutasConRepartidor.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Truck className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>No hay repartidores en ruta</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {rutasEnEntrega.map((ruta) => {
+            {rutasConRepartidor.map((ruta) => {
               const repartidor = repartidores.find(r => r.uid === ruta.repartidorId);
               const totalFacturas = ruta.totalFacturas || 0;
               const entregadas = ruta.facturasEntregadas || 0;

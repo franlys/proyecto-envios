@@ -20,9 +20,12 @@ const MonitorCargadores = () => {
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
+  // Filtrar solo rutas que tienen cargador asignado
+  const rutasConCargador = rutasEnCarga.filter(ruta => ruta.cargadorId);
+
   // Calcular estadísticas
-  const cargadoresActivos = rutasEnCarga.filter(r => r.estado === 'en_carga').length;
-  const rutasCargadas = rutasEnCarga.filter(r =>
+  const cargadoresActivos = rutasConCargador.filter(r => r.estado === 'en_carga').length;
+  const rutasCargadas = rutasConCargador.filter(r =>
     r.estado === 'cargada' || r.estado === 'carga_finalizada'
   ).length;
 
@@ -91,14 +94,14 @@ const MonitorCargadores = () => {
           Rutas en Proceso
         </h4>
 
-        {rutasEnCarga.length === 0 ? (
+        {rutasConCargador.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>No hay rutas en proceso de carga</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {rutasEnCarga.map((ruta) => {
+            {rutasConCargador.map((ruta) => {
               const cargador = cargadores.find(c => c.uid === ruta.cargadorId);
               const itemsCargados = ruta.itemsCargadosRuta || 0;
               const itemsTotal = ruta.itemsTotalRuta || 0;
