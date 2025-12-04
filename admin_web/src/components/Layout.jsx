@@ -67,11 +67,18 @@ const Layout = ({ children }) => {
     const menus = {
       super_admin: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/finanzas/dashboard', label: 'Finanzas', icon: '💼' },
         { path: '/companies', label: 'Compañías', icon: '🏢' },
         { path: '/tickets-admin', label: 'Tickets', icon: '🎫' },
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
+      // 💼 PROPIETARIO - Solo métricas empresariales (sin operaciones diarias)
+      propietario: [
+        { path: '/dashboard', label: 'Dashboard Empresarial', icon: '📊' },
+        { path: '/finanzas/dashboard', label: 'Finanzas', icon: '💼' }
+      ],
+      // 👨‍💼 ADMIN GENERAL - Operaciones completas (sin finanzas)
       admin_general: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/recolecciones', label: 'Recolecciones', icon: '📦' },
@@ -79,8 +86,8 @@ const Layout = ({ children }) => {
         { path: '/almacen-usa', label: 'Almacén USA', icon: '🏭' },
         { path: '/almacen-rd', label: 'Almacén RD', icon: '🚚' },
         { path: '/secretarias', label: 'Panel Secretarías', icon: '📋' },
-        { path: '/cargadores', label: 'Panel Cargadores', icon: '📦' }, // ✅ NUEVO
-        { path: '/repartidores', label: 'Panel Repartidores', icon: '🚗' }, // ✅ NUEVO
+        { path: '/cargadores', label: 'Panel Cargadores', icon: '📦' },
+        { path: '/repartidores', label: 'Panel Repartidores', icon: '🚗' },
         { path: '/rutas', label: 'Rutas', icon: '🗺️' },
         { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
         { path: '/facturas-pendientes-pago', label: 'Facturas Pendientes', icon: '💰' },

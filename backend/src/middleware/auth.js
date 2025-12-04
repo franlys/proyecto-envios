@@ -164,7 +164,7 @@ export const requireCompany = (req, res, next) => {
  */
 export const requireSuperAdmin = (req, res, next) => {
   if (!req.userData || req.userData.rol !== 'super_admin') {
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Acceso denegado',
       hint: 'Solo super_admin puede realizar esta acción'
     });
@@ -172,9 +172,36 @@ export const requireSuperAdmin = (req, res, next) => {
   next();
 };
 
+/**
+ * Middleware para verificar acceso a finanzas
+ * Solo propietario y super_admin pueden ver datos financieros
+ */
+export const requireFinancialAccess = (req, res, next) => {
+  if (!req.userData) {
+    return res.status(403).json({
+      error: 'No autorizado',
+      hint: 'Debes iniciar sesión primero'
+    });
+  }
+
+  const userRole = req.userData.rol;
+  const hasAccess = userRole === 'propietario' || userRole === 'super_admin';
+
+  if (!hasAccess) {
+    return res.status(403).json({
+      error: 'Acceso denegado al módulo financiero',
+      hint: 'Solo el propietario de la empresa puede ver datos financieros',
+      yourRole: userRole
+    });
+  }
+
+  next();
+};
+
 export default {
   verifyToken,
   checkRole,
   requireCompany,
-  requireSuperAdmin
+  requireSuperAdmin,
+  requireFinancialAccess
 };

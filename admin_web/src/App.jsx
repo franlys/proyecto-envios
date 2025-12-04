@@ -33,6 +33,18 @@ import ImpresionFacturasRuta from './components/ImpresionFacturasRuta'; // ✅ N
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
+// ✅ NUEVO - Módulo Financiero
+import FinanzasLayout from './pages/Finanzas/FinanzasLayout';
+import FinanzasDashboard from './pages/Finanzas/Dashboard';
+import FinanzasTransacciones from './pages/Finanzas/Transacciones';
+import FinanzasSuscripciones from './pages/Finanzas/Suscripciones';
+import FinanzasReportes from './pages/Finanzas/Reportes';
+import FinanzasConfiguracion from './pages/Finanzas/Configuracion';
+
+// ✅ Sistema de roles y permisos
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import AccessDenied from './pages/AccessDenied';
+
 // Componente que decide qué Dashboard mostrar según el rol
 const DashboardRouter = () => {
   const { userData } = useAuth();
@@ -109,6 +121,34 @@ function AppContent() {
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/almacen-usa" element={<PanelAlmacenUSA />} />
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
+
+          </>
+        )}
+
+        {/* ============================================ */}
+        {/* 💼 MÓDULO FINANCIERO - Solo Propietario y Super Admin */}
+        {/* ============================================ */}
+        {(rol === 'propietario' || rol === 'super_admin') && (
+          <Route path="/finanzas" element={
+            <ProtectedRoute modulo="finanzas">
+              <FinanzasLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Navigate to="/finanzas/dashboard" replace />} />
+            <Route path="dashboard" element={<FinanzasDashboard />} />
+            <Route path="transacciones" element={<FinanzasTransacciones />} />
+            <Route path="suscripciones" element={<FinanzasSuscripciones />} />
+            <Route path="reportes" element={<FinanzasReportes />} />
+            <Route path="configuracion" element={<FinanzasConfiguracion />} />
+          </Route>
+        )}
+
+        {/* ============================================ */}
+        {/* RUTAS PARA PROPIETARIO (solo dashboards) */}
+        {/* ============================================ */}
+        {rol === 'propietario' && (
+          <>
+            {/* El propietario solo ve dashboards - NO operaciones */}
           </>
         )}
 
@@ -192,6 +232,7 @@ function AppContent() {
         {/* ============================================ */}
         <Route path="/configuracion" element={<Configuracion />} />
         <Route path="/ayuda" element={<Ayuda />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
 
         {/* Redirects */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
