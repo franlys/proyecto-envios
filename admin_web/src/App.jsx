@@ -33,13 +33,8 @@ import ImpresionFacturasRuta from './components/ImpresionFacturasRuta'; // ✅ N
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
-// ✅ NUEVO - Módulo Financiero
-import FinanzasLayout from './pages/Finanzas/FinanzasLayout';
+// ✅ NUEVO - Módulo Financiero (simplificado - sin layout separado)
 import FinanzasDashboard from './pages/Finanzas/Dashboard';
-import FinanzasTransacciones from './pages/Finanzas/Transacciones';
-import FinanzasSuscripciones from './pages/Finanzas/Suscripciones';
-import FinanzasReportes from './pages/Finanzas/Reportes';
-import FinanzasConfiguracion from './pages/Finanzas/Configuracion';
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -53,6 +48,8 @@ const DashboardRouter = () => {
     return <DashboardSuperAdmin />;
   }
 
+  // Propietario ve el dashboard operativo de su empresa (NO el financiero)
+  // El dashboard financiero está en /finanzas
   return <Dashboard />;
 };
 
@@ -128,20 +125,11 @@ function AppContent() {
         {/* ============================================ */}
         {/* 💼 MÓDULO FINANCIERO - Solo Propietario y Super Admin */}
         {/* ============================================ */}
-        {(rol === 'propietario' || rol === 'super_admin') && (
-          <Route path="/finanzas" element={
-            <ProtectedRoute modulo="finanzas">
-              <FinanzasLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<Navigate to="/finanzas/dashboard" replace />} />
-            <Route path="dashboard" element={<FinanzasDashboard />} />
-            <Route path="transacciones" element={<FinanzasTransacciones />} />
-            <Route path="suscripciones" element={<FinanzasSuscripciones />} />
-            <Route path="reportes" element={<FinanzasReportes />} />
-            <Route path="configuracion" element={<FinanzasConfiguracion />} />
-          </Route>
-        )}
+        <Route path="/finanzas" element={
+          <ProtectedRoute modulo="finanzas">
+            <FinanzasDashboard />
+          </ProtectedRoute>
+        } />
 
         {/* ============================================ */}
         {/* RUTAS PARA PROPIETARIO (solo dashboards) */}
