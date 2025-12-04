@@ -104,21 +104,21 @@ const Recolecciones = () => {
 
   const getEstadoBadge = (estado) => {
     const badges = {
-      sin_confirmar: 'bg-yellow-100 text-yellow-800',
-      pendiente_recoleccion: 'bg-yellow-100 text-yellow-800',
-      recolectada: 'bg-green-100 text-green-800',
+      sin_confirmar: 'bg-amber-100 text-amber-800',
+      pendiente_recoleccion: 'bg-amber-100 text-amber-800',
+      recolectada: 'bg-emerald-100 text-emerald-800',
       en_contenedor_usa: 'bg-purple-100 text-purple-800',
-      incompleta_usa: 'bg-orange-100 text-orange-800',
+      incompleta_usa: 'bg-amber-100 text-amber-800',
       en_transito_rd: 'bg-indigo-100 text-indigo-800',
-      recibida_rd: 'bg-blue-100 text-blue-800',
-      pendiente_confirmacion: 'bg-yellow-100 text-yellow-800',
-      confirmada: 'bg-blue-100 text-blue-800',
+      recibida_rd: 'bg-indigo-100 text-indigo-800',
+      pendiente_confirmacion: 'bg-amber-100 text-amber-800',
+      confirmada: 'bg-indigo-100 text-indigo-800',
       en_ruta: 'bg-purple-100 text-purple-800',
       lista_para_entregar: 'bg-teal-100 text-teal-800',
-      entregada: 'bg-green-100 text-green-800',
-      no_entregada: 'bg-red-100 text-red-800'
+      entregada: 'bg-emerald-100 text-emerald-800',
+      no_entregada: 'bg-rose-100 text-rose-800'
     };
-    return badges[estado] || 'bg-gray-100 text-gray-800';
+    return badges[estado] || 'bg-slate-100 text-slate-800';
   };
 
   const getEstadoTexto = (estado) => {
@@ -150,7 +150,7 @@ const Recolecciones = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -164,10 +164,10 @@ const Recolecciones = () => {
       <div className="flex justify-between items-center">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">Recolecciones</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Recolecciones</h1>
             <LiveIndicator isLive={true} showText={true} />
           </div>
-          <p className="text-gray-600 mt-1">
+          <p className="text-slate-600 mt-1">
             Gestiona todas las recolecciones del sistema
           </p>
         </div>
@@ -177,7 +177,7 @@ const Recolecciones = () => {
           userData?.rol === 'super_admin') && (
           <button
             onClick={handleNuevaRecoleccion}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
           >
             <Plus size={20} />
             Nueva Recolección
@@ -189,13 +189,13 @@ const Recolecciones = () => {
       <div className="bg-white rounded-lg shadow p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
               placeholder="Buscar por código, zona, nombre..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
 
@@ -203,7 +203,7 @@ const Recolecciones = () => {
             <select
               value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="todas">Todos los estados</option>
               <option value="sin_confirmar">Sin Confirmar</option>
@@ -225,7 +225,7 @@ const Recolecciones = () => {
             <select
               value={filtroZona}
               onChange={(e) => setFiltroZona(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="todas">Todas las zonas</option>
               <option value="Capital">Capital</option>
@@ -243,37 +243,37 @@ const Recolecciones = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-slate-600 text-sm">Total</p>
+              <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
             </div>
-            <Package className="text-blue-600" size={32} />
+            <Package className="text-indigo-600" size={32} />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Pendientes</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pendientes}</p>
+              <p className="text-slate-600 text-sm">Pendientes</p>
+              <p className="text-2xl font-bold text-amber-600">{stats.pendientes}</p>
             </div>
-            <Calendar className="text-yellow-600" size={32} />
+            <Calendar className="text-amber-600" size={32} />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Recolectadas</p>
-              <p className="text-2xl font-bold text-green-600">{stats.recolectadas}</p>
+              <p className="text-slate-600 text-sm">Recolectadas</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.recolectadas}</p>
             </div>
-            <MapPin className="text-green-600" size={32} />
+            <MapPin className="text-emerald-600" size={32} />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">En Almacén</p>
+              <p className="text-slate-600 text-sm">En Almacén</p>
               <p className="text-2xl font-bold text-purple-600">{stats.enAlmacen}</p>
             </div>
             <Package className="text-purple-600" size={32} />
@@ -284,11 +284,11 @@ const Recolecciones = () => {
       {/* Lista de Recolecciones */}
       {recoleccionesFiltradas.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Package className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <Package className="mx-auto text-slate-400 mb-4" size={48} />
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">
             No hay recolecciones
           </h3>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             {searchTerm || filtroEstado !== 'todas' || filtroZona !== 'todas'
               ? 'No se encontraron recolecciones con esos filtros'
               : 'Aún no hay recolecciones registradas'}
@@ -310,14 +310,14 @@ const Recolecciones = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-slate-900">
                         {recoleccion.codigoTracking}
                       </h3>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoBadge(recoleccion.estadoGeneral)}`}>
                         {getEstadoTexto(recoleccion.estadoGeneral)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm text-slate-600">
                       <span className="flex items-center gap-1">
                         <Calendar size={14} />
                         {new Date(recoleccion.fechaCreacion?.seconds * 1000 || recoleccion.createdAt || Date.now()).toLocaleDateString('es-DO')}
@@ -336,7 +336,7 @@ const Recolecciones = () => {
                   
                   <button
                     onClick={() => handleVerDetalle(recoleccion)}
-                    className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
+                    className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 transition flex items-center gap-2"
                   >
                     <Eye size={18} />
                     Ver Detalle
@@ -344,32 +344,32 @@ const Recolecciones = () => {
                 </div>
 
                 {/* ✅ Información del cliente con helpers */}
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                <div className="bg-slate-50 rounded-lg p-3 mb-3">
                   <div className="flex items-center gap-2 text-sm">
-                    <User size={14} className="text-gray-600" />
-                    <span className="font-medium text-gray-900">{nombreCliente}</span>
-                    <span className="text-gray-400">•</span>
-                    <Phone size={14} className="text-gray-600" />
-                    <span className="text-gray-700">{telefonoCliente}</span>
+                    <User size={14} className="text-slate-600" />
+                    <span className="font-medium text-slate-900">{nombreCliente}</span>
+                    <span className="text-slate-400">•</span>
+                    <Phone size={14} className="text-slate-600" />
+                    <span className="text-slate-700">{telefonoCliente}</span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-1 ml-5">{direccionCliente}</p>
+                  <p className="text-xs text-slate-600 mt-1 ml-5">{direccionCliente}</p>
                 </div>
 
                 {/* Items Preview */}
                 <div className="space-y-2">
                   {(recoleccion.items || []).slice(0, 2).map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
-                      <Package className="text-gray-400" size={16} />
+                    <div key={idx} className="flex items-center gap-3 text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">
+                      <Package className="text-slate-400" size={16} />
                       <div className="flex-1">
                         <p className="font-medium">{item.descripcion}</p>
-                        <div className="flex gap-4 text-xs text-gray-600 mt-1">
+                        <div className="flex gap-4 text-xs text-slate-600 mt-1">
                           <span>Cantidad: {item.cantidad}</span>
                         </div>
                       </div>
                     </div>
                   ))}
                   {recoleccion.items?.length > 2 && (
-                    <p className="text-xs text-gray-500 text-center">
+                    <p className="text-xs text-slate-500 text-center">
                       Y {recoleccion.items.length - 2} item(s) más...
                     </p>
                   )}
@@ -377,8 +377,8 @@ const Recolecciones = () => {
 
                 {/* Fotos Badge */}
                 {recoleccion.fotos && recoleccion.fotos.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Camera size={16} />
                       <span>{recoleccion.fotos.length} foto(s) adjunta(s)</span>
                     </div>
@@ -402,14 +402,14 @@ const Recolecciones = () => {
                 {/* Header del Modal */}
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
                       {recoleccionSeleccionada.codigoTracking}
                     </h2>
                     <div className="flex items-center gap-3">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoBadge(recoleccionSeleccionada.estadoGeneral)}`}>
                         {getEstadoTexto(recoleccionSeleccionada.estadoGeneral)}
                       </span>
-                      <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <span className="text-sm text-slate-600 flex items-center gap-1">
                         <MapPin size={14} />
                         {recoleccionSeleccionada.zona || recoleccionSeleccionada.destinatario?.zona}
                         {(recoleccionSeleccionada.sector || recoleccionSeleccionada.destinatario?.sector) && 
@@ -419,7 +419,7 @@ const Recolecciones = () => {
                   </div>
                   <button
                     onClick={handleCloseModal}
-                    className="text-gray-400 hover:text-gray-600 transition"
+                    className="text-slate-400 hover:text-slate-600 transition"
                   >
                     <X size={24} />
                   </button>
@@ -427,39 +427,39 @@ const Recolecciones = () => {
 
                 {/* ✅ Información del Remitente */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Package className="text-green-600" size={20} />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Package className="text-emerald-600" size={20} />
                     Información del Remitente (Quien Envía)
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-green-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50 p-4 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <User size={18} className="text-gray-500 mt-1" />
+                      <User size={18} className="text-slate-500 mt-1" />
                       <div>
-                        <label className="text-sm text-gray-600">Nombre</label>
-                        <p className="text-gray-900 font-medium">{remitente.nombre}</p>
+                        <label className="text-sm text-slate-600">Nombre</label>
+                        <p className="text-slate-900 font-medium">{remitente.nombre}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Phone size={18} className="text-gray-500 mt-1" />
+                      <Phone size={18} className="text-slate-500 mt-1" />
                       <div>
-                        <label className="text-sm text-gray-600">Teléfono</label>
-                        <p className="text-gray-900 font-medium">{remitente.telefono}</p>
+                        <label className="text-sm text-slate-600">Teléfono</label>
+                        <p className="text-slate-900 font-medium">{remitente.telefono}</p>
                       </div>
                     </div>
                     {remitente.email && remitente.email !== 'N/A' && remitente.email !== '' && (
                       <div className="flex items-start gap-2">
-                        <Mail size={18} className="text-gray-500 mt-1" />
+                        <Mail size={18} className="text-slate-500 mt-1" />
                         <div>
-                          <label className="text-sm text-gray-600">Email</label>
-                          <p className="text-gray-900 font-medium">{remitente.email}</p>
+                          <label className="text-sm text-slate-600">Email</label>
+                          <p className="text-slate-900 font-medium">{remitente.email}</p>
                         </div>
                       </div>
                     )}
                     <div className="flex items-start gap-2 md:col-span-2">
-                      <Home size={18} className="text-gray-500 mt-1" />
+                      <Home size={18} className="text-slate-500 mt-1" />
                       <div>
-                        <label className="text-sm text-gray-600">Dirección de Recogida</label>
-                        <p className="text-gray-900 font-medium">{remitente.direccion}</p>
+                        <label className="text-sm text-slate-600">Dirección de Recogida</label>
+                        <p className="text-slate-900 font-medium">{remitente.direccion}</p>
                       </div>
                     </div>
                   </div>
@@ -467,39 +467,39 @@ const Recolecciones = () => {
 
                 {/* ✅ Información del Destinatario */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <MapPin className="text-blue-600" size={20} />
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <MapPin className="text-indigo-600" size={20} />
                     Información del Destinatario (Quien Recibe)
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50 p-4 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <User size={18} className="text-gray-500 mt-1" />
+                      <User size={18} className="text-slate-500 mt-1" />
                       <div>
-                        <label className="text-sm text-gray-600">Cliente</label>
-                        <p className="text-gray-900 font-medium">{destinatario.nombre}</p>
+                        <label className="text-sm text-slate-600">Cliente</label>
+                        <p className="text-slate-900 font-medium">{destinatario.nombre}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Phone size={18} className="text-gray-500 mt-1" />
+                      <Phone size={18} className="text-slate-500 mt-1" />
                       <div>
-                        <label className="text-sm text-gray-600">Teléfono</label>
-                        <p className="text-gray-900 font-medium">{destinatario.telefono}</p>
+                        <label className="text-sm text-slate-600">Teléfono</label>
+                        <p className="text-slate-900 font-medium">{destinatario.telefono}</p>
                       </div>
                     </div>
                     {destinatario.email && destinatario.email !== 'N/A' && destinatario.email !== '' && (
                       <div className="flex items-start gap-2">
-                        <Mail size={18} className="text-gray-500 mt-1" />
+                        <Mail size={18} className="text-slate-500 mt-1" />
                         <div>
-                          <label className="text-sm text-gray-600">Email</label>
-                          <p className="text-gray-900 font-medium">{destinatario.email}</p>
+                          <label className="text-sm text-slate-600">Email</label>
+                          <p className="text-slate-900 font-medium">{destinatario.email}</p>
                         </div>
                       </div>
                     )}
                     <div className="flex items-start gap-2 md:col-span-2">
-                      <Home size={18} className="text-gray-500 mt-1" />
+                      <Home size={18} className="text-slate-500 mt-1" />
                       <div>
-                        <label className="text-sm text-gray-600">Dirección de Entrega</label>
-                        <p className="text-gray-900 font-medium">{destinatario.direccion}</p>
+                        <label className="text-sm text-slate-600">Dirección de Entrega</label>
+                        <p className="text-slate-900 font-medium">{destinatario.direccion}</p>
                       </div>
                     </div>
                   </div>
@@ -507,29 +507,29 @@ const Recolecciones = () => {
 
                 {/* Items */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">
                     Items ({recoleccionSeleccionada.items?.length || 0})
                   </h3>
                   <div className="space-y-3">
                     {(recoleccionSeleccionada.items || []).map((item, index) => (
-                      <div key={item.id || index} className="border border-gray-200 rounded-lg p-4">
+                      <div key={item.id || index} className="border border-slate-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Package className="text-purple-600" size={20} />
-                          <h4 className="font-semibold text-gray-900">Item #{index + 1}</h4>
+                          <h4 className="font-semibold text-slate-900">Item #{index + 1}</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="md:col-span-2">
-                            <label className="text-sm text-gray-600">Descripción</label>
-                            <p className="text-gray-900">{item.descripcion}</p>
+                            <label className="text-sm text-slate-600">Descripción</label>
+                            <p className="text-slate-900">{item.descripcion}</p>
                           </div>
                           <div>
-                            <label className="text-sm text-gray-600">Cantidad</label>
-                            <p className="text-gray-900">{item.cantidad}</p>
+                            <label className="text-sm text-slate-600">Cantidad</label>
+                            <p className="text-slate-900">{item.cantidad}</p>
                           </div>
                           {item.precio && (
                             <div>
-                              <label className="text-sm text-gray-600">Precio</label>
-                              <p className="text-gray-900">${item.precio}</p>
+                              <label className="text-sm text-slate-600">Precio</label>
+                              <p className="text-slate-900">${item.precio}</p>
                             </div>
                           )}
                         </div>
@@ -541,14 +541,14 @@ const Recolecciones = () => {
                 {/* Fotos con SmartImage */}
                 {recoleccionSeleccionada.fotos && recoleccionSeleccionada.fotos.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">
                       Fotos de la Recolección ({recoleccionSeleccionada.fotos.length})
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {recoleccionSeleccionada.fotos.map((foto, index) => (
                         <div
                           key={index}
-                          className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
                         >
                           <SmartImage
                             src={foto.preview || foto.url || foto}
@@ -570,18 +570,18 @@ const Recolecciones = () => {
                 {/* Notas */}
                 {recoleccionSeleccionada.notas && (
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Notas</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-gray-700">{recoleccionSeleccionada.notas}</p>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3">Notas</h3>
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <p className="text-slate-700">{recoleccionSeleccionada.notas}</p>
                     </div>
                   </div>
                 )}
 
                 {/* Botón Cerrar */}
-                <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
+                <div className="mt-6 pt-6 border-t border-slate-200 flex justify-end">
                   <button
                     onClick={handleCloseModal}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                    className="px-6 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition"
                   >
                     Cerrar
                   </button>
