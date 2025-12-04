@@ -181,7 +181,7 @@ const Layout = ({ children }) => {
   return (
     // CAMBIO 1: El div principal ahora es 'h-screen' (altura de pantalla completa),
     // 'flex flex-col' (para apilar header y contenido) y 'overflow-hidden' (para evitar el scroll de la página).
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
       {/* Listener de notificaciones (solo para roles con acceso a facturas) */}
       {NotificationListener && mostrarNotificaciones && (
         <NotificationListener
@@ -217,7 +217,7 @@ const Layout = ({ children }) => {
 
       {/* CAMBIO 2: El header ya no es 'sticky'. Ahora es una fila normal en la columna flex. */}
       {/* 'flex-shrink-0' asegura que no se encoja si el contenido crece. */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm z-50 flex-shrink-0">
+      <header className="bg-white border-b border-slate-200 z-50 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo y título con botón hamburguesa en móvil */}
@@ -318,7 +318,7 @@ const Layout = ({ children }) => {
         <aside className={`
           fixed lg:relative
           top-0 left-0 h-full
-          w-64 bg-white dark:bg-gray-800 shadow-md
+          w-64 bg-white border-r border-slate-200
           flex flex-col flex-shrink-0
           z-50 lg:z-auto
           transform transition-transform duration-300 ease-in-out
@@ -339,18 +339,18 @@ const Layout = ({ children }) => {
 
           {/* CAMBIO 5: La navegación (nav) ahora es 'flex-1' (ocupa el espacio vertical)
           // y 'overflow-y-auto' (permite scroll *sólo* en el menú si es muy largo). */}
-          <nav className="flex-1 p-4 overflow-y-auto">
+          <nav className="flex-1 p-3 overflow-y-auto">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)} // Cerrar sidebar al hacer click en móvil
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition text-sm sm:text-base ${location.pathname === item.path
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all duration-200 text-sm group ${location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+                  ? 'bg-indigo-50 text-indigo-700 font-medium'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
               >
-                <span className="text-lg sm:text-xl flex-shrink-0">{item.icon}</span>
+                <span className="text-xl flex-shrink-0 opacity-90">{item.icon}</span>
                 <span className="font-medium truncate">{item.label}</span>
               </Link>
             ))}
@@ -374,7 +374,7 @@ const Layout = ({ children }) => {
         // Se quitó 'min-h' que ya no es necesario. Todo el contenido de tus páginas
         // (como Empleados.jsx) que sea más largo que la pantalla, hará que *solo* este
         // 'main' tenga una barra de scroll. */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-y-auto bg-slate-50">
           {children}
         </main>
       </div>
