@@ -60,8 +60,8 @@ const SmartImage = ({
   // Si no hay URL válida
   if (!thumbnail) {
     return (
-      <div className={`${className} bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}>
-        <ImageIcon className="text-gray-400" size={32} />
+      <div className={`${className} bg-slate-100 dark:bg-slate-800 flex items-center justify-center`}>
+        <ImageIcon className="text-slate-400" size={32} />
       </div>
     );
   }
@@ -69,9 +69,9 @@ const SmartImage = ({
   // Si hubo error al cargar la imagen
   if (imageError) {
     return (
-      <div className={`${className} bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center p-4`}>
-        <ImageIcon className="text-gray-400 mb-2" size={32} />
-        <p className="text-xs text-gray-500 text-center">Error al cargar imagen</p>
+      <div className={`${className} bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center p-4`}>
+        <ImageIcon className="text-slate-400 mb-2" size={32} />
+        <p className="text-xs text-slate-500 text-center">Error al cargar imagen</p>
       </div>
     );
   }
@@ -103,14 +103,14 @@ const SmartImage = ({
 
       {/* Loading skeleton */}
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
-          <ImageIcon className="text-gray-400" size={24} />
+        <div className="absolute inset-0 bg-slate-200 dark:bg-slate-700 animate-pulse flex items-center justify-center">
+          <ImageIcon className="text-slate-400" size={24} />
         </div>
       )}
 
       {/* Badge de imagen optimizada */}
       {showOptimizedBadge && isOptimized && !isLoading && (
-        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full shadow-lg flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
           HD
         </div>

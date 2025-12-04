@@ -62,8 +62,8 @@ const PullToRefresh = ({ onRefresh, children }) => {
                     transform: `translateY(${pullDistance > 0 ? pullDistance : -50}px)`
                 }}
             >
-                <div className={`bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg border border-gray-200 dark:border-gray-700 ${refreshing ? 'animate-spin' : ''}`}>
-                    <RefreshCw size={24} className={`text-blue-600 ${pullDistance > THRESHOLD && !refreshing ? 'rotate-180 transition-transform duration-300' : ''}`} />
+                <div className={`bg-white dark:bg-slate-800 rounded-full p-3 shadow-lg border border-slate-200 dark:border-slate-700 ${refreshing ? 'animate-spin' : ''}`}>
+                    <RefreshCw size={24} className={`text-indigo-600 ${pullDistance > THRESHOLD && !refreshing ? 'rotate-180 transition-transform duration-300' : ''}`} />
                 </div>
             </div>
 

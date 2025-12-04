@@ -302,12 +302,12 @@ const NuevaRecoleccion = () => {
   return (
     <div className="p-4 xs:p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl xs:text-3xl font-bold text-gray-800 dark:text-white">
+        <h1 className="text-2xl xs:text-3xl font-bold text-slate-800 dark:text-white">
           Crear Nueva Recolección
         </h1>
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition"
+          className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition"
         >
           <ArrowLeft size={20} />
           Volver
@@ -317,59 +317,59 @@ const NuevaRecoleccion = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* REMITENTE */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-green-500">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-            <Package size={24} className="text-green-600" />
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-emerald-500">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+            <Package size={24} className="text-emerald-600" />
             Datos de Quien Envía (Remitente) *
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Nombre Completo *
               </label>
               <input
                 type="text"
                 value={remitente}
                 onChange={(e) => setRemitente(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-500"
                 placeholder="Juan Pérez"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Teléfono *
               </label>
               <input
                 type="tel"
                 value={remitenteTelefono}
                 onChange={(e) => setRemitenteTelefono(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-500"
                 placeholder="(809) 123-4567"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Email (Opcional)
               </label>
               <input
                 type="email"
                 value={remitenteEmail}
                 onChange={(e) => setRemitenteEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-500"
                 placeholder="remitente@ejemplo.com"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Dirección de Recogida *
               </label>
               <input
                 type="text"
                 value={remitenteDireccion}
                 onChange={(e) => setRemitenteDireccion(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-500"
                 placeholder="Calle, Número, Sector, Ciudad..."
                 required
               />
@@ -378,59 +378,59 @@ const NuevaRecoleccion = () => {
         </div>
 
         {/* DESTINATARIO */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-blue-500">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-            <MapPin size={24} className="text-blue-600" />
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border-l-4 border-indigo-500">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+            <MapPin size={24} className="text-indigo-600" />
             Datos de Quien Recibe (Destinatario) *
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Nombre Completo *
               </label>
               <input
                 type="text"
                 value={destinatario}
                 onChange={(e) => setDestinatario(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                 placeholder="María López"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Teléfono *
               </label>
               <input
                 type="tel"
                 value={destinatarioTelefono}
                 onChange={(e) => setDestinatarioTelefono(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                 placeholder="(809) 987-6543"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Email (Opcional)
               </label>
               <input
                 type="email"
                 value={destinatarioEmail}
                 onChange={(e) => setDestinatarioEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                 placeholder="destinatario@ejemplo.com"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Dirección de Entrega *
               </label>
               <input
                 type="text"
                 value={destinatarioDireccion}
                 onChange={(e) => setDestinatarioDireccion(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                 placeholder="Calle, Número, Sector, Ciudad..."
                 required
               />
@@ -438,13 +438,13 @@ const NuevaRecoleccion = () => {
 
             {/* ✅ ZONA Y SECTOR - DEPENDIENTES */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Zona de Entrega *
               </label>
               <select
                 value={zona}
                 onChange={(e) => setZona(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                 required
               >
                 <option value="">-- Seleccionar Zona --</option>
@@ -457,13 +457,13 @@ const NuevaRecoleccion = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Sector {sectoresDisponibles.length > 0 && '(Recomendado)'}
               </label>
               <select
                 value={sector}
                 onChange={(e) => setSector(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                 disabled={!zona}
               >
                 <option value="">-- Seleccionar Sector --</option>
@@ -472,12 +472,12 @@ const NuevaRecoleccion = () => {
                 ))}
               </select>
               {!zona && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Selecciona una zona primero
                 </p>
               )}
               {zona && sectoresDisponibles.length > 0 && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
                   💡 Especificar el sector ayuda a optimizar las rutas de entrega
                 </p>
               )}
@@ -486,8 +486,8 @@ const NuevaRecoleccion = () => {
         </div>
 
         {/* ITEMS */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">
             Items Recolectados *
           </h2>
           <div className="space-y-3">
@@ -499,7 +499,7 @@ const NuevaRecoleccion = () => {
                     placeholder={`Descripción del item ${index + 1}`}
                     value={item.producto}
                     onChange={(e) => handleItemChange(index, 'producto', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                     required
                   />
                 </div>
@@ -509,7 +509,7 @@ const NuevaRecoleccion = () => {
                     min="1"
                     value={item.cantidad}
                     onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center ${!item.cantidad ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-center ${!item.cantidad ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20' : 'border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white'
                       }`}
                     title="Cantidad"
                     placeholder="Cant."
@@ -519,7 +519,7 @@ const NuevaRecoleccion = () => {
                   type="button"
                   onClick={() => handleRemoveItem(index)}
                   disabled={items.length <= 1}
-                  className="px-3 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50 hover:bg-red-700 transition"
+                  className="px-3 py-2 bg-rose-600 text-white rounded-lg disabled:opacity-50 hover:bg-rose-700 transition"
                   title="Eliminar item"
                 >
                   <Trash2 size={18} />
@@ -530,7 +530,7 @@ const NuevaRecoleccion = () => {
           <button
             type="button"
             onClick={handleAddItem}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
           >
             <Plus size={18} /> Agregar Otro Item
           </button>
@@ -547,21 +547,21 @@ const NuevaRecoleccion = () => {
         />
 
         {/* FOTOS */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">
             Fotos de Recolección
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+            <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-2">
               (Opcional)
             </span>
           </h2>
 
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 dark:border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 transition">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <Upload size={32} className="text-gray-500 dark:text-gray-400 mb-2" />
-              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+              <Upload size={32} className="text-slate-500 dark:text-slate-400 mb-2" />
+              <p className="mb-2 text-sm text-slate-500 dark:text-slate-400">
                 <span className="font-semibold">Click para tomar foto o subir</span> desde galería
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 📸 En móviles abre la cámara directamente • Máximo 10 fotos
               </p>
             </div>
@@ -577,7 +577,7 @@ const NuevaRecoleccion = () => {
 
           {fotoPreviews.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                 {fotoPreviews.length} foto(s) seleccionada(s)
               </p>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
@@ -586,12 +586,12 @@ const NuevaRecoleccion = () => {
                     <img
                       src={previewUrl}
                       alt={`Vista previa ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                      className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-600"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(index)}
-                      className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                      className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
                       title="Eliminar foto"
                     >
                       <X size={14} />
@@ -604,14 +604,14 @@ const NuevaRecoleccion = () => {
         </div>
 
         {/* NOTAS */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">
             Notas Adicionales
           </h2>
           <textarea
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
             placeholder="Notas internas, detalles de pago, instrucciones especiales..."
             rows="3"
           />
@@ -619,7 +619,7 @@ const NuevaRecoleccion = () => {
 
         {/* ERROR */}
         {error && (
-          <div className="p-4 bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 rounded-lg flex items-start gap-3">
+          <div className="p-4 bg-rose-100 dark:bg-rose-900/40 border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 rounded-lg flex items-start gap-3">
             <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
             <div>
               <strong>Error:</strong> {error}
@@ -631,7 +631,7 @@ const NuevaRecoleccion = () => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <>

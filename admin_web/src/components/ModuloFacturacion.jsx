@@ -120,22 +120,22 @@ const ModuloFacturacion = ({
   const getEstadoBadge = () => {
     const badges = {
       pagada: {
-        color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
         icon: CheckCircle,
         text: 'Pagada'
       },
       pendiente_pago: {
-        color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+        color: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200',
         icon: AlertCircle,
         text: 'Pendiente de Pago'
       },
       pago_parcial: {
-        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+        color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
         icon: Clock,
         text: 'Pago Parcial'
       },
       cobro_contra_entrega: {
-        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
         icon: Wallet,
         text: 'Cobro Contra Entrega'
       }
@@ -229,16 +229,16 @@ const ModuloFacturacion = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-6">
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
-          <Calculator className="text-blue-600" size={32} />
+          <Calculator className="text-indigo-600" size={32} />
           <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
               Facturación
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Precios, impuestos y estado de pago
             </p>
           </div>
@@ -248,7 +248,7 @@ const ModuloFacturacion = ({
 
       {/* Items con precios */}
       <div>
-        <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
+        <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
           Items y Precios
         </h4>
 
@@ -256,27 +256,27 @@ const ModuloFacturacion = ({
           {itemsConPrecios.map((item, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+              className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg"
             >
               <div className="flex-1">
-                <p className="font-medium text-gray-900 dark:text-white">
+                <p className="font-medium text-slate-900 dark:text-white">
                   {item.descripcion}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   Cantidad: {item.cantidad}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">USD$</span>
+                <span className="text-sm text-slate-600 dark:text-slate-400">USD$</span>
                 <input
                   type="number"
                   value={item.precio}
                   onChange={(e) => handlePrecioChange(index, e.target.value)}
                   disabled={readOnly}
                   className={`w-32 px-3 py-2 border rounded-lg text-right font-semibold ${item.precio === '' || item.precio === null || item.precio === undefined
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white'
+                    ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20'
+                    : 'border-slate-300 dark:border-slate-600 dark:bg-slate-600 dark:text-white'
                     }`}
                   placeholder="0.00"
                   step="0.01"
@@ -285,8 +285,8 @@ const ModuloFacturacion = ({
               </div>
 
               <div className="w-32 text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-                <p className="font-bold text-gray-900 dark:text-white">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Total</p>
+                <p className="font-bold text-slate-900 dark:text-white">
                   {formatCurrency((parseFloat(item.precio) || 0) * (parseInt(item.cantidad) || 1))}
                 </p>
               </div>
@@ -296,25 +296,25 @@ const ModuloFacturacion = ({
       </div>
 
       {/* Resumen financiero */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
+      <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-gray-700 dark:text-gray-300">Subtotal:</span>
-          <span className="font-semibold text-gray-900 dark:text-white">
+          <span className="text-slate-700 dark:text-slate-300">Subtotal:</span>
+          <span className="font-semibold text-slate-900 dark:text-white">
             {formatCurrency(subtotal)}
           </span>
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-gray-700 dark:text-gray-300">ITBIS (18%):</span>
-          <span className="font-semibold text-gray-900 dark:text-white">
+          <span className="text-slate-700 dark:text-slate-300">ITBIS (18%):</span>
+          <span className="font-semibold text-slate-900 dark:text-white">
             {formatCurrency(impuestos)}
           </span>
         </div>
 
-        <div className="border-t border-blue-200 dark:border-blue-800 pt-3">
+        <div className="border-t border-indigo-200 dark:border-indigo-800 pt-3">
           <div className="flex justify-between items-center">
-            <span className="text-lg font-bold text-gray-900 dark:text-white">Total:</span>
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <span className="text-lg font-bold text-slate-900 dark:text-white">Total:</span>
+            <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
               {formatCurrency(total)}
             </span>
           </div>
@@ -324,20 +324,20 @@ const ModuloFacturacion = ({
       {/* Gestión de pagos */}
       {mostrarPagos && !readOnly && (
         <div className="space-y-4">
-          <h4 className="font-semibold text-gray-900 dark:text-white">
+          <h4 className="font-semibold text-slate-900 dark:text-white">
             Gestión de Pago
           </h4>
 
           {/* Alerta si la factura ya está pagada por completo */}
           {estadoPago === 'pagada' && (
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
               <div className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={20} />
+                <CheckCircle className="text-emerald-600 dark:text-emerald-400 mt-0.5" size={20} />
                 <div>
-                  <p className="font-medium text-green-800 dark:text-green-200">
+                  <p className="font-medium text-emerald-800 dark:text-emerald-200">
                     Factura Pagada por Completo
                   </p>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
                     Esta factura ya ha sido pagada en su totalidad. No se pueden hacer modificaciones al pago.
                   </p>
                 </div>
@@ -347,14 +347,14 @@ const ModuloFacturacion = ({
 
           {/* Estado de pago - DESHABILITADO SI YA ESTÁ PAGADA */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Estado de Pago *
             </label>
             <select
               value={estadoPago}
               onChange={(e) => handleEstadoPagoChange(e.target.value)}
               disabled={estadoPago === 'pagada'}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="pendiente_pago">Pendiente de Pago</option>
               <option value="pago_parcial">Pago Parcial</option>
@@ -365,13 +365,13 @@ const ModuloFacturacion = ({
 
           {/* Método de pago - SIEMPRE EDITABLE, INCLUSO SI ESTÁ PAGADA */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Método de Pago {estadoPago === 'pagada' || estadoPago === 'pago_parcial' ? '*' : ''}
             </label>
             <select
               value={metodoPago}
               onChange={(e) => setMetodoPago(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg"
             >
               <option value="">Seleccionar...</option>
               <option value="efectivo">💵 Efectivo</option>
@@ -385,19 +385,19 @@ const ModuloFacturacion = ({
           {/* Monto pagado (solo para pago parcial) - DESHABILITADO SI YA ESTÁ PAGADA */}
           {estadoPago === 'pago_parcial' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Monto Pagado
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600 dark:text-gray-400">USD$</span>
+                <span className="text-slate-600 dark:text-slate-400">USD$</span>
                 <input
                   type="number"
                   value={montoPagado}
                   onChange={(e) => setMontoPagado(e.target.value)}
                   disabled={estadoPago === 'pagada'}
                   className={`flex-1 px-3 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${montoPagado === ''
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                    ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20'
+                    : 'border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white'
                     }`}
                   placeholder="0.00"
                   step="0.01"
@@ -407,12 +407,12 @@ const ModuloFacturacion = ({
               </div>
 
               {/* Saldo pendiente */}
-              <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
                     Saldo Pendiente:
                   </span>
-                  <span className="text-lg font-bold text-yellow-900 dark:text-yellow-100">
+                  <span className="text-lg font-bold text-amber-900 dark:text-amber-100">
                     {formatCurrency(saldoPendiente)}
                   </span>
                 </div>
@@ -422,13 +422,13 @@ const ModuloFacturacion = ({
 
           {/* Notas - SIEMPRE SE PUEDEN AGREGAR NOTAS */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Notas / Observaciones
             </label>
             <textarea
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg"
               rows="3"
               placeholder="Observaciones sobre el pago..."
             />
@@ -438,22 +438,22 @@ const ModuloFacturacion = ({
 
       {/* Resumen de pagos (solo lectura) */}
       {readOnly && mostrarPagos && (
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4 space-y-2">
+          <h4 className="font-semibold text-slate-900 dark:text-white mb-3">
             Información de Pago
           </h4>
 
           {estadoPago === 'pago_parcial' && (
             <>
               <div className="flex justify-between">
-                <span className="text-gray-700 dark:text-gray-300">Monto Pagado:</span>
-                <span className="font-semibold text-green-600 dark:text-green-400">
+                <span className="text-slate-700 dark:text-slate-300">Monto Pagado:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(montoPagado)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700 dark:text-gray-300">Saldo Pendiente:</span>
-                <span className="font-semibold text-red-600 dark:text-red-400">
+                <span className="text-slate-700 dark:text-slate-300">Saldo Pendiente:</span>
+                <span className="font-semibold text-rose-600 dark:text-rose-400">
                   {formatCurrency(saldoPendiente)}
                 </span>
               </div>
@@ -462,16 +462,16 @@ const ModuloFacturacion = ({
 
           {metodoPago && (
             <div className="flex justify-between">
-              <span className="text-gray-700 dark:text-gray-300">Método de Pago:</span>
-              <span className="font-semibold text-gray-900 dark:text-white capitalize">
+              <span className="text-slate-700 dark:text-slate-300">Método de Pago:</span>
+              <span className="font-semibold text-slate-900 dark:text-white capitalize">
                 {metodoPago}
               </span>
             </div>
           )}
 
           {notas && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 <strong>Notas:</strong> {notas}
               </p>
             </div>
@@ -480,17 +480,17 @@ const ModuloFacturacion = ({
       )}
       {/* Gestión de Archivo de Factura */}
       {recoleccionId && (
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-            <FileText size={20} className="text-blue-600" />
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+          <h4 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+            <FileText size={20} className="text-indigo-600" />
             Documento de Factura
           </h4>
 
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4">
             {facturaUrl ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-600 rounded border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-600 rounded border border-emerald-200 dark:border-emerald-800">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
                     <CheckCircle size={18} />
                     <span className="font-medium">Factura Disponible</span>
                   </div>
@@ -498,7 +498,7 @@ const ModuloFacturacion = ({
                     href={facturaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="text-indigo-600 hover:underline text-sm"
                   >
                     Ver Documento
                   </a>
@@ -508,7 +508,7 @@ const ModuloFacturacion = ({
                   <button
                     onClick={() => handleSendInvoice('email')}
                     disabled={sending}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-slate-400 transition"
                   >
                     <Mail size={16} />
                     {sending ? 'Enviando...' : 'Enviar Email'}
@@ -516,7 +516,7 @@ const ModuloFacturacion = ({
                   <button
                     onClick={() => handleSendInvoice('whatsapp')}
                     disabled={sending}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-slate-400 transition"
                   >
                     <MessageCircle size={16} />
                     {sending ? 'Enviando...' : 'Enviar WhatsApp'}
@@ -525,12 +525,12 @@ const ModuloFacturacion = ({
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                   No hay factura adjunta. Sube el PDF o imagen de la factura.
                 </p>
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-500 transition">
-                  <Upload size={18} className="text-gray-600 dark:text-gray-300" />
-                  <span className="text-gray-700 dark:text-gray-200">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-500 transition">
+                  <Upload size={18} className="text-slate-600 dark:text-slate-300" />
+                  <span className="text-slate-700 dark:text-slate-200">
                     {uploading ? 'Subiendo...' : 'Subir Factura'}
                   </span>
                   <input

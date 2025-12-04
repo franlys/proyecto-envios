@@ -42,16 +42,16 @@ const PlanLimitBanner = () => {
 
   // Colores según porcentaje
   const getColorClass = (percentage) => {
-    if (percentage >= 90) return 'bg-red-50 border-red-200 text-red-800';
-    if (percentage >= 70) return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-    return 'bg-blue-50 border-blue-200 text-blue-800';
+    if (percentage >= 90) return 'bg-rose-50 border-rose-200 text-rose-800';
+    if (percentage >= 70) return 'bg-amber-50 border-amber-200 text-amber-800';
+    return 'bg-indigo-50 border-indigo-200 text-indigo-800';
   };
 
   // Color de la barra de progreso
   const getProgressBarColor = (percentage) => {
-    if (percentage >= 90) return 'bg-red-600';
-    if (percentage >= 70) return 'bg-yellow-600';
-    return 'bg-blue-600';
+    if (percentage >= 90) return 'bg-rose-600';
+    if (percentage >= 70) return 'bg-amber-600';
+    return 'bg-indigo-600';
   };
 
   // Verificar si hay que mostrar alguna advertencia
@@ -84,7 +84,7 @@ const PlanLimitBanner = () => {
   return (
     <div className="mb-6">
       {/* Badge del Plan */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-4 mb-3 shadow-lg">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg p-4 mb-3 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-lg">
@@ -94,7 +94,7 @@ const PlanLimitBanner = () => {
           </div>
           <a
             href="/planes"
-            className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:shadow-lg transition font-medium text-sm"
+            className="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:shadow-lg transition font-medium text-sm"
           >
             Ver Planes
           </a>
@@ -114,7 +114,7 @@ const PlanLimitBanner = () => {
                   {limit.name || limit.key}
                 </h3>
                 {limit.percentage >= 90 && (
-                  <span className="px-2 py-0.5 bg-red-600 text-white text-xs rounded-full font-bold">
+                  <span className="px-2 py-0.5 bg-rose-600 text-white text-xs rounded-full font-bold">
                     ¡CRÍTICO!
                   </span>
                 )}

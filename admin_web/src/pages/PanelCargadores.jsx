@@ -378,7 +378,7 @@ const PanelCargadores = () => {
   // 🎨 RENDERIZADO
   // ==============================================================================
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
 
       {/* Header General */}
       <div className="mb-6">
@@ -387,19 +387,19 @@ const PanelCargadores = () => {
             {vistaActual === 'detalle' && (
               <button
                 onClick={volverALista}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition"
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition"
               >
-                <ArrowLeft className="text-gray-700 dark:text-gray-300" />
+                <ArrowLeft className="text-slate-700 dark:text-slate-300" />
               </button>
             )}
-            <Truck size={32} className="text-blue-600" />
+            <Truck size={32} className="text-indigo-600" />
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                   Panel de Cargadores
                 </h1>
               </div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-slate-600 dark:text-slate-400">
                 {vistaActual === 'lista'
                   ? 'Selecciona una ruta para comenzar'
                   : rutaSeleccionada?.nombre || 'Detalle de Ruta'}
@@ -416,12 +416,12 @@ const PanelCargadores = () => {
         <div className="space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader className="animate-spin text-blue-600" size={40} />
+              <Loader className="animate-spin text-indigo-600" size={40} />
             </div>
           ) : rutas.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-              <Package size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 text-lg">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-8 text-center">
+              <Package size={48} className="mx-auto text-slate-400 mb-4" />
+              <p className="text-slate-600 dark:text-slate-400 text-lg">
                 No tienes rutas asignadas en este momento
               </p>
             </div>
@@ -430,17 +430,17 @@ const PanelCargadores = () => {
               {rutas.map(ruta => (
                 <div
                   key={ruta.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition border-l-4 border-blue-500"
+                  className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 hover:shadow-lg transition border-l-4 border-indigo-500"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         {ruta.nombre}
                       </h3>
                       <div className="flex gap-2 mt-2">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${ruta.estado === 'asignada'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                            ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
                           }`}>
                           {ruta.estado === 'asignada' ? 'Asignada' : 'En Proceso'}
                         </span>
@@ -449,23 +449,23 @@ const PanelCargadores = () => {
                   </div>
 
                   {ruta.zona && (
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-4">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-4">
                       <MapPin size={16} />
                       <span>{ruta.zona}</span>
                     </div>
                   )}
 
                   {ruta.repartidorNombre && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                       Repartidor: {ruta.repartidorNombre}
                     </p>
                   )}
 
                   {/* Estadísticas de la Ruta - Corregidas según backend */}
                   <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                    <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Facturas</p>
-                      <p className="font-bold text-lg text-gray-900 dark:text-white">
+                    <div className="bg-slate-50 dark:bg-slate-700 p-2 rounded">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Facturas</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white">
                         {ruta.estadisticas?.totalFacturas || 0}
                       </p>
                     </div>
@@ -475,17 +475,17 @@ const PanelCargadores = () => {
                         {ruta.estadisticas?.itemsCargados || 0}/{ruta.estadisticas?.totalItems || 0}
                       </p>
                     </div>
-                    <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded">
-                      <p className="text-xs text-orange-600 dark:text-orange-300">Progreso</p>
-                      <p className="font-bold text-lg text-orange-700 dark:text-orange-200">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                      <p className="text-xs text-amber-600 dark:text-amber-300">Progreso</p>
+                      <p className="font-bold text-lg text-amber-700 dark:text-amber-200">
                         {ruta.estadisticas?.porcentajeCarga || 0}%
                       </p>
                     </div>
                   </div>
 
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-4">
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                      className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
                       style={{ width: `${ruta.estadisticas?.porcentajeCarga || 0}%` }}
                     />
                   </div>
@@ -493,7 +493,7 @@ const PanelCargadores = () => {
                   <button
                     onClick={() => cargarDetalleRuta(ruta.id)}
                     disabled={loadingDetalle}
-                    className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {loadingDetalle ? (
                       <Loader className="animate-spin" size={18} />
@@ -517,13 +517,13 @@ const PanelCargadores = () => {
       {vistaActual === 'detalle' && rutaSeleccionada && (
         <div className="space-y-6">
           {/* Tarjeta de Control Principal */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                   {rutaSeleccionada.nombre}
                 </h2>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-slate-600 dark:text-slate-400 mt-1">
                   Progreso total: {rutaSeleccionada.itemsCargadosRuta || 0} de {rutaSeleccionada.itemsTotalRuta || 0} items
                 </p>
               </div>
@@ -531,7 +531,7 @@ const PanelCargadores = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => window.open(`/rutas/${rutaSeleccionada.id}/imprimir`, '_blank')}
-                  className="p-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                  className="p-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition"
                   title="Imprimir Facturas"
                 >
                   <Printer size={18} />
@@ -540,7 +540,7 @@ const PanelCargadores = () => {
                   <button
                     onClick={handleIniciarCarga}
                     disabled={procesando}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
+                    className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium flex items-center gap-2 disabled:opacity-50"
                   >
                     {procesando ? <Loader className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                     Iniciar Proceso de Carga
@@ -548,7 +548,7 @@ const PanelCargadores = () => {
                 ) : (
                   <button
                     onClick={() => setShowModalFinalizar(true)}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2"
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium flex items-center gap-2"
                   >
                     <CheckCircle size={18} />
                     Finalizar Carga
@@ -564,32 +564,32 @@ const PanelCargadores = () => {
               rutaSeleccionada.facturas.map((factura, fIndex) => (
                 <div
                   key={factura.id || fIndex}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden"
+                  className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden"
                 >
                   {/* Cabecera de Factura */}
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 border-b dark:border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                           {factura.codigoTracking}
                         </h3>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${factura.estadoCarga === 'cargada' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${factura.estadoCarga === 'cargada' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
                           }`}>
                           {factura.estadoCarga === 'cargada' ? 'COMPLETADA' : 'PENDIENTE'}
                         </span>
                         <button
                           onClick={() => abrirDetalleFactura(factura)}
-                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1"
+                          className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 transition flex items-center gap-1"
                         >
                           <Package size={12} />
                           Ver Detalles
                         </button>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                         {factura.destinatario?.nombre || 'Sin destinatario'}
                       </p>
                     </div>
-                    <div className="text-right text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-right text-sm text-slate-500 dark:text-slate-400">
                       {factura.itemsCargados || 0} / {factura.itemsTotal || 0} items cargados
                     </div>
                   </div>
@@ -600,28 +600,28 @@ const PanelCargadores = () => {
                       <div
                         key={iIndex}
                         className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-lg border-2 transition ${item.cargado
-                            ? 'bg-green-50 dark:bg-green-900/10 border-green-500'
-                            : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                            ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500'
+                            : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
                           }`}
                       >
                         <div className="flex-1 w-full mb-3 md:mb-0">
                           <div className="flex items-center gap-3">
                             {item.cargado ? (
-                              <CheckCircle className="text-green-600 flex-shrink-0" size={24} />
+                              <CheckCircle className="text-emerald-600 flex-shrink-0" size={24} />
                             ) : (
-                              <Box className="text-gray-400 flex-shrink-0" size={24} />
+                              <Box className="text-slate-400 flex-shrink-0" size={24} />
                             )}
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white text-lg">
+                              <p className="font-medium text-slate-900 dark:text-white text-lg">
                                 {item.descripcion}
                               </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
                                 Cantidad: {item.cantidad}
                               </p>
                               {item.fotos && item.fotos.length > 0 && (
                                 <button
                                   onClick={() => abrirGaleriaFotos(item.fotos)}
-                                  className="mt-1 text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                  className="mt-1 text-xs text-indigo-600 hover:underline flex items-center gap-1"
                                 >
                                   <ImageIcon size={12} /> Ver fotos del item
                                 </button>
@@ -636,7 +636,7 @@ const PanelCargadores = () => {
                             <button
                               onClick={() => handleConfirmarItem(factura.id, iIndex)}
                               disabled={procesando}
-                              className="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                              className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                               <CheckCircle size={16} />
                               Cargar
@@ -644,7 +644,7 @@ const PanelCargadores = () => {
                             <button
                               onClick={() => abrirModalDano(factura.id, item, iIndex)}
                               disabled={procesando}
-                              className="flex-1 md:flex-none px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium flex items-center justify-center gap-2"
+                              className="flex-1 md:flex-none px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-medium flex items-center justify-center gap-2"
                             >
                               <AlertTriangle size={16} />
                               Dañado
@@ -653,7 +653,7 @@ const PanelCargadores = () => {
                         )}
 
                         {item.cargado && (
-                          <div className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg font-medium flex items-center gap-2">
+                          <div className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg font-medium flex items-center gap-2">
                             <CheckCircle size={16} /> Cargado
                           </div>
                         )}
@@ -663,15 +663,15 @@ const PanelCargadores = () => {
 
                   {/* Visualización de daños reportados en esta factura */}
                   {factura.itemsDanados && factura.itemsDanados.length > 0 && (
-                    <div className="bg-orange-50 dark:bg-orange-900/20 p-3 border-t border-orange-200 dark:border-orange-800">
-                      <p className="text-sm font-bold text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-3 border-t border-amber-200 dark:border-amber-800">
+                      <p className="text-sm font-bold text-amber-700 dark:text-amber-300 flex items-center gap-2">
                         <AlertTriangle size={14} /> Reportes de Daño:
                       </p>
                       {factura.itemsDanados.map((dano, idx) => (
-                        <div key={idx} className="text-xs text-orange-800 dark:text-orange-200 ml-5 mt-1">
+                        <div key={idx} className="text-xs text-amber-800 dark:text-amber-200 ml-5 mt-1">
                           • {dano.item?.descripcion}: {dano.descripcionDano}
                           {dano.fotos?.length > 0 && (
-                            <button onClick={() => abrirGaleriaFotos(dano.fotos)} className="ml-2 text-blue-600 underline">Ver fotos</button>
+                            <button onClick={() => abrirGaleriaFotos(dano.fotos)} className="ml-2 text-indigo-600 underline">Ver fotos</button>
                           )}
                         </div>
                       ))}
@@ -680,7 +680,7 @@ const PanelCargadores = () => {
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="p-8 text-center text-slate-500 bg-white dark:bg-slate-800 rounded-lg">
                 No hay facturas en esta ruta.
               </div>
             )}
@@ -695,38 +695,38 @@ const PanelCargadores = () => {
       {/* Modal Reportar Daño */}
       {showModalDano && itemDanado && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg p-6 shadow-2xl">
+          <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-lg p-6 shadow-2xl">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <AlertTriangle className="text-orange-600" />
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <AlertTriangle className="text-amber-600" />
                 Reportar Item Dañado
               </h2>
-              <button onClick={() => setShowModalDano(false)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={() => setShowModalDano(false)} className="text-slate-500 hover:text-slate-700">
                 <X />
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded">
-              <p className="font-bold text-gray-900 dark:text-white">{itemDanado.item.descripcion}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Cant: {itemDanado.item.cantidad}</p>
+            <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700 rounded">
+              <p className="font-bold text-slate-900 dark:text-white">{itemDanado.item.descripcion}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Cant: {itemDanado.item.cantidad}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Descripción del daño
                 </label>
                 <textarea
                   value={descripcionDano}
                   onChange={(e) => setDescripcionDano(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-amber-500"
                   rows="3"
                   placeholder="Describe qué está dañado..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Fotos de evidencia
                 </label>
                 <input
@@ -734,10 +734,10 @@ const PanelCargadores = () => {
                   multiple
                   accept="image/*"
                   onChange={(e) => setArchivosFotos(Array.from(e.target.files))}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                 />
                 {archivosFotos.length > 0 && (
-                  <p className="text-xs text-green-600 mt-1">{archivosFotos.length} fotos seleccionadas</p>
+                  <p className="text-xs text-emerald-600 mt-1">{archivosFotos.length} fotos seleccionadas</p>
                 )}
               </div>
             </div>
@@ -746,14 +746,14 @@ const PanelCargadores = () => {
               <button
                 onClick={() => setShowModalDano(false)}
                 disabled={procesando}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleReportarDano}
                 disabled={procesando || !descripcionDano.trim()}
-                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
+                className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
               >
                 {subiendoFotos ? <Loader className="animate-spin" size={18} /> : <AlertTriangle size={18} />}
                 {subiendoFotos ? 'Subiendo...' : 'Reportar'}
@@ -766,20 +766,20 @@ const PanelCargadores = () => {
       {/* Modal Finalizar Carga */}
       {showModalFinalizar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <CheckCircle className="text-green-600" />
+          <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <CheckCircle className="text-emerald-600" />
               Finalizar Carga
             </h2>
 
-            <div className="mb-4 bg-green-50 dark:bg-green-900/20 p-3 rounded text-sm text-green-800 dark:text-green-200">
+            <div className="mb-4 bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded text-sm text-emerald-800 dark:text-emerald-200">
               <p>Al finalizar, la ruta cambiará a estado "Cargada" y estará disponible para el repartidor.</p>
             </div>
 
             <textarea
               value={notasCarga}
               onChange={(e) => setNotasCarga(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg mb-4"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg mb-4"
               placeholder="Notas opcionales sobre la carga..."
               rows="3"
             />
@@ -788,14 +788,14 @@ const PanelCargadores = () => {
               <button
                 onClick={() => setShowModalFinalizar(false)}
                 disabled={procesando}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 dark:border-slate-600 dark:text-white dark:hover:bg-slate-700"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleFinalizarCarga}
                 disabled={procesando}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex justify-center items-center gap-2"
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex justify-center items-center gap-2"
               >
                 {procesando ? <Loader className="animate-spin" size={18} /> : 'Confirmar'}
               </button>
@@ -810,7 +810,7 @@ const PanelCargadores = () => {
           <div className="relative w-full max-w-6xl max-h-[90vh] flex flex-col items-center justify-center">
             <button
               onClick={() => { setShowModalGaleria(false); setFotosGaleria([]); }}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 bg-black/50 rounded-full z-[10000]"
+              className="absolute top-4 right-4 text-white hover:text-slate-300 p-2 bg-black/50 rounded-full z-[10000]"
             >
               <X size={32} />
             </button>
@@ -847,15 +847,15 @@ const PanelCargadores = () => {
       {/* Modal Detalle de Factura */}
       {showModalDetalleFactura && facturaDetalleSeleccionada && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl p-6 shadow-2xl my-8">
+          <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-3xl p-6 shadow-2xl my-8">
             <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Package className="text-blue-600" />
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Package className="text-indigo-600" />
                 Detalles de Factura
               </h2>
               <button
                 onClick={() => setShowModalDetalleFactura(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               >
                 <X size={24} />
               </button>
@@ -863,50 +863,50 @@ const PanelCargadores = () => {
 
             <div className="space-y-6">
               {/* Información de Tracking */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-2">Código de Tracking</h3>
-                <p className="text-2xl font-mono font-bold text-blue-700 dark:text-blue-300">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+                <h3 className="font-bold text-indigo-900 dark:text-indigo-200 mb-2">Código de Tracking</h3>
+                <p className="text-2xl font-mono font-bold text-indigo-700 dark:text-indigo-300">
                   {facturaDetalleSeleccionada.codigoTracking}
                 </p>
               </div>
 
               {/* Información del Destinatario */}
-              <div className="border dark:border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <MapPin size={18} className="text-green-600" />
+              <div className="border dark:border-slate-700 rounded-lg p-4">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <MapPin size={18} className="text-emerald-600" />
                   Destinatario
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Nombre:</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="text-slate-500 dark:text-slate-400">Nombre:</p>
+                    <p className="font-medium text-slate-900 dark:text-white">
                       {facturaDetalleSeleccionada.destinatario?.nombre || 'No especificado'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Teléfono:</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="text-slate-500 dark:text-slate-400">Teléfono:</p>
+                    <p className="font-medium text-slate-900 dark:text-white">
                       {facturaDetalleSeleccionada.destinatario?.telefono || 'No especificado'}
                     </p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="text-gray-500 dark:text-gray-400">Dirección:</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="text-slate-500 dark:text-slate-400">Dirección:</p>
+                    <p className="font-medium text-slate-900 dark:text-white">
                       {facturaDetalleSeleccionada.destinatario?.direccion || 'No especificada'}
                     </p>
                   </div>
                   {facturaDetalleSeleccionada.destinatario?.sector && (
                     <div>
-                      <p className="text-gray-500 dark:text-gray-400">Sector:</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="text-slate-500 dark:text-slate-400">Sector:</p>
+                      <p className="font-medium text-slate-900 dark:text-white">
                         {facturaDetalleSeleccionada.destinatario.sector}
                       </p>
                     </div>
                   )}
                   {facturaDetalleSeleccionada.destinatario?.zona && (
                     <div>
-                      <p className="text-gray-500 dark:text-gray-400">Zona:</p>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="text-slate-500 dark:text-slate-400">Zona:</p>
+                      <p className="font-medium text-slate-900 dark:text-white">
                         {facturaDetalleSeleccionada.destinatario.zona}
                       </p>
                     </div>
@@ -915,8 +915,8 @@ const PanelCargadores = () => {
               </div>
 
               {/* Lista de Items */}
-              <div className="border dark:border-gray-700 rounded-lg p-4">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <div className="border dark:border-slate-700 rounded-lg p-4">
+                <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                   <Box size={18} className="text-purple-600" />
                   Items de la Factura ({facturaDetalleSeleccionada.items?.length || 0})
                 </h3>
@@ -924,26 +924,26 @@ const PanelCargadores = () => {
                   {facturaDetalleSeleccionada.items?.map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex justify-between items-start p-3 bg-gray-50 dark:bg-gray-700/50 rounded"
+                      className="flex justify-between items-start p-3 bg-slate-50 dark:bg-slate-700/50 rounded"
                     >
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900 dark:text-white">
+                        <p className="font-medium text-slate-900 dark:text-white">
                           {item.descripcion}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
                           Cantidad: {item.cantidad}
                         </p>
                         {item.fotos && item.fotos.length > 0 && (
                           <button
                             onClick={() => abrirGaleriaFotos(item.fotos)}
-                            className="mt-1 text-xs text-blue-600 hover:underline flex items-center gap-1"
+                            className="mt-1 text-xs text-indigo-600 hover:underline flex items-center gap-1"
                           >
                             <ImageIcon size={12} /> Ver {item.fotos.length} foto(s)
                           </button>
                         )}
                       </div>
                       {item.cargado && (
-                        <CheckCircle className="text-green-600 flex-shrink-0 ml-2" size={20} />
+                        <CheckCircle className="text-emerald-600 flex-shrink-0 ml-2" size={20} />
                       )}
                     </div>
                   ))}
@@ -952,16 +952,16 @@ const PanelCargadores = () => {
 
               {/* Fotos de la Recolección */}
               {facturaDetalleSeleccionada.fotos && facturaDetalleSeleccionada.fotos.length > 0 && (
-                <div className="border dark:border-gray-700 rounded-lg p-4">
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <ImageIcon size={18} className="text-blue-600" />
+                <div className="border dark:border-slate-700 rounded-lg p-4">
+                  <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                    <ImageIcon size={18} className="text-indigo-600" />
                     Fotos de la Recolección ({facturaDetalleSeleccionada.fotos.length})
                   </h3>
                   <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                     {facturaDetalleSeleccionada.fotos.map((foto, idx) => (
                       <div
                         key={idx}
-                        className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border-2 border-gray-200 dark:border-gray-600"
+                        className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border-2 border-slate-200 dark:border-slate-600"
                         onClick={() => abrirGaleriaFotos(facturaDetalleSeleccionada.fotos)}
                       >
                         <img
@@ -973,7 +973,7 @@ const PanelCargadores = () => {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                     Haz clic en cualquier foto para ver en tamaño completo
                   </p>
                 </div>
@@ -981,21 +981,21 @@ const PanelCargadores = () => {
 
               {/* Información de Facturación */}
               {facturaDetalleSeleccionada.facturacion && (
-                <div className="border dark:border-gray-700 rounded-lg p-4">
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-3">Facturación</h3>
+                <div className="border dark:border-slate-700 rounded-lg p-4">
+                  <h3 className="font-bold text-slate-900 dark:text-white mb-3">Facturación</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {facturaDetalleSeleccionada.facturacion.subtotal && (
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Subtotal:</p>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                        <p className="text-slate-500 dark:text-slate-400">Subtotal:</p>
+                        <p className="font-medium text-slate-900 dark:text-white">
                           ${facturaDetalleSeleccionada.facturacion.subtotal}
                         </p>
                       </div>
                     )}
                     {facturaDetalleSeleccionada.facturacion.total && (
                       <div>
-                        <p className="text-gray-500 dark:text-gray-400">Total:</p>
-                        <p className="font-bold text-lg text-gray-900 dark:text-white">
+                        <p className="text-slate-500 dark:text-slate-400">Total:</p>
+                        <p className="font-bold text-lg text-slate-900 dark:text-white">
                           ${facturaDetalleSeleccionada.facturacion.total}
                         </p>
                       </div>
@@ -1007,7 +1007,7 @@ const PanelCargadores = () => {
               {/* Botón Cerrar */}
               <button
                 onClick={() => setShowModalDetalleFactura(false)}
-                className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
+                className="w-full px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition font-medium"
               >
                 Cerrar
               </button>

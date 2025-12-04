@@ -66,10 +66,10 @@ const Login = ({ onLoginStart, onExitComplete }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-blue-900 to-gray-900 overflow-hidden relative">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-indigo-900 to-slate-900 overflow-hidden relative">
 
       {/* --- Environment --- */}
-      <div className="absolute bottom-0 w-full h-[140px] bg-blue-900/80 z-30 overflow-hidden border-t border-blue-500/30 backdrop-blur-sm">
+      <div className="absolute bottom-0 w-full h-[140px] bg-indigo-900/80 z-30 overflow-hidden border-t border-indigo-500/30 backdrop-blur-sm">
         <div className="absolute -top-5 w-[200%] h-10 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1200 120\' preserveAspectRatio=\'none\'%3E%3Cpath d=\'M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z\' fill=\'%2360A5FA\' opacity=\'0.3\'/%3E%3C/svg%3E')] bg-[length:50%_100%] animate-wave"></div>
       </div>
 
@@ -81,19 +81,19 @@ const Login = ({ onLoginStart, onExitComplete }) => {
           ${animState === 6 ? 'animate-ship-depart left-[calc(50%-130px)]' : ''}
         `}
       >
-        <div className="absolute -top-[50px] right-[40px] w-[70px] h-[50px] bg-gray-700 rounded-t-[5px] border-2 border-gray-600">
-          <div className="absolute top-[10px] left-[10px] w-5 h-5 bg-blue-400/50 rounded-[2px] animate-pulse"></div>
+        <div className="absolute -top-[50px] right-[40px] w-[70px] h-[50px] bg-slate-700 rounded-t-[5px] border-2 border-slate-600">
+          <div className="absolute top-[10px] left-[10px] w-5 h-5 bg-indigo-400/50 rounded-[2px] animate-pulse"></div>
         </div>
-        <div className="w-full h-[70px] bg-gray-800 rounded-bl-[20px] rounded-br-[50px] relative shadow-lg border-t border-gray-600">
-          <div className="absolute top-[15px] w-full h-[8px] bg-red-600/80"></div>
-          <div className="absolute bottom-[10px] left-[20px] text-gray-500 text-[10px] font-mono tracking-widest">PROLOGIX-01</div>
+        <div className="w-full h-[70px] bg-slate-800 rounded-bl-[20px] rounded-br-[50px] relative shadow-lg border-t border-slate-600">
+          <div className="absolute top-[15px] w-full h-[8px] bg-rose-600/80"></div>
+          <div className="absolute bottom-[10px] left-[20px] text-slate-500 text-[10px] font-mono tracking-widest">PROLOGIX-01</div>
         </div>
 
         {/* Cargo Box on Ship (Visible only before float up and after drop) */}
-        <div className={`absolute -top-[60px] left-[100px] w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg flex items-center justify-center shadow-md transition-opacity duration-0
+        <div className={`absolute -top-[60px] left-[100px] w-[60px] h-[60px] bg-white border-2 border-indigo-500 rounded-lg flex items-center justify-center shadow-md transition-opacity duration-0
           ${(animState < 1 || animState >= 6) ? 'opacity-100' : 'opacity-0'}
         `}>
-          <Package className="text-blue-600" size={32} />
+          <Package className="text-indigo-600" size={32} />
         </div>
       </div>
 
@@ -101,18 +101,18 @@ const Login = ({ onLoginStart, onExitComplete }) => {
       <div
         className={`relative z-50 flex flex-col items-center justify-center transition-all overflow-hidden
           ${animState < 1 ? 'opacity-0 scale-0' : ''} 
-          ${animState === 1 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-box-float-up' : ''}
+          ${animState === 1 ? 'w-[60px] h-[60px] bg-white border-2 border-indigo-500 rounded-lg animate-box-float-up' : ''}
           ${animState === 2 ? 'animate-expand-form' : ''}
           ${animState === 3 ? 'w-full max-w-md h-[500px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-8' : ''}
           ${animState === 4 ? 'animate-collapse' : ''}
-          ${animState === 5 ? 'w-[60px] h-[60px] bg-white border-2 border-blue-500 rounded-lg animate-box-drop' : ''}
+          ${animState === 5 ? 'w-[60px] h-[60px] bg-white border-2 border-indigo-500 rounded-lg animate-box-drop' : ''}
           ${animState === 6 ? 'opacity-0' : ''}
         `}
       >
         {/* Vector Icon (Visible in Box/Animation states) */}
         <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 pointer-events-none ${(animState === 1 || animState === 2 || animState >= 4) ? 'opacity-100' : 'opacity-0'
           }`}>
-          <Package className="text-blue-600" size={32} />
+          <Package className="text-indigo-600" size={32} />
         </div>
 
         {/* Form Content (Visible in Form state) */}
@@ -122,11 +122,11 @@ const Login = ({ onLoginStart, onExitComplete }) => {
               <img src={logo} alt="ProLogix" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight">ProLogix</h1>
-            <p className="text-blue-200/80 mt-2 text-sm font-light tracking-wide">SISTEMA DE GESTIÓN LOGÍSTICA</p>
+            <p className="text-indigo-200/80 mt-2 text-sm font-light tracking-wide">SISTEMA DE GESTIÓN LOGÍSTICA</p>
           </div>
 
           {error && (
-            <div className="bg-red-500/20 border border-red-500/50 text-white p-3 rounded-lg mb-6 flex items-center gap-2 animate-pulse">
+            <div className="bg-rose-500/20 border border-rose-500/50 text-white p-3 rounded-lg mb-6 flex items-center gap-2 animate-pulse">
               <AlertCircle size={20} />
               <span>{error}</span>
             </div>
@@ -134,23 +134,23 @@ const Login = ({ onLoginStart, onExitComplete }) => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-medium text-blue-200 mb-1 uppercase tracking-wider">Correo Corporativo</label>
+              <label className="block text-xs font-medium text-indigo-200 mb-1 uppercase tracking-wider">Correo Corporativo</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-900/50 border border-blue-500/30 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:bg-gray-900/70"
+                className="w-full px-4 py-3 bg-slate-900/50 border border-indigo-500/30 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all hover:bg-slate-900/70"
                 placeholder="usuario@prologix.com"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-blue-200 mb-1 uppercase tracking-wider">Contraseña</label>
+              <label className="block text-xs font-medium text-indigo-200 mb-1 uppercase tracking-wider">Contraseña</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-900/50 border border-blue-500/30 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover:bg-gray-900/70"
+                className="w-full px-4 py-3 bg-slate-900/50 border border-indigo-500/30 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all hover:bg-slate-900/70"
                 placeholder="••••••••"
                 required
               />
@@ -158,7 +158,7 @@ const Login = ({ onLoginStart, onExitComplete }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-900/50 transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-gradient-to-r from-indigo-600 to-indigo-600 hover:from-indigo-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-900/50 transform transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <>
@@ -172,7 +172,7 @@ const Login = ({ onLoginStart, onExitComplete }) => {
           <div className="mt-6 text-center">
             <Link
               to="/forgot-password"
-              className="text-sm text-blue-300 hover:text-white transition-colors underline"
+              className="text-sm text-indigo-300 hover:text-white transition-colors underline"
             >
               ¿Olvidaste tu contraseña?
             </Link>

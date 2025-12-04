@@ -108,8 +108,8 @@ const PublicTracking = () => {
   // Renderizar barra de búsqueda
   const renderSearchBar = () => (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <Package className="w-6 h-6 text-blue-600" />
+      <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <Package className="w-6 h-6 text-indigo-600" />
         Rastrear Paquete
       </h2>
 
@@ -119,12 +119,12 @@ const PublicTracking = () => {
           value={codigoBusqueda}
           onChange={(e) => setCodigoBusqueda(e.target.value)}
           placeholder="Ingresa tu código de tracking (ej: EMI-0001)"
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <button
           type="submit"
           disabled={!codigoBusqueda.trim()}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Buscar
         </button>
@@ -134,7 +134,7 @@ const PublicTracking = () => {
         <div className="mt-4 flex gap-2">
           <button
             onClick={handleCopiarLink}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
           >
             <Copy className="w-4 h-4" />
             {copied ? 'Copiado!' : 'Copiar link'}
@@ -142,7 +142,7 @@ const PublicTracking = () => {
 
           <button
             onClick={handleCompartir}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
           >
             <Share2 className="w-4 h-4" />
             Compartir
@@ -169,11 +169,11 @@ const PublicTracking = () => {
         <div className="flex items-start gap-4">
           <div className="text-4xl">{estadoActual.icono}</div>
           <div className="flex-1">
-            <h3 className="text-2xl font-bold text-gray-800 mb-1">
+            <h3 className="text-2xl font-bold text-slate-800 mb-1">
               {estadoActual.nombre}
             </h3>
-            <p className="text-gray-600 mb-3">{estadoActual.descripcion}</p>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <p className="text-slate-600 mb-3">{estadoActual.descripcion}</p>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
               <Calendar className="w-4 h-4" />
               <span>
                 Última actualización: {trackingData.recoleccion.updatedAt
@@ -193,7 +193,7 @@ const PublicTracking = () => {
 
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-6">
+        <h3 className="text-xl font-bold text-slate-800 mb-6">
           Historial de Estados
         </h3>
 
@@ -210,8 +210,8 @@ const PublicTracking = () => {
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
                       isCompletado
-                        ? 'bg-green-500 text-white ring-4 ring-green-100'
-                        : 'bg-gray-200 text-gray-400'
+                        ? 'bg-emerald-500 text-white ring-4 ring-emerald-100'
+                        : 'bg-slate-200 text-slate-400'
                     }`}
                   >
                     {isCompletado ? (
@@ -223,7 +223,7 @@ const PublicTracking = () => {
                   {index < timeline.length - 1 && (
                     <div
                       className={`w-1 h-12 transition-all ${
-                        isCompletado ? 'bg-green-400' : 'bg-gray-200'
+                        isCompletado ? 'bg-emerald-400' : 'bg-slate-200'
                       }`}
                     />
                   )}
@@ -235,27 +235,27 @@ const PublicTracking = () => {
                     <span className="text-lg">{item.icono}</span>
                     <h4 className={`font-semibold ${
                       isActual
-                        ? 'text-blue-600 font-bold'
+                        ? 'text-indigo-600 font-bold'
                         : isCompletado
-                          ? 'text-gray-800'
-                          : 'text-gray-400'
+                          ? 'text-slate-800'
+                          : 'text-slate-400'
                     }`}>
                       {item.nombre}
                     </h4>
                     {isActual && (
-                      <span className="px-3 py-1 text-xs bg-blue-500 text-white rounded-full font-semibold animate-pulse">
+                      <span className="px-3 py-1 text-xs bg-indigo-500 text-white rounded-full font-semibold animate-pulse">
                         ACTUAL
                       </span>
                     )}
                     {isCompletado && !isActual && (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-emerald-500" />
                     )}
                   </div>
-                  <p className={`text-sm ${isCompletado ? 'text-gray-600' : 'text-gray-400'}`}>
+                  <p className={`text-sm ${isCompletado ? 'text-slate-600' : 'text-slate-400'}`}>
                     {item.descripcion}
                   </p>
                   {item.fecha && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       {new Date(item.fecha).toLocaleString('es-DO')}
                     </p>
                   )}
@@ -274,10 +274,10 @@ const PublicTracking = () => {
   // Renderizar loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
-          <p className="text-gray-600">Buscando información...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
+          <p className="text-slate-600">Buscando información...</p>
         </div>
       </div>
     );
@@ -286,17 +286,17 @@ const PublicTracking = () => {
   // Renderizar error
   if (error && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-slate-50 py-8 px-4">
         <div className="max-w-4xl mx-auto">
           {renderSearchBar()}
 
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
+          <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-rose-800 mb-2">
               No se encontró el paquete
             </h3>
-            <p className="text-red-700">{error}</p>
-            <p className="text-sm text-red-600 mt-2">
+            <p className="text-rose-700">{error}</p>
+            <p className="text-sm text-rose-600 mt-2">
               Verifica que el código de tracking sea correcto
             </p>
           </div>
@@ -308,14 +308,14 @@ const PublicTracking = () => {
   // Renderizar sin código (landing)
   if (!codigo && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-slate-50 py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <Package className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <Package className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
               Sistema de Rastreo de Paquetes
             </h1>
-            <p className="text-gray-600">
+            <p className="text-slate-600">
               Ingresa tu código de tracking para ver el estado de tu envío
             </p>
           </div>
@@ -323,18 +323,18 @@ const PublicTracking = () => {
           {renderSearchBar()}
 
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-semibold text-gray-800 mb-3">¿Cómo funciona?</h3>
-            <ol className="space-y-2 text-gray-700">
+            <h3 className="font-semibold text-slate-800 mb-3">¿Cómo funciona?</h3>
+            <ol className="space-y-2 text-slate-700">
               <li className="flex items-start gap-2">
-                <span className="font-semibold text-blue-600">1.</span>
+                <span className="font-semibold text-indigo-600">1.</span>
                 Ingresa tu código de tracking en el campo de búsqueda
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-semibold text-blue-600">2.</span>
+                <span className="font-semibold text-indigo-600">2.</span>
                 Haz clic en "Buscar" para ver el estado de tu paquete
               </li>
               <li className="flex items-start gap-2">
-                <span className="font-semibold text-blue-600">3.</span>
+                <span className="font-semibold text-indigo-600">3.</span>
                 Puedes compartir el link de rastreo con otras personas
               </li>
             </ol>
@@ -348,14 +348,14 @@ const PublicTracking = () => {
   if (!trackingData) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">
+          <h1 className="text-2xl font-bold text-slate-800 mb-1">
             Rastreo de Paquete
           </h1>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             {trackingData.recoleccion.codigoTracking}
           </p>
         </div>

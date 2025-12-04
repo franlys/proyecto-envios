@@ -12,7 +12,7 @@ export default function Empleados() {
   const [showModal, setShowModal] = useState(false);
   const [editingEmpleado, setEditingEmpleado] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRol, setFilterRol] = useState('');
@@ -26,6 +26,7 @@ export default function Empleados() {
     password: '',
     telefono: '',
     rol: '',
+    companyId: '', // Added for super_admin to select company
     activo: true
   });
 
@@ -34,12 +35,13 @@ export default function Empleados() {
   // Roles disponibles con nombres amigables
   const rolesDisponibles = [
     { valor: 'recolector', label: 'Recolector', descripcion: 'Recoge paquetes en origen' },
-    { valor: 'cargador', label: 'Cargador', descripcion: 'Prepara contenedores para embarque' }, // <-- LÍNEA AÑADIDA
+    { valor: 'cargador', label: 'Cargador', descripcion: 'Prepara contenedores para embarque' },
     { valor: 'almacen_eeuu', label: 'Encargado de Almacén (EE.UU.)', descripcion: 'Gestiona almacén en Estados Unidos' },
     { valor: 'almacen_rd', label: 'Encargado de Almacén (RD)', descripcion: 'Gestiona almacén en República Dominicana' },
     { valor: 'repartidor', label: 'Repartidor', descripcion: 'Entrega paquetes a destinatarios' },
     { valor: 'secretaria', label: 'Secretaria', descripcion: 'Gestión administrativa y atención' },
-    { valor: 'admin_general', label: 'Administrador General', descripcion: 'Acceso completo al sistema' }
+    { valor: 'admin_general', label: 'Administrador General', descripcion: 'Acceso completo al sistema' },
+    { valor: 'propietario', label: 'Propietario', descripcion: 'Dueño de la empresa - Solo visualización' }
   ];
 
   // Función para obtener el nombre amigable del rol
@@ -48,9 +50,26 @@ export default function Empleados() {
     return rolEncontrado ? rolEncontrado.label : rol;
   };
 
+  // Estados para empresas (solo super_admin)
+  const [companies, setCompanies] = useState([]);
+
   useEffect(() => {
     cargarEmpleados();
+    if (userData?.rol === 'super_admin') {
+      cargarEmpresas();
+    }
   }, [userData]);
+
+  const cargarEmpresas = async () => {
+    try {
+      const response = await api.get('/companies');
+      if (response.data.success) {
+        setCompanies(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error cargando empresas:', error);
+    }
+  };
 
   const cargarEmpleados = async () => {
     try {
@@ -71,12 +90,12 @@ export default function Empleados() {
 
       // Construir URL según el rol
       let url = '/empleados';
-      
+
       // Si es super_admin, puede ver todos los empleados
       if (userData.rol === 'super_admin') {
         console.log('🔑 Super Admin - Viendo todos los empleados');
         // No agregamos filtros, vemos todos
-      } 
+      }
       // Si tiene companyId, solo ver empleados de su compañía
       else if (userData.companyId) {
         url += `?companyId=${userData.companyId}`;
@@ -119,7 +138,7 @@ export default function Empleados() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -127,6 +146,10 @@ export default function Empleados() {
       // Validaciones
       if (!nuevoEmpleado.nombre || !nuevoEmpleado.email || !nuevoEmpleado.emailPersonal || !nuevoEmpleado.password || !nuevoEmpleado.rol) {
         throw new Error('Por favor completa todos los campos obligatorios');
+      }
+
+      if (userData.rol === 'super_admin' && !nuevoEmpleado.companyId) {
+        throw new Error('Debes seleccionar una empresa para el usuario');
       }
 
       if (nuevoEmpleado.password.length < 6) {
@@ -141,7 +164,7 @@ export default function Empleados() {
         password: nuevoEmpleado.password,
         telefono: nuevoEmpleado.telefono || null,
         rol: nuevoEmpleado.rol,
-        companyId: userData.companyId || null
+        companyId: userData.rol === 'super_admin' ? nuevoEmpleado.companyId : (userData.companyId || null)
       };
 
       console.log('📤 Enviando datos:', empleadoData);
@@ -162,6 +185,7 @@ export default function Empleados() {
           password: '',
           telefono: '',
           rol: '',
+          companyId: '', // Reset companyId
           activo: true
         });
         cargarEmpleados();
@@ -189,7 +213,7 @@ export default function Empleados() {
           'X-User-Id': user.uid
         }
       });
-      
+
       setSuccessMessage('Empleado eliminado exitosamente');
       cargarEmpleados();
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -261,12 +285,12 @@ export default function Empleados() {
   // Filtrar empleados
   const empleadosFiltrados = empleados.filter(emp => {
     const matchSearch = emp.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       emp.email.toLowerCase().includes(searchTerm.toLowerCase());
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchRol = !filterRol || emp.rol === filterRol;
-    const matchEstado = filterEstado === '' || 
-                       (filterEstado === 'activo' && emp.activo) ||
-                       (filterEstado === 'inactivo' && !emp.activo);
-    
+    const matchEstado = filterEstado === '' ||
+      (filterEstado === 'activo' && emp.activo) ||
+      (filterEstado === 'inactivo' && !emp.activo);
+
     return matchSearch && matchRol && matchEstado;
   });
 
@@ -274,19 +298,19 @@ export default function Empleados() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Users className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+          <Users className="w-8 h-8 text-indigo-600" />
           Gestión de Empleados
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-slate-600 mt-2">
           Administra usuarios y permisos del sistema
         </p>
       </div>
 
       {/* Estado de carga y debugging */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold text-yellow-800 mb-2">Estado de carga:</h3>
-        <div className="text-sm text-yellow-700 space-y-1">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <h3 className="font-semibold text-amber-800 mb-2">Estado de carga:</h3>
+        <div className="text-sm text-amber-700 space-y-1">
           <p>Total empleados: {empleados.length}</p>
           <p>Filtrados: {empleadosFiltrados.length}</p>
           <p>Loading: {loading ? 'Sí' : 'No'}</p>
@@ -297,19 +321,19 @@ export default function Empleados() {
 
       {/* Mensajes */}
       {successMessage && (
-        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-          <p className="text-green-800">{successMessage}</p>
+        <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
+          <Check className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <p className="text-emerald-800">{successMessage}</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-red-800">{error}</p>
-          <button 
+        <div className="mb-6 bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+          <p className="text-rose-800">{error}</p>
+          <button
             onClick={() => setError(null)}
-            className="ml-auto text-red-600 hover:text-red-700"
+            className="ml-auto text-rose-600 hover:text-rose-700"
           >
             <X className="w-5 h-5" />
           </button>
@@ -321,21 +345,21 @@ export default function Empleados() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Buscar por nombre o email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </div>
-          
+
           <select
             value={filterRol}
             onChange={(e) => setFilterRol(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="">Todos los roles</option>
             {rolesDisponibles.map(rol => (
@@ -346,7 +370,7 @@ export default function Empleados() {
           <select
             value={filterEstado}
             onChange={(e) => setFilterEstado(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="">Todos los estados</option>
             <option value="activo">Activos</option>
@@ -355,13 +379,13 @@ export default function Empleados() {
         </div>
 
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            Empleados totales: <span className="font-semibold">{empleados.length}</span> | 
+          <p className="text-sm text-slate-600">
+            Empleados totales: <span className="font-semibold">{empleados.length}</span> |
             Después de filtros: <span className="font-semibold">{empleadosFiltrados.length}</span>
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
             Nuevo Usuario
@@ -373,15 +397,15 @@ export default function Empleados() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Cargando empleados...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="text-slate-600 mt-4">Cargando empleados...</p>
           </div>
         ) : empleadosFiltrados.length === 0 ? (
           <div className="p-12 text-center">
-            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron empleados</h3>
-            <p className="text-gray-600">
-              {searchTerm || filterRol || filterEstado 
+            <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">No se encontraron empleados</h3>
+            <p className="text-slate-600">
+              {searchTerm || filterRol || filterEstado
                 ? 'Intenta ajustar los filtros de búsqueda'
                 : 'Comienza creando tu primer empleado'
               }
@@ -390,62 +414,61 @@ export default function Empleados() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Nombre
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Teléfono
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Rol
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-slate-200">
                 {empleadosFiltrados.map((empleado) => (
-                  <tr key={empleado.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={empleado.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold">
+                        <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                          <span className="text-indigo-600 font-semibold">
                             {empleado.nombre?.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{empleado.nombre}</div>
+                          <div className="text-sm font-medium text-slate-900">{empleado.nombre}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{empleado.email}</div>
+                      <div className="text-sm text-slate-900">{empleado.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{empleado.telefono || '-'}</div>
+                      <div className="text-sm text-slate-900">{empleado.telefono || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
                         {obtenerNombreRol(empleado.rol)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleCambiarEstado(empleado.id, !empleado.activo)}
-                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          empleado.activo 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-red-100 text-red-800 hover:bg-red-200'
-                        } transition-colors cursor-pointer`}
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${empleado.activo
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                            : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                          } transition-colors cursor-pointer`}
                       >
                         {empleado.activo ? 'Activo' : 'Inactivo'}
                       </button>
@@ -455,7 +478,7 @@ export default function Empleados() {
                         {userData?.rol === 'super_admin' && (
                           <button
                             onClick={() => handleResetearPassword(empleado)}
-                            className="text-orange-600 hover:text-orange-900 transition-colors"
+                            className="text-amber-600 hover:text-amber-900 transition-colors"
                             title="Resetear contraseña"
                           >
                             <Key className="w-5 h-5" />
@@ -463,7 +486,7 @@ export default function Empleados() {
                         )}
                         <button
                           onClick={() => handleEliminar(empleado.id)}
-                          className="text-red-600 hover:text-red-900 transition-colors"
+                          className="text-rose-600 hover:text-rose-900 transition-colors"
                           title="Eliminar"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -482,14 +505,14 @@ export default function Empleados() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Crear Nuevo Usuario</h2>
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Crear Nuevo Usuario</h2>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setError(null);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -498,57 +521,57 @@ export default function Empleados() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* Nombre */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre completo <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Nombre completo <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="nombre"
                   value={nuevoEmpleado.nombre}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                 />
               </div>
 
               {/* Email de Empresa */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email de Empresa <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Email de Empresa <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="email"
                   name="email"
                   value={nuevoEmpleado.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                   placeholder="ejemplo@empresa.com"
                 />
-                <p className="text-xs text-gray-500 mt-1">Email que el empleado usará para iniciar sesión</p>
+                <p className="text-xs text-slate-500 mt-1">Email que el empleado usará para iniciar sesión</p>
               </div>
 
               {/* Email Personal */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Personal <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Email Personal <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="email"
                   name="emailPersonal"
                   value={nuevoEmpleado.emailPersonal}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                   placeholder="ejemplo@gmail.com"
                 />
-                <p className="text-xs text-gray-500 mt-1">Email para recuperación de contraseña</p>
+                <p className="text-xs text-slate-500 mt-1">Email para recuperación de contraseña</p>
               </div>
 
               {/* Contraseña */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contraseña <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Contraseña <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -556,24 +579,24 @@ export default function Empleados() {
                     name="password"
                     value={nuevoEmpleado.password}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent pr-10"
                     required
                     minLength={6}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+                <p className="text-xs text-slate-500 mt-1">Mínimo 6 caracteres</p>
               </div>
 
               {/* Teléfono */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Teléfono
                 </label>
                 <input
@@ -581,20 +604,20 @@ export default function Empleados() {
                   name="telefono"
                   value={nuevoEmpleado.telefono}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
               {/* Rol */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rol / Puesto <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Rol / Puesto <span className="text-rose-500">*</span>
                 </label>
                 <select
                   name="rol"
                   value={nuevoEmpleado.rol}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   required
                 >
                   <option value="">Seleccionar rol</option>
@@ -605,11 +628,34 @@ export default function Empleados() {
                   ))}
                 </select>
                 {nuevoEmpleado.rol && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     {rolesDisponibles.find(r => r.valor === nuevoEmpleado.rol)?.descripcion}
                   </p>
                 )}
               </div>
+
+              {/* Selección de Empresa (Solo Super Admin) */}
+              {userData?.rol === 'super_admin' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Empresa <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    name="companyId"
+                    value={nuevoEmpleado.companyId || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Seleccionar empresa</option>
+                    {companies.map(company => (
+                      <option key={company.id} value={company.id}>
+                        {company.nombre || company.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Botones */}
               <div className="flex gap-3 pt-4">
@@ -619,14 +665,14 @@ export default function Empleados() {
                     setShowModal(false);
                     setError(null);
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? 'Creando...' : 'Crear Usuario'}
                 </button>

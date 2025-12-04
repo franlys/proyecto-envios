@@ -36,13 +36,13 @@ export const LiveIndicator = ({
       <div
         className={`${sizeClasses[size]} rounded-full ${
           isLive
-            ? 'bg-green-500 animate-pulse'
-            : 'bg-gray-400'
+            ? 'bg-emerald-500 animate-pulse'
+            : 'bg-slate-400'
         }`}
       />
       {showText && (
         <span className={`${textSizes[size]} ${
-          isLive ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
+          isLive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
         } font-medium`}>
           {isLive ? 'En vivo' : 'Sin conexión'}
         </span>
@@ -77,7 +77,7 @@ export const NewDataBadge = ({
 
   return (
     <div className="fixed top-20 right-4 z-50 animate-slide-in-right">
-      <div className="bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-sm">
+      <div className="bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-sm">
         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
         <div className="flex-1">
           <p className="text-sm font-medium">{message}</p>
@@ -121,7 +121,7 @@ export const ConnectionStatusIndicator = () => {
 
   return (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-orange-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
+      <div className="bg-amber-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
         <WifiOff size={16} />
         <span className="text-sm font-medium">Sin conexión - Modo offline</span>
       </div>
@@ -136,7 +136,7 @@ export const SyncIndicator = ({ isSyncing = false }) => {
   if (!isSyncing) return null;
 
   return (
-    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm">
+    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-sm">
       <Activity className="w-4 h-4 animate-pulse" />
       <span>Sincronizando...</span>
     </div>
@@ -159,7 +159,7 @@ export const DataChangePulse = ({ show = false, children }) => {
 
   return (
     <div className={`transition-all duration-300 ${
-      isPulsing ? 'ring-2 ring-blue-500 ring-opacity-50 scale-[1.02]' : ''
+      isPulsing ? 'ring-2 ring-indigo-500 ring-opacity-50 scale-[1.02]' : ''
     }`}>
       {children}
     </div>
@@ -175,11 +175,11 @@ export const FloatingNotificationBadge = ({ count = 0, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-all hover:scale-110 animate-bounce-subtle"
+      className="fixed bottom-6 right-6 z-50 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-all hover:scale-110 animate-bounce-subtle"
     >
       <div className="relative">
         <Activity className="w-6 h-6" />
-        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+        <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
           {count > 9 ? '9+' : count}
         </span>
       </div>

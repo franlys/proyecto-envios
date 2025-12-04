@@ -111,18 +111,18 @@ const Sidebar = () => {
   };
 
   return (
-    <div className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
+    <div className={`bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         {!collapsed && (
           <div>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white">Sistema de Envíos</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">v2.0</p>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white">Sistema de Envíos</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">v2.0</p>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition text-gray-700 dark:text-gray-300"
+          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition text-slate-700 dark:text-slate-300"
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -141,8 +141,8 @@ const Sidebar = () => {
                 onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                   active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
                 title={collapsed ? item.name : ''}
               >
@@ -153,7 +153,7 @@ const Sidebar = () => {
                       {item.name}
                     </span>
                     {item.badge && (
-                      <span className="px-2 py-0.5 text-xs bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 rounded-full">
+                      <span className="px-2 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full">
                         {item.badge}
                       </span>
                     )}
@@ -166,7 +166,7 @@ const Sidebar = () => {
       </nav>
 
       {/* Bottom Menu */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-700">
         <div className="space-y-1">
           {filteredBottomItems.map((item) => {
             const Icon = item.icon;
@@ -178,8 +178,8 @@ const Sidebar = () => {
                 onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                   active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
                 title={collapsed ? item.name : ''}
               >
@@ -196,12 +196,12 @@ const Sidebar = () => {
 
         {/* User Info */}
         {!collapsed && (
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Sesión activa como:</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Sesión activa como:</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
               {userData?.nombre}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
               {userData?.email}
             </p>
           </div>

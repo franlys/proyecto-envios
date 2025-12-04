@@ -14,7 +14,7 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
       valor: 'Recolectado', 
       label: 'Recolectado', 
       icon: Package,
-      color: 'bg-blue-500',
+      color: 'bg-indigo-500',
       descripcion: 'Paquete recogido por el recolector'
     },
     { 
@@ -35,14 +35,14 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
       valor: 'En tránsito', 
       label: 'En tránsito', 
       icon: Plane,
-      color: 'bg-yellow-500',
+      color: 'bg-amber-500',
       descripcion: 'En camino a República Dominicana'
     },
     { 
       valor: 'En almacén RD', 
       label: 'En almacén RD', 
       icon: Warehouse,
-      color: 'bg-orange-500',
+      color: 'bg-amber-500',
       descripcion: 'Llegó al almacén en República Dominicana'
     },
     { 
@@ -63,7 +63,7 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
       valor: 'Entregado', 
       label: 'Entregado', 
       icon: Home,
-      color: 'bg-green-500',
+      color: 'bg-emerald-500',
       descripcion: 'Entregado al destinatario'
     }
   ];
@@ -105,16 +105,16 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Cambiar Estado</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <h2 className="text-xl font-bold text-slate-800">Cambiar Estado</h2>
+            <p className="text-sm text-slate-600 mt-1">
               Tracking: <span className="font-mono font-semibold">{recoleccion.tracking_numero}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-slate-400 hover:text-slate-600 transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -123,14 +123,14 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
         {/* Contenido */}
         <form onSubmit={handleSubmit} className="p-6">
           {/* Estado actual */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Estado actual:</p>
-            <p className="text-lg font-semibold text-gray-900">{recoleccion.status}</p>
+          <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+            <p className="text-sm text-slate-600 mb-1">Estado actual:</p>
+            <p className="text-lg font-semibold text-slate-900">{recoleccion.status}</p>
           </div>
 
           {/* Selección de nuevo estado */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-slate-700 mb-3">
               Seleccionar nuevo estado:
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -148,10 +148,10 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
                     className={`
                       relative p-4 rounded-lg border-2 text-left transition-all
                       ${isCurrent 
-                        ? 'border-gray-300 bg-gray-100 cursor-not-allowed opacity-50' 
+                        ? 'border-slate-300 bg-slate-100 cursor-not-allowed opacity-50' 
                         : isSelected
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }
                     `}
                   >
@@ -160,20 +160,20 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
                         <Icon className={`w-5 h-5 ${estado.color.replace('bg-', 'text-')}`} />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-900 text-sm">
+                        <p className="font-semibold text-slate-900 text-sm">
                           {estado.label}
                           {isCurrent && (
-                            <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+                            <span className="ml-2 text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
                               Actual
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1">{estado.descripcion}</p>
+                        <p className="text-xs text-slate-600 mt-1">{estado.descripcion}</p>
                       </div>
                     </div>
                     {isSelected && !isCurrent && (
                       <div className="absolute top-2 right-2">
-                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                        <CheckCircle className="w-5 h-5 text-indigo-600" />
                       </div>
                     )}
                   </button>
@@ -184,7 +184,7 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
 
           {/* Notas adicionales */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Notas adicionales (opcional)
             </label>
             <textarea
@@ -192,14 +192,14 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
               onChange={(e) => setNotas(e.target.value)}
               rows={3}
               placeholder="Agregar notas sobre el cambio de estado..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
             />
           </div>
 
           {/* Error */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg">
+              <p className="text-sm text-rose-800">{error}</p>
             </div>
           )}
 
@@ -208,7 +208,7 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
             <button
               type="submit"
               disabled={loading || !nuevoEstado}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors"
+              className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed font-medium transition-colors"
             >
               {loading ? 'Actualizando...' : 'Confirmar Cambio'}
             </button>
@@ -216,7 +216,7 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed font-medium transition-colors"
+              className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:bg-slate-100 disabled:cursor-not-allowed font-medium transition-colors"
             >
               Cancelar
             </button>
@@ -226,7 +226,7 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
         {/* Timeline de estados (visual) */}
         <div className="px-6 pb-6">
           <div className="border-t pt-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">Flujo de estados:</p>
+            <p className="text-sm font-medium text-slate-700 mb-3">Flujo de estados:</p>
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
               {estados.map((estado, index) => {
                 const Icon = estado.icon;
@@ -236,15 +236,15 @@ export default function CambiarEstado({ recoleccion, onClose, onActualizado }) {
                   <div key={estado.valor} className="flex items-center">
                     <div className={`
                       flex flex-col items-center p-2 rounded-lg min-w-[80px]
-                      ${isCompleted ? estado.color + ' bg-opacity-10' : 'bg-gray-50'}
+                      ${isCompleted ? estado.color + ' bg-opacity-10' : 'bg-slate-50'}
                     `}>
-                      <Icon className={`w-4 h-4 ${isCompleted ? estado.color.replace('bg-', 'text-') : 'text-gray-400'}`} />
-                      <span className={`text-[10px] mt-1 text-center ${isCompleted ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+                      <Icon className={`w-4 h-4 ${isCompleted ? estado.color.replace('bg-', 'text-') : 'text-slate-400'}`} />
+                      <span className={`text-[10px] mt-1 text-center ${isCompleted ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
                         {estado.label}
                       </span>
                     </div>
                     {index < estados.length - 1 && (
-                      <div className={`w-6 h-0.5 ${isCompleted ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                      <div className={`w-6 h-0.5 ${isCompleted ? 'bg-indigo-500' : 'bg-slate-300'}`}></div>
                     )}
                   </div>
                 );

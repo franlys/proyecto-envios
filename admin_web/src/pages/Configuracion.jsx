@@ -56,102 +56,102 @@ const Configuracion = () => {
     <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Configuración</h1>
-        <p className="text-gray-600 dark:text-gray-400">Personaliza tu experiencia en el sistema</p>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Configuración</h1>
+        <p className="text-slate-600 dark:text-slate-400">Personaliza tu experiencia en el sistema</p>
       </div>
 
       {/* Sections */}
       <div className="space-y-6">
         {/* Notificaciones */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Bell className="text-blue-600 dark:text-blue-400" size={24} />
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Notificaciones</h2>
+            <Bell className="text-indigo-600 dark:text-indigo-400" size={24} />
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Notificaciones</h2>
           </div>
 
           <div className="space-y-3">
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-gray-700 dark:text-gray-300">Notificaciones por email</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">Notificaciones por email</span>
               <input 
                 type="checkbox" 
                 checked={notifEmail}
                 onChange={(e) => setNotifEmail(e.target.checked)}
-                className="w-5 h-5 text-blue-600 rounded" 
+                className="w-5 h-5 text-indigo-600 rounded" 
               />
             </label>
 
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-gray-700 dark:text-gray-300">Notificaciones push</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">Notificaciones push</span>
               <input 
                 type="checkbox" 
                 checked={notifPush}
                 onChange={(e) => setNotifPush(e.target.checked)}
-                className="w-5 h-5 text-blue-600 rounded" 
+                className="w-5 h-5 text-indigo-600 rounded" 
               />
             </label>
 
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-gray-700 dark:text-gray-300">Alertas de nuevos tickets</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">Alertas de nuevos tickets</span>
               <input 
                 type="checkbox" 
                 checked={notifTickets}
                 onChange={(e) => setNotifTickets(e.target.checked)}
-                className="w-5 h-5 text-blue-600 rounded" 
+                className="w-5 h-5 text-indigo-600 rounded" 
               />
             </label>
           </div>
         </div>
 
         {/* Seguridad */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Lock className="text-red-600 dark:text-red-400" size={24} />
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Seguridad</h2>
+            <Lock className="text-rose-600 dark:text-rose-400" size={24} />
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Seguridad</h2>
           </div>
 
           <div className="space-y-3">
             <button 
               onClick={() => alert('Función de cambio de contraseña en desarrollo')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition"
+              className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition"
             >
-              <p className="font-medium text-gray-900 dark:text-white">Cambiar contraseña</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Actualiza tu contraseña regularmente</p>
+              <p className="font-medium text-slate-900 dark:text-white">Cambiar contraseña</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Actualiza tu contraseña regularmente</p>
             </button>
 
             <button 
               onClick={() => alert('Función de 2FA en desarrollo')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition"
+              className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition"
             >
-              <p className="font-medium text-gray-900 dark:text-white">Autenticación de dos factores</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Agrega una capa extra de seguridad</p>
+              <p className="font-medium text-slate-900 dark:text-white">Autenticación de dos factores</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Agrega una capa extra de seguridad</p>
             </button>
 
             <button 
               onClick={() => alert('Función de cerrar sesiones en desarrollo')}
-              className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition"
+              className="w-full text-left px-4 py-3 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition"
             >
-              <p className="font-medium text-gray-900 dark:text-white">Cerrar otras sesiones</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Desconecta todos los demás dispositivos</p>
+              <p className="font-medium text-slate-900 dark:text-white">Cerrar otras sesiones</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Desconecta todos los demás dispositivos</p>
             </button>
           </div>
         </div>
 
         {/* Apariencia */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
           <div className="flex items-center gap-3 mb-4">
             <Palette className="text-purple-600 dark:text-purple-400" size={24} />
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Apariencia</h2>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Apariencia</h2>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Tema
               </label>
               <select 
                 value={tema}
                 onChange={(e) => setTema(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="claro">Claro</option>
                 <option value="oscuro">Oscuro</option>
@@ -160,13 +160,13 @@ const Configuracion = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Color de acento
               </label>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setColorAccent('blue')}
-                  className={`w-10 h-10 bg-blue-600 rounded-lg border-2 ${colorAccent === 'blue' ? 'border-blue-800' : 'border-transparent hover:border-blue-800'}`}
+                  className={`w-10 h-10 bg-indigo-600 rounded-lg border-2 ${colorAccent === 'blue' ? 'border-indigo-800' : 'border-transparent hover:border-indigo-800'}`}
                 ></button>
                 <button 
                   onClick={() => setColorAccent('purple')}
@@ -174,11 +174,11 @@ const Configuracion = () => {
                 ></button>
                 <button 
                   onClick={() => setColorAccent('green')}
-                  className={`w-10 h-10 bg-green-600 rounded-lg border-2 ${colorAccent === 'green' ? 'border-green-800' : 'border-transparent hover:border-green-800'}`}
+                  className={`w-10 h-10 bg-emerald-600 rounded-lg border-2 ${colorAccent === 'green' ? 'border-emerald-800' : 'border-transparent hover:border-emerald-800'}`}
                 ></button>
                 <button 
                   onClick={() => setColorAccent('red')}
-                  className={`w-10 h-10 bg-red-600 rounded-lg border-2 ${colorAccent === 'red' ? 'border-red-800' : 'border-transparent hover:border-red-800'}`}
+                  className={`w-10 h-10 bg-rose-600 rounded-lg border-2 ${colorAccent === 'red' ? 'border-rose-800' : 'border-transparent hover:border-rose-800'}`}
                 ></button>
               </div>
             </div>
@@ -186,21 +186,21 @@ const Configuracion = () => {
         </div>
 
         {/* Idioma */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Globe className="text-green-600 dark:text-green-400" size={24} />
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Idioma y región</h2>
+            <Globe className="text-emerald-600 dark:text-emerald-400" size={24} />
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Idioma y región</h2>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Idioma
               </label>
               <select 
                 value={idioma}
                 onChange={(e) => setIdioma(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -208,13 +208,13 @@ const Configuracion = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Zona horaria
               </label>
               <select 
                 value={zonaHoraria}
                 onChange={(e) => setZonaHoraria(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="America/Santo_Domingo">América/Santo Domingo (GMT-4)</option>
                 <option value="America/New_York">América/New York (GMT-5)</option>
@@ -230,7 +230,7 @@ const Configuracion = () => {
         <button 
           onClick={handleSave}
           disabled={saving}
-          className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium disabled:bg-slate-400 disabled:cursor-not-allowed"
         >
           {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>

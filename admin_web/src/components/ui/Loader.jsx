@@ -14,7 +14,7 @@ const Loader = ({ size = 'medium', text = 'Cargando...' }) => {
                 <div className="absolute top-0 left-0 w-full h-full border-4 border-primary-600 rounded-full border-t-transparent animate-spin"></div>
             </div>
             {text && (
-                <p className="mt-4 text-gray-500 font-medium animate-pulse">{text}</p>
+                <p className="mt-4 text-slate-500 font-medium animate-pulse">{text}</p>
             )}
         </div>
     );

@@ -25,9 +25,19 @@ export const useRealtimeCollection = (
   const [error, setError] = useState(null);
   const unsubscribeRef = useRef(null);
 
-  // ✅ FIX: Estabilizar las dependencias con useMemo para evitar re-subscripciones innecesarias
-  const stableFilters = useMemo(() => additionalFilters, [JSON.stringify(additionalFilters)]);
-  const stableOrderBy = useMemo(() => orderByFields, [JSON.stringify(orderByFields)]);
+  // ✅ FIX CRÍTICO: Estabilizar filtros y orderBy para evitar loops infinitos
+  // Usamos useRef para mantener versiones estables de los arrays
+  const prevFiltersRef = useRef();
+  const prevOrderByRef = useRef();
+
+  // Comparar contenido serializado en lugar de referencias
+  const filtersChanged = JSON.stringify(additionalFilters) !== JSON.stringify(prevFiltersRef.current);
+  const orderByChanged = JSON.stringify(orderByFields) !== JSON.stringify(prevOrderByRef.current);
+
+  // Solo actualizar si el contenido realmente cambió
+  if (filtersChanged) prevFiltersRef.current = additionalFilters;
+  if (orderByChanged) prevOrderByRef.current = orderByFields;
+
   const companyId = userData?.companyId;
 
   useEffect(() => {
@@ -49,17 +59,21 @@ export const useRealtimeCollection = (
         // CRÍTICO: Siempre filtrar por companyId para aislar datos
         q = query(q, where('companyId', '==', companyId));
 
-        // Aplicar filtros adicionales
-        stableFilters.forEach(([field, operator, value]) => {
-          q = query(q, where(field, operator, value));
-        });
+        // Aplicar filtros adicionales (usar las referencias estables)
+        if (prevFiltersRef.current) {
+          prevFiltersRef.current.forEach(([field, operator, value]) => {
+            q = query(q, where(field, operator, value));
+          });
+        }
 
-        // Aplicar ordenamiento
-        stableOrderBy.forEach(([field, direction = 'asc']) => {
-          q = query(q, orderBy(field, direction));
-        });
+        // Aplicar ordenamiento (usar las referencias estables)
+        if (prevOrderByRef.current) {
+          prevOrderByRef.current.forEach(([field, direction = 'asc']) => {
+            q = query(q, orderBy(field, direction));
+          });
+        }
 
-        console.log(`🔄 Configurando listener para ${collectionName} con ${stableFilters.length} filtros`);
+        console.log(`🔄 Configurando listener para ${collectionName} con ${prevFiltersRef.current?.length || 0} filtros`);
 
         // Configurar el listener de tiempo real
         unsubscribeRef.current = onSnapshot(
@@ -107,7 +121,7 @@ export const useRealtimeCollection = (
         unsubscribeRef.current();
       }
     };
-  }, [collectionName, companyId, stableFilters, stableOrderBy]);
+  }, [collectionName, companyId, filtersChanged, orderByChanged]);
 
   return { data, loading, error };
 };

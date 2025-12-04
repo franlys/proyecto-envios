@@ -1,4 +1,4 @@
-﻿// admin_web/src/pages/Dashboard.jsx
+// admin_web/src/pages/Dashboard.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +6,57 @@ import api from '../services/api';
 import { useRealtimeRutasActivas, useRealtimeUsuarios } from '../hooks/useRealtimeCollection';
 import MonitorCargadores from '../components/monitoring/MonitorCargadores';
 import MonitorRepartidores from '../components/monitoring/MonitorRepartidores';
+import Card, { CardBody } from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import { motion } from 'framer-motion';
+import {
+  Package,
+  TruckIcon,
+  MapPin,
+  FileText,
+  Users,
+  CheckCircle2,
+  Activity,
+  TrendingUp
+} from 'lucide-react';
+
+// 🎯 Componente para animar números (CountUp effect)
+const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const duration = 1200; // Duración de la animación en ms
+    const steps = 60; // Frames de animación
+    const increment = value / steps;
+    let current = 0;
+    let frame = 0;
+
+    const timer = setInterval(() => {
+      frame++;
+      current = Math.min(current + increment, value);
+
+      if (frame >= steps || current >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(current);
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return (
+    <span>
+      {prefix}
+      {decimals > 0
+        ? displayValue.toFixed(decimals)
+        : Math.floor(displayValue).toLocaleString('es-DO')
+      }
+      {suffix}
+    </span>
+  );
+};
 
 const Dashboard = () => {
   const { userData, loading: authLoading } = useAuth();
@@ -123,10 +174,10 @@ const Dashboard = () => {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando...</p>
+          <Activity className="w-12 h-12 text-indigo-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-600 font-medium">Cargando...</p>
         </div>
       </div>
     );
@@ -134,28 +185,32 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md p-6">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-          >
-            Reintentar
-          </button>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <Card className="max-w-md">
+          <CardBody className="text-center">
+            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Error</h2>
+            <p className="text-slate-600 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              Reintentar
+            </button>
+          </CardBody>
+        </Card>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando estadísticas...</p>
+          <Activity className="w-12 h-12 text-indigo-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-600 font-medium">Cargando estadísticas...</p>
         </div>
       </div>
     );
@@ -163,115 +218,166 @@ const Dashboard = () => {
 
   if (!stats) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md p-6">
-          <div className="text-yellow-500 text-5xl mb-4">📊</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Sin Datos</h2>
-          <p className="text-gray-600">No hay estadísticas disponibles en este momento.</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <Card className="max-w-md">
+          <CardBody className="text-center">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">📊</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Sin Datos</h2>
+            <p className="text-slate-600">No hay estadísticas disponibles en este momento.</p>
+          </CardBody>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
-          Dashboard - {userData?.rol === 'super_admin' ? 'Super Admin' : 'Administrador General'}
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Bienvenido, {userData?.nombre}</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-6 sm:mb-8"
+      >
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">
+              Dashboard - {userData?.rol === 'super_admin' ? 'Super Admin' : 'Administrador General'}
+            </h1>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">Bienvenido, {userData?.nombre}</p>
+          </div>
+        </div>
         {stats.empresa && (
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 mt-1">
-            Empresa: {stats.empresa.nombre} - Plan: {stats.empresa.plan}
-          </p>
+          <div className="flex items-center gap-2 mt-3">
+            <Badge variant="info" size="sm">
+              {stats.empresa.nombre}
+            </Badge>
+            <Badge variant="neutral" size="sm">
+              Plan: {stats.empresa.plan}
+            </Badge>
+          </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Estadísticas principales - TIEMPO REAL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <StatCard
           title="Embarques Activos"
           value={stats.embarquesActivos}
           subtitle={`Total: ${stats.totalEmbarques || 0}`}
-          icon="📦"
-          color="blue"
+          icon={Package}
+          color="indigo"
           realtime={false}
+          delay={0.1}
         />
         <StatCard
           title="Recolecciones Hoy"
           value={stats.recoleccionesHoy}
           subtitle={`Total: ${stats.totalRecolecciones || 0}`}
-          icon="🚚"
-          color="green"
+          icon={TruckIcon}
+          color="emerald"
           realtime={false}
+          delay={0.2}
         />
         <StatCard
           title="Rutas en Curso"
           value={rutasActivas.length}
           subtitle={`Backend: ${stats.totalRutas || 0}`}
-          icon="🚗"
-          color="yellow"
+          icon={MapPin}
+          color="amber"
           realtime={true}
+          delay={0.3}
         />
         <StatCard
           title="Usuarios Activos"
           value={usuarios.length}
           subtitle={`Total: ${stats.totalUsuarios || 0}`}
-          icon="👥"
-          color="purple"
+          icon={Users}
+          color="slate"
           realtime={true}
+          delay={0.4}
         />
       </div>
 
       {/* Estadísticas adicionales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Usuarios del Sistema</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">{stats.totalUsuarios || 0}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                Activos: {stats.usuariosActivos || 0}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Usuarios del Sistema</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white mb-1">
+                <AnimatedNumber value={stats.totalUsuarios || 0} />
               </p>
+              <div className="flex items-center gap-2">
+                <Badge variant="success" size="sm" dot>
+                  Activos: {stats.usuariosActivos || 0}
+                </Badge>
+              </div>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl sm:text-2xl">👥</span>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
+              <Users className="w-6 h-6 text-white" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Total de Facturas</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">{stats.totalFacturas || 0}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Total de Facturas</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white mb-1">
+                <AnimatedNumber value={stats.totalFacturas || 0} />
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-500">
                 {stats.totalFacturas > 0
                   ? `${Math.round((stats.facturasEntregadas / stats.totalFacturas) * 100)}% entregadas`
                   : 'Sin facturas'
                 }
               </p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl sm:text-2xl">📋</span>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
+              <FileText className="w-6 h-6 text-white" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1">Estado del Sistema</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">Operativo</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.7 }}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Estado del Sistema</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="success" size="md" dot>
+                  Operativo
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-500">
                 Todos los servicios funcionando
               </p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-              <span className="text-xl sm:text-2xl">✅</span>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
+              <CheckCircle2 className="w-6 h-6 text-white" />
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Monitores en Tiempo Real */}
@@ -281,89 +387,158 @@ const Dashboard = () => {
       </div>
 
       {/* Accesos rápidos */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white mb-3 sm:mb-4">Accesos Rápidos</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.8 }}
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Accesos Rápidos</h2>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickAccessButton
             title="Embarques"
-            icon="📦"
-            color="blue"
+            icon={Package}
+            color="indigo"
             onClick={() => navigate('/embarques')}
           />
           <QuickAccessButton
             title="Recolecciones"
-            icon="🚚"
-            color="green"
+            icon={TruckIcon}
+            color="emerald"
             onClick={() => navigate('/recolecciones')}
           />
           <QuickAccessButton
             title="Rutas"
-            icon="🚗"
-            color="yellow"
+            icon={MapPin}
+            color="amber"
             onClick={() => navigate('/rutas')}
           />
           <QuickAccessButton
             title="Reportes"
-            icon="📊"
-            color="purple"
+            icon={FileText}
+            color="slate"
             onClick={() => navigate('/reportes')}
           />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
-// Componente StatCard
-const StatCard = ({ title, value, subtitle, icon, color, realtime = false }) => {
-  const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-    green: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-    yellow: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
-    red: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-    purple: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+// Componente StatCard con diseño enterprise y animaciones
+const StatCard = ({ title, value, subtitle, icon: IconComponent, color, realtime = false, delay = 0 }) => {
+  const colorConfig = {
+    indigo: {
+      bg: 'bg-indigo-50',
+      text: 'text-indigo-600',
+      iconBg: 'bg-gradient-to-br from-indigo-500 to-indigo-600'
+    },
+    emerald: {
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-600',
+      iconBg: 'bg-gradient-to-br from-emerald-500 to-emerald-600'
+    },
+    amber: {
+      bg: 'bg-amber-50',
+      text: 'text-amber-600',
+      iconBg: 'bg-gradient-to-br from-amber-500 to-amber-600'
+    },
+    rose: {
+      bg: 'bg-rose-50',
+      text: 'text-rose-600',
+      iconBg: 'bg-gradient-to-br from-rose-500 to-rose-600'
+    },
+    slate: {
+      bg: 'bg-slate-50',
+      text: 'text-slate-600',
+      iconBg: 'bg-gradient-to-br from-slate-500 to-slate-600'
+    }
   };
+
+  const config = colorConfig[color] || colorConfig.indigo;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 relative">
-      {realtime && (
-        <div className="absolute top-2 right-2 flex items-center gap-1">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs text-gray-400">En vivo</span>
-        </div>
-      )}
-      <div className="flex items-center justify-between">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay }}
+      className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow relative"
+    >
+      <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1 truncate">{title}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">{value}</p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
+            {realtime && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-md">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">En vivo</span>
+              </div>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-slate-800 dark:text-white mb-1">
+            <AnimatedNumber value={value} />
+          </p>
           {subtitle && (
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{subtitle}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-500">{subtitle}</p>
           )}
         </div>
-        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 ml-2 ${colorClasses[color] || colorClasses.blue}`}>
-          <span className="text-xl sm:text-2xl">{icon}</span>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ml-3 shadow-sm ${config.iconBg}`}>
+          {IconComponent && <IconComponent className="w-6 h-6 text-white" />}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-// Componente QuickAccessButton
-const QuickAccessButton = ({ title, icon, color, onClick }) => {
-  const colorClasses = {
-    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-400',
-    green: 'bg-green-50 hover:bg-green-100 text-green-600 dark:bg-green-900/20 dark:hover:bg-green-900/40 dark:text-green-400',
-    yellow: 'bg-yellow-50 hover:bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/40 dark:text-yellow-400',
-    purple: 'bg-purple-50 hover:bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 dark:text-purple-400'
+// Componente QuickAccessButton con diseño enterprise
+const QuickAccessButton = ({ title, icon: IconComponent, color, onClick }) => {
+  const colorConfig = {
+    indigo: {
+      bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+      hover: 'hover:bg-indigo-100 dark:hover:bg-indigo-900/40',
+      text: 'text-indigo-600 dark:text-indigo-400',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-800',
+      border: 'hover:border-indigo-200 dark:hover:border-indigo-700'
+    },
+    emerald: {
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      hover: 'hover:bg-emerald-100 dark:hover:bg-emerald-900/40',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-800',
+      border: 'hover:border-emerald-200 dark:hover:border-emerald-700'
+    },
+    amber: {
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      hover: 'hover:bg-amber-100 dark:hover:bg-amber-900/40',
+      text: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-100 dark:bg-amber-800',
+      border: 'hover:border-amber-200 dark:hover:border-amber-700'
+    },
+    slate: {
+      bg: 'bg-slate-50 dark:bg-slate-700/50',
+      hover: 'hover:bg-slate-100 dark:hover:bg-slate-700',
+      text: 'text-slate-600 dark:text-slate-400',
+      iconBg: 'bg-slate-100 dark:bg-slate-600',
+      border: 'hover:border-slate-200 dark:hover:border-slate-600'
+    }
   };
+
+  const config = colorConfig[color] || colorConfig.indigo;
 
   return (
     <button
       onClick={onClick}
-      className={`p-3 sm:p-4 rounded-lg transition ${colorClasses[color]} flex flex-col items-center justify-center gap-1 sm:gap-2 min-h-[80px] sm:min-h-[100px]`}
+      className={`${config.bg} ${config.hover} ${config.text} rounded-xl p-4 transition-all duration-200 flex flex-col items-center justify-center gap-3 min-h-[100px] border border-transparent ${config.border} hover:shadow-sm group`}
     >
-      <span className="text-2xl sm:text-3xl">{icon}</span>
-      <span className="text-xs sm:text-sm font-medium text-center">{title}</span>
+      <div className={`${config.iconBg} w-12 h-12 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+        {IconComponent && <IconComponent className="w-6 h-6" />}
+      </div>
+      <span className="text-sm font-medium text-center">{title}</span>
     </button>
   );
 };

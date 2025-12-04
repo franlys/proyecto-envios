@@ -38,14 +38,14 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
   };
 
   const estadosBadge = {
-    'Recolectado': 'bg-blue-100 text-blue-800',
+    'Recolectado': 'bg-indigo-100 text-indigo-800',
     'En almacén EE.UU.': 'bg-purple-100 text-purple-800',
     'En contenedor': 'bg-indigo-100 text-indigo-800',
-    'En tránsito': 'bg-yellow-100 text-yellow-800',
-    'En almacén RD': 'bg-orange-100 text-orange-800',
+    'En tránsito': 'bg-amber-100 text-amber-800',
+    'En almacén RD': 'bg-amber-100 text-amber-800',
     'Confirmado': 'bg-teal-100 text-teal-800',
     'En ruta': 'bg-cyan-100 text-cyan-800',
-    'Entregado': 'bg-green-100 text-green-800'
+    'Entregado': 'bg-emerald-100 text-emerald-800'
   };
 
   return (
@@ -53,12 +53,12 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
       {/* Header con botón de toggle */}
       <div className="p-4 flex items-center justify-between border-b">
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-600" />
-          <h3 className="font-semibold text-gray-800">Filtros de Búsqueda</h3>
+          <Filter className="w-5 h-5 text-slate-600" />
+          <h3 className="font-semibold text-slate-800">Filtros de Búsqueda</h3>
         </div>
         <button
           onClick={() => setMostrarFiltros(!mostrarFiltros)}
-          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+          className="text-indigo-600 hover:text-indigo-700 font-medium text-sm"
         >
           {mostrarFiltros ? 'Ocultar' : 'Mostrar'} Filtros
         </button>
@@ -70,7 +70,7 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             {/* Búsqueda rápida por tracking */}
             <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 <Search className="w-4 h-4 inline mr-1" />
                 Búsqueda Rápida
               </label>
@@ -80,20 +80,20 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
                 value={filtros.tracking}
                 onChange={handleChange}
                 placeholder="Buscar por tracking o nombre de destinatario..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
 
             {/* Estado */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Estado
               </label>
               <select
                 name="status"
                 value={filtros.status}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
                 <option value="">Todos los estados</option>
                 <option value="Recolectado">Recolectado</option>
@@ -109,7 +109,7 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
 
             {/* Fecha desde */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Fecha Desde
               </label>
               <input
@@ -117,13 +117,13 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
                 name="fecha_inicio"
                 value={filtros.fecha_inicio}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
 
             {/* Fecha hasta */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Fecha Hasta
               </label>
               <input
@@ -131,13 +131,13 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
                 name="fecha_fin"
                 value={filtros.fecha_fin}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
 
             {/* Destinatario */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Nombre Destinatario
               </label>
               <input
@@ -146,7 +146,7 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
                 value={filtros.destinatario}
                 onChange={handleChange}
                 placeholder="Nombre del destinatario..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
           <div className="flex gap-3">
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+              className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
             >
               <Filter className="w-4 h-4" />
               Aplicar Filtros
@@ -163,7 +163,7 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
             <button
               type="button"
               onClick={handleLimpiar}
-              className="flex items-center gap-2 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex items-center gap-2 px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors"
             >
               <X className="w-4 h-4" />
               Limpiar Filtros
@@ -173,15 +173,15 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
           {/* Filtros activos */}
           {(filtros.status || filtros.tracking || filtros.fecha_inicio || filtros.destinatario) && (
             <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600 mb-2">Filtros activos:</p>
+              <p className="text-sm text-slate-600 mb-2">Filtros activos:</p>
               <div className="flex flex-wrap gap-2">
                 {filtros.status && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${estadosBadge[filtros.status] || 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${estadosBadge[filtros.status] || 'bg-slate-100 text-slate-800'}`}>
                     Estado: {filtros.status}
                   </span>
                 )}
                 {filtros.tracking && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                  <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium">
                     Tracking: {filtros.tracking}
                   </span>
                 )}
@@ -191,12 +191,12 @@ export default function FiltrosRecolecciones({ onFiltrar, onLimpiar }) {
                   </span>
                 )}
                 {filtros.fecha_inicio && (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
                     Desde: {new Date(filtros.fecha_inicio).toLocaleDateString()}
                   </span>
                 )}
                 {filtros.fecha_fin && (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
                     Hasta: {new Date(filtros.fecha_fin).toLocaleDateString()}
                   </span>
                 )}

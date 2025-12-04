@@ -445,17 +445,17 @@ const PanelAlmacenUSA = () => {
   // ========================================
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <Box className="text-blue-600" size={32} />
+            <Box className="text-indigo-600" size={32} />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                 Almacén USA
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-slate-600 dark:text-slate-400">
                 Gestión de contenedores y escaneo de items
               </p>
             </div>
@@ -469,7 +469,7 @@ const PanelAlmacenUSA = () => {
                   type="text"
                   value={busquedaGlobal}
                   onChange={(e) => setBusquedaGlobal(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500"
                   placeholder="Buscar factura..."
                 />
                 <button
@@ -485,7 +485,7 @@ const PanelAlmacenUSA = () => {
             {vistaActual !== 'lista' && (
               <button
                 onClick={volverALista}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
               >
                 <ArrowLeft size={20} />
                 Volver
@@ -498,7 +498,7 @@ const PanelAlmacenUSA = () => {
       {/* Mensajes */}
       {error && (
         <div className="max-w-7xl mx-auto mb-4">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+          <div className="bg-rose-100 border border-rose-400 text-rose-700 px-4 py-3 rounded-lg flex items-center gap-2">
             <AlertTriangle size={20} />
             <span>{error}</span>
           </div>
@@ -507,7 +507,7 @@ const PanelAlmacenUSA = () => {
 
       {successMessage && (
         <div className="max-w-7xl mx-auto mb-4">
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+          <div className="bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-2">
             <Check size={20} />
             <span>{successMessage}</span>
           </div>
@@ -526,8 +526,8 @@ const PanelAlmacenUSA = () => {
                   onClick={() => setTabActiva('activos')}
                   className={`px-6 py-3 rounded-lg transition font-semibold ${
                     tabActiva === 'activos'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -539,8 +539,8 @@ const PanelAlmacenUSA = () => {
                   onClick={() => setTabActiva('historial')}
                   className={`px-6 py-3 rounded-lg transition font-semibold ${
                     tabActiva === 'historial'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -553,7 +553,7 @@ const PanelAlmacenUSA = () => {
               {tabActiva === 'activos' && (
                 <button
                   onClick={() => setVistaActual('crear')}
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                   <Plus size={20} />
                   Nuevo Contenedor
@@ -563,15 +563,15 @@ const PanelAlmacenUSA = () => {
 
             {loading ? (
               <div className="flex justify-center items-center py-12">
-                <Loader className="animate-spin text-blue-600" size={48} />
+                <Loader className="animate-spin text-indigo-600" size={48} />
               </div>
             ) : contenedoresFiltrados.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-                <Package className="mx-auto text-gray-400 mb-4" size={64} />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-12 text-center">
+                <Package className="mx-auto text-slate-400 mb-4" size={64} />
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                   No hay contenedores {tabActiva === 'historial' ? 'en el historial' : ''}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
                   {tabActiva === 'activos' 
                     ? 'Crea tu primer contenedor para empezar a gestionar el inventario'
                     : 'Los contenedores trabajados aparecerán aquí'}
@@ -579,7 +579,7 @@ const PanelAlmacenUSA = () => {
                 {tabActiva === 'activos' && (
                   <button
                     onClick={() => setVistaActual('crear')}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                   >
                     Crear Contenedor
                   </button>
@@ -590,23 +590,23 @@ const PanelAlmacenUSA = () => {
                 {contenedoresFiltrados.map(contenedor => (
                   <div
                     key={contenedor.id}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition p-6"
+                    className="bg-white dark:bg-slate-800 rounded-lg shadow hover:shadow-lg transition p-6"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <Box className="text-blue-600" size={32} />
+                        <Box className="text-indigo-600" size={32} />
                         <div>
-                          <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+                          <h3 className="font-bold text-lg text-slate-900 dark:text-white">
                             {contenedor.numeroContenedor}
                           </h3>
                           <span className={`text-sm px-2 py-1 rounded ${
                             contenedor.estado === 'abierto' 
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-emerald-100 text-emerald-800'
                               : contenedor.estado === 'trabajado'
-                              ? 'bg-gray-100 text-gray-800'
+                              ? 'bg-slate-100 text-slate-800'
                               : contenedor.estado === 'recibido_rd'
                               ? 'bg-purple-100 text-purple-800'
-                              : 'bg-blue-100 text-blue-800'
+                              : 'bg-indigo-100 text-indigo-800'
                           }`}>
                             {contenedor.estado === 'abierto' 
                               ? 'Abierto' 
@@ -624,20 +624,20 @@ const PanelAlmacenUSA = () => {
 
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Total Facturas:</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
+                        <span className="text-slate-600 dark:text-slate-400">Total Facturas:</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">
                           {contenedor.estadisticas?.totalFacturas || 0}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Items:</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
+                        <span className="text-slate-600 dark:text-slate-400">Items:</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">
                           {contenedor.estadisticas?.itemsMarcados || 0} / {contenedor.estadisticas?.totalItems || 0}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Monto:</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
+                        <span className="text-slate-600 dark:text-slate-400">Monto:</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">
                           ${(contenedor.estadisticas?.montoTotal || 0).toFixed(2)}
                         </span>
                       </div>
@@ -646,7 +646,7 @@ const PanelAlmacenUSA = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => abrirContenedor(contenedor)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                       >
                         <Eye size={20} />
                         Ver
@@ -656,7 +656,7 @@ const PanelAlmacenUSA = () => {
                       {contenedor.estado === 'abierto' && (
                         <button
                           onClick={() => setModalEliminar(contenedor)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                          className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition"
                         >
                           <Trash size={20} />
                         </button>
@@ -666,7 +666,7 @@ const PanelAlmacenUSA = () => {
                       {contenedor.estado === 'recibido_rd' && (
                         <button
                           onClick={() => setModalMarcarTrabajado(contenedor)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                         >
                           <CheckCircle size={20} />
                         </button>
@@ -681,25 +681,25 @@ const PanelAlmacenUSA = () => {
 
         {/* VISTA: CREAR CONTENEDOR */}
         {vistaActual === 'crear' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
               Crear Nuevo Contenedor
             </h2>
 
             <form onSubmit={handleCrearContenedor} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Número de Contenedor *
                 </label>
                 <input
                   type="text"
                   value={numeroContenedor}
                   onChange={(e) => setNumeroContenedor(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Ej: CNT-001"
                   required
                 />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Ingresa un identificador único para este contenedor
                 </p>
               </div>
@@ -708,7 +708,7 @@ const PanelAlmacenUSA = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -725,7 +725,7 @@ const PanelAlmacenUSA = () => {
                 <button
                   type="button"
                   onClick={volverALista}
-                  className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                  className="px-6 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
                 >
                   Cancelar
                 </button>
@@ -738,22 +738,22 @@ const PanelAlmacenUSA = () => {
         {vistaActual === 'trabajar' && contenedorActivo && (
           <div className="space-y-6">
             {/* Info del contenedor */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <Box className="text-blue-600" size={40} />
+                  <Box className="text-indigo-600" size={40} />
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                       {contenedorActivo.numeroContenedor}
                     </h2>
                     <span className={`text-sm px-3 py-1 rounded inline-block mt-1 ${
                       contenedorActivo.estado === 'abierto' 
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-emerald-100 text-emerald-800'
                         : contenedorActivo.estado === 'trabajado'
-                        ? 'bg-gray-100 text-gray-800'
+                        ? 'bg-slate-100 text-slate-800'
                         : contenedorActivo.estado === 'recibido_rd'
                         ? 'bg-purple-100 text-purple-800'
-                        : 'bg-blue-100 text-blue-800'
+                        : 'bg-indigo-100 text-indigo-800'
                     }`}>
                       {contenedorActivo.estado === 'abierto' 
                         ? 'Abierto' 
@@ -770,28 +770,28 @@ const PanelAlmacenUSA = () => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">
                       {contenedorActivo.estadisticas?.totalFacturas || 0}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Facturas</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Facturas</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">
                       {contenedorActivo.estadisticas?.totalItems || 0}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Items</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Items</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-emerald-600">
                       {contenedorActivo.estadisticas?.itemsMarcados || 0}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Marcados</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Marcados</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-2xl font-bold text-indigo-600">
                       ${(contenedorActivo.estadisticas?.montoTotal || 0).toFixed(2)}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400">Total</div>
                   </div>
                 </div>
 
@@ -801,7 +801,7 @@ const PanelAlmacenUSA = () => {
                       <button
                         onClick={() => handleCerrarContenedor(false)}
                         disabled={loading || !contenedorActivo.facturas?.length}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 disabled:opacity-50"
+                        className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 disabled:opacity-50"
                       >
                         <Lock size={20} />
                         Cerrar
@@ -809,7 +809,7 @@ const PanelAlmacenUSA = () => {
                       <button
                         onClick={() => setModalEliminar(contenedorActivo)}
                         disabled={loading}
-                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-50"
+                        className="px-6 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition flex items-center gap-2 disabled:opacity-50"
                       >
                         <Trash size={20} />
                         Eliminar
@@ -821,7 +821,7 @@ const PanelAlmacenUSA = () => {
                     <button
                       onClick={() => setModalMarcarTrabajado(contenedorActivo)}
                       disabled={loading}
-                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 disabled:opacity-50"
+                      className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 disabled:opacity-50"
                     >
                       <CheckCircle size={20} />
                       Marcar Trabajado
@@ -833,8 +833,8 @@ const PanelAlmacenUSA = () => {
 
             {/* Buscar y Agregar Factura */}
             {contenedorActivo.estado === 'abierto' && !facturaSeleccionada && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
                   Buscar Factura
                 </h3>
 
@@ -843,13 +843,13 @@ const PanelAlmacenUSA = () => {
                     type="text"
                     value={busquedaFactura}
                     onChange={(e) => setBusquedaFactura(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="Código de tracking (Ej: RC-20250130-0001)"
                   />
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <Loader className="animate-spin" size={20} />
@@ -861,17 +861,17 @@ const PanelAlmacenUSA = () => {
                 </form>
 
                 {facturaEncontrada && (
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-indigo-50 dark:bg-indigo-900/20">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                        <h4 className="font-semibold text-slate-900 dark:text-white">
                           {facturaEncontrada.codigoTracking}
                         </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
                           {facturaEncontrada.destinatario?.nombre || 'Destinatario'}
                         </p>
                       </div>
-                      <span className="text-sm font-medium px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                      <span className="text-sm font-medium px-2 py-1 bg-indigo-100 text-indigo-800 rounded">
                         {facturaEncontrada.items?.length || 0} items
                       </span>
                     </div>
@@ -879,7 +879,7 @@ const PanelAlmacenUSA = () => {
                     <button
                       onClick={handleAgregarFactura}
                       disabled={loading}
-                      className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       <Plus size={20} />
                       Agregar al Contenedor
@@ -891,8 +891,8 @@ const PanelAlmacenUSA = () => {
 
             {/* Lista de facturas en el contenedor */}
             {!facturaSeleccionada && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">
                   Facturas en el Contenedor ({contenedorActivo.facturas?.length || 0})
                 </h3>
 
@@ -901,14 +901,14 @@ const PanelAlmacenUSA = () => {
                     {contenedorActivo.facturas.map(factura => (
                       <div
                         key={factura.id}
-                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                        className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-white">
+                            <h4 className="font-semibold text-slate-900 dark:text-white">
                               {factura.codigoTracking}
                             </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
                               Items: {factura.itemsMarcados || 0} / {factura.itemsTotal || 0}
                             </p>
                           </div>
@@ -916,10 +916,10 @@ const PanelAlmacenUSA = () => {
                           <div className="flex items-center gap-3 w-full sm:w-auto">
                             <span className={`px-3 py-1 rounded text-sm font-medium flex-1 sm:flex-none text-center ${
                               factura.estadoItems === 'completo'
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-emerald-100 text-emerald-800'
                                 : factura.estadoItems === 'incompleto'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-800'
                             }`}>
                               {factura.estadoItems === 'completo' ? 'Completa' : 
                                factura.estadoItems === 'incompleto' ? 'Incompleta' : 
@@ -928,7 +928,7 @@ const PanelAlmacenUSA = () => {
 
                             <button
                               onClick={() => setFacturaSeleccionada(factura)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
                             >
                               <Eye size={18} />
                               Ver
@@ -937,7 +937,7 @@ const PanelAlmacenUSA = () => {
                             {contenedorActivo.estado === 'abierto' && (
                               <button
                                 onClick={() => setModalQuitarFactura(factura)}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+                                className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition flex items-center gap-2"
                               >
                                 <X size={18} />
                               </button>
@@ -948,8 +948,8 @@ const PanelAlmacenUSA = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    <Package className="mx-auto mb-3 text-gray-400" size={48} />
+                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                    <Package className="mx-auto mb-3 text-slate-400" size={48} />
                     <p>No hay facturas en este contenedor</p>
                     <p className="text-sm mt-1">Usa el buscador para agregar facturas</p>
                   </div>
@@ -959,13 +959,13 @@ const PanelAlmacenUSA = () => {
 
             {/* Vista de items de la factura seleccionada */}
             {facturaSeleccionada && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                       Items de {facturaSeleccionada.codigoTracking}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                       {contenedorActivo.estado === 'abierto' 
                         ? 'Marca cada item escaneado' 
                         : 'Vista de solo lectura'}
@@ -974,7 +974,7 @@ const PanelAlmacenUSA = () => {
 
                   <button
                     onClick={() => setFacturaSeleccionada(null)}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
+                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center gap-2"
                   >
                     <ArrowLeft size={20} />
                     Volver
@@ -991,21 +991,21 @@ const PanelAlmacenUSA = () => {
                           key={index}
                           className={`border rounded-lg p-4 transition ${
                             estaEscaneado
-                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
                           }`}
                         >
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
                                   #{index + 1}
                                 </span>
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                <h4 className="font-semibold text-slate-900 dark:text-white">
                                   {item.descripcion}
                                 </h4>
                               </div>
-                              <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400">
+                              <div className="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-400">
                                 <span>Cantidad: {item.cantidad}</span>
                                 <span>•</span>
                                 <span>${item.precio}</span>
@@ -1018,8 +1018,8 @@ const PanelAlmacenUSA = () => {
                                 disabled={loading}
                                 className={`px-4 py-2 rounded-lg transition flex items-center gap-2 disabled:opacity-50 whitespace-nowrap ${
                                   estaEscaneado
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                 }`}
                               >
                                 {estaEscaneado ? (
@@ -1037,8 +1037,8 @@ const PanelAlmacenUSA = () => {
                             ) : (
                               <span className={`px-4 py-2 rounded-lg text-sm font-medium ${
                                 estaEscaneado
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-slate-100 text-slate-800'
                               }`}>
                                 {estaEscaneado ? 'Marcado' : 'Sin marcar'}
                               </span>
@@ -1048,7 +1048,7 @@ const PanelAlmacenUSA = () => {
                       );
                     })
                   ) : (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                       No hay items en esta factura
                     </div>
                   )}
@@ -1062,30 +1062,30 @@ const PanelAlmacenUSA = () => {
       {/* Modal de confirmación para cerrar con incompletas */}
       {modalCerrar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="text-orange-600" size={32} />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              <AlertTriangle className="text-amber-600" size={32} />
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Facturas Incompletas
               </h3>
             </div>
 
-            <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <p className="text-slate-700 dark:text-slate-300 mb-2">
               Hay <strong>{facturasIncompletas.length}</strong> factura(s) con items sin marcar:
             </p>
 
             <ul className="space-y-2 mb-4 max-h-40 overflow-y-auto">
               {facturasIncompletas.map((f) => (
-                <li key={f.id} className="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                <li key={f.id} className="text-sm bg-slate-50 dark:bg-slate-700 p-2 rounded">
                   <span className="font-medium">{f.codigoTracking}</span>
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span className="text-slate-600 dark:text-slate-400">
                     {' '}• {f.itemsMarcados}/{f.itemsTotal} marcados
                   </span>
                 </li>
               ))}
             </ul>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               Si cierras el contenedor ahora, estas facturas quedarán marcadas como <strong>INCOMPLETAS</strong>.
             </p>
 
@@ -1093,7 +1093,7 @@ const PanelAlmacenUSA = () => {
               <button
                 onClick={() => handleCerrarContenedor(true)}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition disabled:opacity-50"
               >
                 {loading ? 'Cerrando...' : 'Cerrar de Todas Formas'}
               </button>
@@ -1102,7 +1102,7 @@ const PanelAlmacenUSA = () => {
                   setModalCerrar(false);
                   setFacturasIncompletas([]);
                 }}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
               >
                 Cancelar
               </button>
@@ -1114,19 +1114,19 @@ const PanelAlmacenUSA = () => {
       {/* Modal de confirmación para eliminar contenedor */}
       {modalEliminar && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="text-red-600" size={32} />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              <AlertTriangle className="text-rose-600" size={32} />
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Eliminar Contenedor
               </h3>
             </div>
 
-            <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <p className="text-slate-700 dark:text-slate-300 mb-2">
               ¿Estás seguro de que deseas eliminar el contenedor <strong>{modalEliminar.numeroContenedor}</strong>?
             </p>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               {modalEliminar.estadisticas?.totalFacturas > 0 ? (
                 <>
                   Este contenedor tiene <strong>{modalEliminar.estadisticas.totalFacturas}</strong> factura(s). 
@@ -1141,13 +1141,13 @@ const PanelAlmacenUSA = () => {
               <button
                 onClick={() => handleEliminarContenedor(modalEliminar.id)}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition disabled:opacity-50"
               >
                 {loading ? 'Eliminando...' : 'Eliminar'}
               </button>
               <button
                 onClick={() => setModalEliminar(null)}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
               >
                 Cancelar
               </button>
@@ -1159,19 +1159,19 @@ const PanelAlmacenUSA = () => {
       {/* Modal de confirmación para quitar factura */}
       {modalQuitarFactura && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="text-orange-600" size={32} />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              <AlertTriangle className="text-amber-600" size={32} />
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Quitar Factura
               </h3>
             </div>
 
-            <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <p className="text-slate-700 dark:text-slate-300 mb-2">
               ¿Estás seguro de que deseas quitar la factura <strong>{modalQuitarFactura.codigoTracking}</strong> del contenedor?
             </p>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               La factura volverá a estar disponible y podrá ser agregada a otro contenedor.
               {modalQuitarFactura.itemsMarcados > 0 && (
                 <> Los {modalQuitarFactura.itemsMarcados} item(s) marcados se resetearán.</>
@@ -1182,13 +1182,13 @@ const PanelAlmacenUSA = () => {
               <button
                 onClick={() => handleQuitarFactura(modalQuitarFactura.id)}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition disabled:opacity-50"
               >
                 {loading ? 'Quitando...' : 'Quitar Factura'}
               </button>
               <button
                 onClick={() => setModalQuitarFactura(null)}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
               >
                 Cancelar
               </button>
@@ -1200,19 +1200,19 @@ const PanelAlmacenUSA = () => {
       {/* Modal de confirmación para marcar como trabajado */}
       {modalMarcarTrabajado && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <CheckCircle className="text-green-600" size={32} />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              <CheckCircle className="text-emerald-600" size={32} />
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Marcar como Trabajado
               </h3>
             </div>
 
-            <p className="text-gray-700 dark:text-gray-300 mb-2">
+            <p className="text-slate-700 dark:text-slate-300 mb-2">
               ¿Estás seguro de que deseas marcar el contenedor <strong>{modalMarcarTrabajado.numeroContenedor}</strong> como trabajado?
             </p>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
               El contenedor se moverá al <strong>HISTORIAL</strong> y ya no aparecerá en la lista de activos.
               Esta acción indica que todas las facturas han sido procesadas correctamente.
             </p>
@@ -1221,13 +1221,13 @@ const PanelAlmacenUSA = () => {
               <button
                 onClick={() => handleMarcarTrabajado(modalMarcarTrabajado.id)}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
               >
                 {loading ? 'Procesando...' : 'Marcar Trabajado'}
               </button>
               <button
                 onClick={() => setModalMarcarTrabajado(null)}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
               >
                 Cancelar
               </button>
@@ -1239,9 +1239,9 @@ const PanelAlmacenUSA = () => {
       {/* Modal de búsqueda global */}
       {modalBusquedaGlobal && resultadoGlobal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Resultado de Búsqueda
               </h3>
               <button
@@ -1250,28 +1250,28 @@ const PanelAlmacenUSA = () => {
                   setResultadoGlobal(null);
                   setBusquedaGlobal('');
                 }}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-4">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h4 className="font-bold text-lg text-gray-900 dark:text-white">
+                  <h4 className="font-bold text-lg text-slate-900 dark:text-white">
                     {resultadoGlobal.codigoTracking}
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                     Cliente: {resultadoGlobal.destinatario?.nombre || 'N/A'}
                   </p>
                 </div>
                 <span className={`px-3 py-1 rounded text-sm font-medium ${
                   resultadoGlobal.estado === 'pendiente'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-emerald-100 text-emerald-800'
                     : resultadoGlobal.estado === 'en_contenedor'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-indigo-100 text-indigo-800'
+                    : 'bg-slate-100 text-slate-800'
                 }`}>
                   {resultadoGlobal.estado?.toUpperCase().replace(/_/g, ' ')}
                 </span>
@@ -1279,15 +1279,15 @@ const PanelAlmacenUSA = () => {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600 dark:text-gray-400">Total Items:</span>
-                  <span className="ml-2 font-semibold text-gray-900 dark:text-white">
+                  <span className="text-slate-600 dark:text-slate-400">Total Items:</span>
+                  <span className="ml-2 font-semibold text-slate-900 dark:text-white">
                     {resultadoGlobal.items?.length || 0}
                   </span>
                 </div>
                 {resultadoGlobal.contenedorId && (
                   <div>
-                    <span className="text-gray-600 dark:text-gray-400">Contenedor:</span>
-                    <span className="ml-2 font-semibold text-blue-600">
+                    <span className="text-slate-600 dark:text-slate-400">Contenedor:</span>
+                    <span className="ml-2 font-semibold text-indigo-600">
                       {contenedores.find(c => c.id === resultadoGlobal.contenedorId)?.numeroContenedor || 'N/A'}
                     </span>
                   </div>
@@ -1296,16 +1296,16 @@ const PanelAlmacenUSA = () => {
             </div>
 
             {resultadoGlobal.estado === 'pendiente' && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
-                <p className="text-green-800 dark:text-green-200 text-sm">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 mb-4">
+                <p className="text-emerald-800 dark:text-emerald-200 text-sm">
                   ✓ Esta factura está disponible para ser agregada a un contenedor
                 </p>
               </div>
             )}
 
             {resultadoGlobal.estado === 'en_contenedor' && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                <p className="text-blue-800 dark:text-blue-200 text-sm">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 mb-4">
+                <p className="text-indigo-800 dark:text-indigo-200 text-sm">
                   ℹ Esta factura ya está en un contenedor
                 </p>
               </div>
@@ -1318,7 +1318,7 @@ const PanelAlmacenUSA = () => {
                   setResultadoGlobal(null);
                   setBusquedaGlobal('');
                 }}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
               >
                 Cerrar
               </button>

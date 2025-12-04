@@ -241,8 +241,8 @@ const Companies = () => {
 
   const getPlanBadge = (plan) => {
     const badges = {
-      basic: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
-      premium: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
+      basic: 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200',
+      premium: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200',
       enterprise: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
     };
     return badges[plan] || badges.basic;
@@ -260,7 +260,7 @@ const Companies = () => {
   if (userData?.rol !== 'super_admin') {
     return (
       <div className="p-6">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <div className="bg-rose-100 border border-rose-400 text-rose-700 px-4 py-3 rounded">
           <p className="font-bold">Acceso Denegado</p>
           <p className="text-sm">Solo los Super Administradores pueden gestionar compañías.</p>
         </div>
@@ -273,71 +273,71 @@ const Companies = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Gestión de Compañías</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Gestión de Compañías</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             Administra las compañías del sistema Multi-Tenant
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
         >
           + Nueva Compañía
         </button>
       </div>
 
       {/* Companies Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Cargando compañías...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-slate-600 dark:text-slate-400">Cargando compañías...</p>
           </div>
         ) : companies.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
+            <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
               No hay compañías registradas
             </p>
             <button
               onClick={openCreateModal}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
             >
               Crear Primera Compañía
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+              <thead className="bg-slate-50 dark:bg-slate-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
                     Compañía
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
                     Plan
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
                     Creación
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
                     Admin Email
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                 {companies.map((company) => (
-                  <tr key={company.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={company.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      <div className="text-sm font-medium text-slate-900 dark:text-white">
                         {company.nombre || 'Sin nombre'}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
                         ID: {company.id}
                       </div>
                     </td>
@@ -349,25 +349,25 @@ const Companies = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         company.activo 
-                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                          : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                          ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' 
+                          : 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
                       }`}>
                         {company.activo ? '✓ Activa' : '✗ Inactiva'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
                       {company.fechaCreacion 
                         ? new Date(company.fechaCreacion.toDate ? company.fechaCreacion.toDate() : company.fechaCreacion).toLocaleDateString() 
                         : 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
                       {company.adminEmail || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => openEditModal(company)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
                         >
                           Editar
                         </button>
@@ -375,15 +375,15 @@ const Companies = () => {
                           onClick={() => handleToggleCompany(company.id, company.activo)}
                           className={`${
                             company.activo 
-                              ? 'text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300'
-                              : 'text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300'
+                              ? 'text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300'
+                              : 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300'
                           }`}
                         >
                           {company.activo ? 'Desactivar' : 'Activar'}
                         </button>
                         <button
                           onClick={() => openDeleteModal(company)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                          className="text-rose-600 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300"
                         >
                           Eliminar
                         </button>
@@ -400,15 +400,15 @@ const Companies = () => {
       {/* Modal Create/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
               {modalMode === 'create' ? 'Crear Nueva Compañía' : 'Editar Compañía'}
             </h2>
             
             <form onSubmit={modalMode === 'create' ? handleCreateCompany : handleUpdateCompany}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nombre de la Compañía *
                   </label>
                   <input
@@ -416,16 +416,16 @@ const Companies = () => {
                     required
                     value={formData.nombre}
                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Embarques Iván"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Se generará un ID automático: {formData.nombre.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Email del Administrador *
                   </label>
                   <input
@@ -433,7 +433,7 @@ const Companies = () => {
                     required
                     value={formData.adminEmail}
                     onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="admin@embarquesivÃ¡n.com"
                     disabled={modalMode === 'edit'}
                   />
@@ -441,7 +441,7 @@ const Companies = () => {
 
                 {modalMode === 'create' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Contraseña del Administrador *
                     </label>
                     <input
@@ -449,51 +449,51 @@ const Companies = () => {
                       required
                       value={formData.adminPassword}
                       onChange={(e) => setFormData({...formData, adminPassword: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder="Mínimo 6 caracteres"
                       minLength={6}
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       🔒 Esta será la contraseña para que el administrador inicie sesión
                     </p>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Teléfono
                   </label>
                   <input
                     type="tel"
                     value={formData.telefono}
                     onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="(809) 123-4567"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Dirección
                   </label>
                   <input
                     type="text"
                     value={formData.direccion}
                     onChange={(e) => setFormData({...formData, direccion: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Santo Domingo, República Dominicana"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Plan *
                   </label>
                   <select
                     required
                     value={formData.plan}
                     onChange={(e) => setFormData({...formData, plan: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="basic">Básico</option>
                     <option value="premium">Premium</option>
@@ -502,14 +502,14 @@ const Companies = () => {
                 </div>
 
                 {/* Configuración de Correo */}
-                <div className="border-t border-gray-300 dark:border-gray-600 pt-4 mt-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <div className="border-t border-slate-300 dark:border-slate-600 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
                     Configuración de Correo
                   </h3>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Email de la Compañía
                       </label>
                       <input
@@ -519,13 +519,13 @@ const Companies = () => {
                           ...formData,
                           emailConfig: { ...formData.emailConfig, user: e.target.value, from: e.target.value }
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="empresa@gmail.com"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Contraseña de Aplicación de Gmail
                       </label>
                       <input
@@ -535,10 +535,10 @@ const Companies = () => {
                           ...formData,
                           emailConfig: { ...formData.emailConfig, pass: e.target.value }
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="wimu etth qgnf qplx"
                       />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Contraseña de aplicación generada en Google
                       </p>
                     </div>
@@ -546,20 +546,20 @@ const Companies = () => {
                 </div>
 
                 {/* Diseño de Factura */}
-                <div className="border-t border-gray-300 dark:border-gray-600 pt-4 mt-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <div className="border-t border-slate-300 dark:border-slate-600 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
                     Diseño de Factura
                   </h3>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Logo de la Compañía
                       </label>
 
                       {/* Preview del logo */}
                       {formData.invoiceDesign.logoUrl && (
-                        <div className="mb-2 p-2 border border-gray-200 dark:border-gray-600 rounded-lg">
+                        <div className="mb-2 p-2 border border-slate-200 dark:border-slate-600 rounded-lg">
                           <img
                             src={formData.invoiceDesign.logoUrl}
                             alt="Logo preview"
@@ -574,7 +574,7 @@ const Companies = () => {
                       {/* Botones de carga */}
                       <div className="flex gap-2">
                         <label className="flex-1 cursor-pointer">
-                          <div className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg transition-colors">
+                          <div className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-center rounded-lg transition-colors">
                             📤 Subir Logo
                           </div>
                           <input
@@ -635,7 +635,7 @@ const Companies = () => {
                               });
                             }
                           }}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                          className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
                         >
                           🔗 URL
                         </button>
@@ -646,14 +646,14 @@ const Companies = () => {
                         type="url"
                         value={formData.invoiceDesign.logoUrl}
                         readOnly
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg bg-gray-50 text-sm"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg bg-slate-50 text-sm"
                         placeholder="https://... (carga un archivo o ingresa una URL)"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                           Color Principal
                         </label>
                         <input
@@ -663,12 +663,12 @@ const Companies = () => {
                             ...formData,
                             invoiceDesign: { ...formData.invoiceDesign, primaryColor: e.target.value }
                           })}
-                          className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
+                          className="w-full h-10 border border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                           Color Secundario
                         </label>
                         <input
@@ -678,13 +678,13 @@ const Companies = () => {
                             ...formData,
                             invoiceDesign: { ...formData.invoiceDesign, secondaryColor: e.target.value }
                           })}
-                          className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
+                          className="w-full h-10 border border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Plantilla
                       </label>
                       <select
@@ -693,7 +693,7 @@ const Companies = () => {
                           ...formData,
                           invoiceDesign: { ...formData.invoiceDesign, template: e.target.value }
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="modern">Moderna</option>
                         <option value="classic">Clásica</option>
@@ -702,7 +702,7 @@ const Companies = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Texto de Encabezado
                       </label>
                       <input
@@ -712,13 +712,13 @@ const Companies = () => {
                           ...formData,
                           invoiceDesign: { ...formData.invoiceDesign, headerText: e.target.value }
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="Gracias por su preferencia"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Texto de Pie de Página
                       </label>
                       <textarea
@@ -727,7 +727,7 @@ const Companies = () => {
                           ...formData,
                           invoiceDesign: { ...formData.invoiceDesign, footerText: e.target.value }
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="Términos y condiciones..."
                         rows="3"
                       />
@@ -743,13 +743,13 @@ const Companies = () => {
                     setShowModal(false);
                     resetForm();
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                   {modalMode === 'create' ? 'Crear Compañía' : 'Guardar Cambios'}
                 </button>
@@ -762,24 +762,24 @@ const Companies = () => {
       {/* Modal Eliminar Compañía */}
       {showDeleteModal && companyToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-md">
             <div className="text-center mb-6">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-100 dark:bg-rose-900/30 mb-4">
                 <span className="text-2xl">⚠️</span>
               </div>
-              <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">
+              <h2 className="text-xl font-bold text-rose-600 dark:text-rose-400 mb-2">
                 ELIMINAR COMPAÑÍA
               </h2>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-slate-600 dark:text-slate-300">
                 Esta acción es <strong>IRREVERSIBLE</strong>
               </p>
             </div>
 
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
-              <p className="font-semibold text-red-900 dark:text-red-200 mb-2">
+            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg p-4 mb-4">
+              <p className="font-semibold text-rose-900 dark:text-rose-200 mb-2">
                 Se eliminará permanentemente:
               </p>
-              <ul className="text-sm text-red-800 dark:text-red-300 space-y-1">
+              <ul className="text-sm text-rose-800 dark:text-rose-300 space-y-1">
                 <li>✗ Compañía: <strong>{companyToDelete.nombre}</strong></li>
                 <li>✗ Todos los usuarios de la compañía</li>
                 <li>✗ Todos los embarques y facturas</li>
@@ -790,7 +790,7 @@ const Companies = () => {
 
             <form onSubmit={handleDeleteCompany}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   🔐 Ingresa tu contraseña de Super Admin para confirmar:
                 </label>
                 <input
@@ -798,7 +798,7 @@ const Companies = () => {
                   required
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-red-300 dark:border-red-700 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full px-3 py-2 border border-rose-300 dark:border-rose-700 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
                   placeholder="Tu contraseña de Super Admin"
                   disabled={deleteLoading}
                 />
@@ -812,7 +812,7 @@ const Companies = () => {
                     setCompanyToDelete(null);
                     setDeletePassword('');
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                   disabled={deleteLoading}
                 >
                   Cancelar
@@ -820,7 +820,7 @@ const Companies = () => {
                 <button
                   type="submit"
                   disabled={deleteLoading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition disabled:opacity-50"
                 >
                   {deleteLoading ? 'Eliminando...' : 'Eliminar Permanentemente'}
                 </button>

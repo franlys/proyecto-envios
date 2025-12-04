@@ -594,12 +594,12 @@ const PanelRepartidores = () => {
   // ==============================================================================
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-2 xxs:p-3 xs:p-4 pb-20">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-2 xxs:p-3 xs:p-4 pb-20">
         {/* Header */}
         <div className="flex justify-between items-center mb-4 xxs:mb-6">
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg xxs:text-xl xs:text-2xl font-bold text-gray-900 dark:text-white truncate">Panel de Repartidor</h1>
-            <p className="text-xs xxs:text-sm xs:text-base text-gray-600 dark:text-gray-400 truncate">Hola, {userData?.nombre}</p>
+            <h1 className="text-lg xxs:text-xl xs:text-2xl font-bold text-slate-900 dark:text-white truncate">Panel de Repartidor</h1>
+            <p className="text-xs xxs:text-sm xs:text-base text-slate-600 dark:text-slate-400 truncate">Hola, {userData?.nombre}</p>
           </div>
           <div className="flex items-center gap-1 xxs:gap-2 flex-shrink-0 ml-2">
             <ConnectionStatusIndicator />
@@ -610,31 +610,31 @@ const PanelRepartidores = () => {
         {/* VISTA: LISTA DE RUTAS */}
         {vistaActual === 'lista' && (
           <div className="space-y-3 xxs:space-y-4">
-            <h2 className="text-base xxs:text-lg xs:text-xl font-semibold text-gray-800 dark:text-gray-200">Mis Rutas Asignadas</h2>
+            <h2 className="text-base xxs:text-lg xs:text-xl font-semibold text-slate-800 dark:text-slate-200">Mis Rutas Asignadas</h2>
             {loadingRutas ? (
-              <div className="flex justify-center p-8"><Loader className="animate-spin text-blue-600" /></div>
+              <div className="flex justify-center p-8"><Loader className="animate-spin text-indigo-600" /></div>
             ) : rutasRealtime?.length > 0 ? (
               rutasRealtime.map(ruta => (
-                <div key={ruta.id} className="bg-white dark:bg-gray-800 p-3 xxs:p-4 rounded-lg shadow-md border-l-4 border-blue-600">
+                <div key={ruta.id} className="bg-white dark:bg-slate-800 p-3 xxs:p-4 rounded-lg shadow-md border-l-4 border-indigo-600">
                   <div className="flex justify-between items-start mb-2 gap-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-base xxs:text-lg dark:text-white truncate">{ruta.nombre}</h3>
-                      <p className="text-xs xxs:text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-xs xxs:text-sm text-slate-500 dark:text-slate-400">
                         {new Date(ruta.fecha_programada).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap flex-shrink-0 ${ruta.estado === 'en_curso' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap flex-shrink-0 ${ruta.estado === 'en_curso' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                       }`}>
                       {ruta.estado.toUpperCase().replace('_', ' ')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center mt-3 xxs:mt-4 gap-2">
-                    <div className="text-xs xxs:text-sm text-gray-600 dark:text-gray-300">
+                    <div className="text-xs xxs:text-sm text-slate-600 dark:text-slate-300">
                       <p>{ruta.facturas?.length || 0} entregas</p>
                     </div>
                     <button
                       onClick={() => cargarDetalleRuta(ruta.id)}
-                      className="px-3 xxs:px-4 py-2 text-xs xxs:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-1 xxs:gap-2 whitespace-nowrap"
+                      className="px-3 xxs:px-4 py-2 text-xs xxs:text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition flex items-center gap-1 xxs:gap-2 whitespace-nowrap"
                     >
                       Ver Ruta <ArrowLeft className="rotate-180" size={14} />
                     </button>
@@ -642,9 +642,9 @@ const PanelRepartidores = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg">
-                <Truck className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                <p className="text-gray-500 dark:text-gray-400">No tienes rutas activas asignadas</p>
+              <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-lg">
+                <Truck className="mx-auto h-12 w-12 text-slate-400 mb-2" />
+                <p className="text-slate-500 dark:text-slate-400">No tienes rutas activas asignadas</p>
               </div>
             )}
           </div>
@@ -653,15 +653,15 @@ const PanelRepartidores = () => {
         {/* VISTA: DETALLE DE RUTA */}
         {vistaActual === 'ruta' && rutaSeleccionada && (
           <div className="space-y-4">
-            <button onClick={volverALista} className="flex items-center text-gray-600 dark:text-gray-400 mb-2">
+            <button onClick={volverALista} className="flex items-center text-slate-600 dark:text-slate-400 mb-2">
               <ArrowLeft size={20} className="mr-1" /> Volver a mis rutas
             </button>
 
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-xl font-bold dark:text-white">{rutaSeleccionada.nombre}</h2>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     {rutaSeleccionada.facturas?.filter(f => f.estado === 'entregada').length} / {rutaSeleccionada.facturas?.length} completadas
                   </p>
                 </div>
@@ -669,7 +669,7 @@ const PanelRepartidores = () => {
                   <button
                     onClick={handleIniciarEntregas}
                     disabled={procesando}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-2"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center gap-2"
                   >
                     <Truck size={18} /> Iniciar Ruta
                   </button>
@@ -680,14 +680,14 @@ const PanelRepartidores = () => {
                         const printUrl = `${window.location.origin}/rutas/${rutaSeleccionada.id}/imprimir`;
                         window.open(printUrl, '_blank');
                       }}
-                      className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                      className="p-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
                       title="Imprimir Facturas"
                     >
                       <Printer size={20} />
                     </button>
                     <button
                       onClick={() => setShowModalGasto(true)}
-                      className="p-2 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
+                      className="p-2 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
                       title="Registrar Gasto"
                     >
                       <DollarSign size={20} />
@@ -704,9 +704,9 @@ const PanelRepartidores = () => {
 
               {/* Resumen de Gastos */}
               {totalGastos > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Gastos Registrados: <span className="text-red-600">RD$ {totalGastos.toFixed(2)}</span>
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Gastos Registrados: <span className="text-rose-600">RD$ {totalGastos.toFixed(2)}</span>
                   </p>
                 </div>
               )}
@@ -720,25 +720,25 @@ const PanelRepartidores = () => {
                     setFacturaActual(factura);
                     setVistaActual('factura');
                   }}
-                  className={`p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-green-50 border-green-500 dark:bg-green-900/20' :
-                    factura.estado === 'no_entregada' ? 'bg-red-50 border-red-500 dark:bg-red-900/20' :
-                      'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600'
+                  className={`p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20' :
+                    factura.estado === 'no_entregada' ? 'bg-rose-50 border-rose-500 dark:bg-rose-900/20' :
+                      'bg-white border-slate-300 dark:bg-slate-800 dark:border-slate-600'
                     }`}
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <span className="bg-gray-200 dark:bg-gray-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                      <span className="bg-slate-200 dark:bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
                         {index + 1}
                       </span>
                       <div>
-                        <p className="font-bold text-gray-900 dark:text-white">{factura.destinatario?.nombre}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[200px]">
+                        <p className="font-bold text-slate-900 dark:text-white">{factura.destinatario?.nombre}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
                           {factura.destinatario?.direccion}
                         </p>
                       </div>
                     </div>
-                    {factura.estado === 'entregada' && <CheckCircle className="text-green-600" size={20} />}
-                    {factura.estado === 'no_entregada' && <XCircle className="text-red-600" size={20} />}
+                    {factura.estado === 'entregada' && <CheckCircle className="text-emerald-600" size={20} />}
+                    {factura.estado === 'no_entregada' && <XCircle className="text-rose-600" size={20} />}
                   </div>
                 </div>
               ))}
@@ -750,17 +750,17 @@ const PanelRepartidores = () => {
         {vistaActual === 'factura' && facturaActual && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
-              <button onClick={volverARuta} className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-700">
+              <button onClick={volverARuta} className="p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-700">
                 <ArrowLeft size={24} />
               </button>
               <h2 className="text-xl font-bold dark:text-white">Detalle de Entrega</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Cliente</p>
-                <p className="font-bold text-lg text-gray-900 dark:text-white">{facturaActual.destinatario?.nombre}</p>
-                <p className="text-gray-600 dark:text-gray-300 flex items-start gap-2 mt-1">
+                <p className="text-sm text-slate-500 dark:text-slate-400">Cliente</p>
+                <p className="font-bold text-lg text-slate-900 dark:text-white">{facturaActual.destinatario?.nombre}</p>
+                <p className="text-slate-600 dark:text-slate-300 flex items-start gap-2 mt-1">
                   <MapPin size={16} className="mt-1 flex-shrink-0" />
                   {facturaActual.destinatario?.direccion}
                 </p>
@@ -769,7 +769,7 @@ const PanelRepartidores = () => {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium shadow-sm"
                   >
                     <Navigation size={16} />
                     Google Maps
@@ -786,14 +786,14 @@ const PanelRepartidores = () => {
                 </div>
               </div>
               <div className="md:border-l md:pl-4">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pago Contraentrega:</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-400">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Estado: <span className={`font-bold ${facturaActual.pago?.estado === 'pagada' ? 'text-green-600' : 'text-orange-600'}`}>{facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Pendiente'}</span></p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pago Contraentrega:</p>
+                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Estado: <span className={`font-bold ${facturaActual.pago?.estado === 'pagada' ? 'text-emerald-600' : 'text-amber-600'}`}>{facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Pendiente'}</span></p>
               </div>
             </div>
 
             {/* Items Checklist */}
-            <h3 className="font-bold text-lg mb-3 text-gray-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-bold text-lg mb-3 text-slate-900 dark:text-white flex items-center gap-2">
               <Package size={20} /> Items a Entregar
             </h3>
             <div className="space-y-3 mb-6">
@@ -804,13 +804,13 @@ const PanelRepartidores = () => {
                 const isNoEntregado = item.estadoItem === 'no_entregado';
 
                 // Clases de fondo según estado
-                let bgClasses = 'bg-gray-50 border-gray-200 dark:bg-gray-700 dark:border-gray-600';
+                let bgClasses = 'bg-slate-50 border-slate-200 dark:bg-slate-700 dark:border-slate-600';
                 if (isEntregado) {
-                  bgClasses = 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800';
+                  bgClasses = 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800';
                 } else if (isDanado) {
-                  bgClasses = 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800';
+                  bgClasses = 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800';
                 } else if (isNoEntregado) {
-                  bgClasses = 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800';
+                  bgClasses = 'bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-800';
                 }
 
                 // 🔍 DEBUG: Log completo del ciclo de render
@@ -838,27 +838,27 @@ const PanelRepartidores = () => {
                     className={`p-3 border rounded-lg flex justify-between items-center ${bgClasses} ${item._optimistic ? 'opacity-70' : ''}`}
                   >
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-slate-900 dark:text-white">
                         {item.producto || item.descripcion || 'Item sin nombre'}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Cant: {item.cantidad}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Cant: {item.cantidad}</p>
                       {isDanado && item.descripcionDano && (
-                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">⚠️ {item.descripcionDano}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠️ {item.descripcionDano}</p>
                       )}
                     </div>
                     <div className="flex gap-2">
                       {isEntregado ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
                           <CheckCircle size={20} className="fill-current" />
                           <span className="font-medium text-sm">Entregado</span>
                         </div>
                       ) : isDanado ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
                           <AlertTriangle size={20} className="fill-current" />
                           <span className="font-medium text-sm">Dañado</span>
                         </div>
                       ) : isNoEntregado ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-full">
                           <XCircle size={20} className="fill-current" />
                           <span className="font-medium text-sm">No Entregado</span>
                         </div>
@@ -866,7 +866,7 @@ const PanelRepartidores = () => {
                         <>
                           <button
                             onClick={() => handleEntregarItem(index)}
-                            className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition"
+                            className="p-2 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition"
                             title="Marcar entregado"
                           >
                             <CheckCircle size={20} />
@@ -876,7 +876,7 @@ const PanelRepartidores = () => {
                               setItemDanado({ ...item, index });
                               setShowModalDano(true);
                             }}
-                            className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition"
+                            className="p-2 bg-rose-100 text-rose-700 rounded-full hover:bg-rose-200 transition"
                             title="Reportar Daño"
                           >
                             <AlertTriangle size={20} />
@@ -890,8 +890,8 @@ const PanelRepartidores = () => {
             </div>
 
             {/* Evidencia Fotográfica Section */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm mb-6">
-              <h3 className="font-bold text-lg mb-3 text-gray-900 dark:text-white flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm mb-6">
+              <h3 className="font-bold text-lg mb-3 text-slate-900 dark:text-white flex items-center gap-2">
                 <Camera size={20} /> Evidencia de Entrega
               </h3>
 
@@ -906,7 +906,7 @@ const PanelRepartidores = () => {
                     className="hidden"
                     id="camera-input"
                   />
-                  <div className="w-full px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
+                  <div className="w-full px-3 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
                     <Camera size={20} />
                     <span>Cámara</span>
                   </div>
@@ -921,7 +921,7 @@ const PanelRepartidores = () => {
                     className="hidden"
                     id="gallery-input"
                   />
-                  <div className="w-full px-3 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
+                  <div className="w-full px-3 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
                     <Image size={20} />
                     <span>Galería</span>
                   </div>
@@ -929,8 +929,8 @@ const PanelRepartidores = () => {
               </div>
 
               {fotosEvidencia.length > 0 && (
-                <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     📸 {fotosEvidencia.length} foto(s) seleccionada(s)
                   </p>
                   <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
@@ -939,11 +939,11 @@ const PanelRepartidores = () => {
                         <img
                           src={URL.createObjectURL(file)}
                           alt={`Preview ${idx + 1}`}
-                          className="w-full h-full object-cover rounded border border-gray-300 dark:border-gray-600"
+                          className="w-full h-full object-cover rounded border border-slate-300 dark:border-slate-600"
                         />
                         <button
                           onClick={() => setFotosEvidencia(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
+                          className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-1 hover:bg-rose-700"
                         >
                           <X size={14} />
                         </button>
@@ -954,14 +954,14 @@ const PanelRepartidores = () => {
                   <div className="flex justify-end gap-2 mt-4">
                     <button
                       onClick={() => setFotosEvidencia([])}
-                      className="px-4 py-2 text-gray-600 dark:text-gray-400"
+                      className="px-4 py-2 text-slate-600 dark:text-slate-400"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleSubirFotos}
                       disabled={subiendoFotos}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 font-medium"
+                      className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 font-medium"
                     >
                       {subiendoFotos ? <Loader className="animate-spin" size={16} /> : <Camera size={16} />}
                       {subiendoFotos ? 'Subiendo...' : 'Subir Evidencia'}
@@ -975,7 +975,7 @@ const PanelRepartidores = () => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowModalNoEntrega(true)}
-                className="p-4 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition flex flex-col items-center gap-2"
+                className="p-4 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition flex flex-col items-center gap-2"
               >
                 <XCircle size={24} />
                 <span className="font-bold">No Entregado</span>
@@ -984,7 +984,7 @@ const PanelRepartidores = () => {
               <button
                 onClick={() => setShowModalPago(true)}
                 disabled={facturaActual.pago?.estado === 'pagada' || facturaActual.pago?.total <= 0}
-                className="p-4 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-4 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <DollarSign size={24} />
                 <span className="font-bold">
@@ -997,8 +997,8 @@ const PanelRepartidores = () => {
                 disabled={facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'}
                 className={`col-span-2 p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${
                   facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'
-                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
+                    ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
                 }`}
               >
                 <CheckCircle size={24} />
@@ -1013,39 +1013,39 @@ const PanelRepartidores = () => {
         {/* Modal Reportar Daño */}
         {showModalDano && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-red-600 flex items-center gap-2"><AlertTriangle /> Reportar Daño</h3>
-              <p className="mb-4 font-medium text-gray-800 dark:text-white">
+            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4 text-rose-600 flex items-center gap-2"><AlertTriangle /> Reportar Daño</h3>
+              <p className="mb-4 font-medium text-slate-800 dark:text-white">
                 Item: {itemDanado?.producto || itemDanado?.descripcion || 'Item sin nombre'}
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción del Daño</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción del Daño</label>
                   <textarea
                     value={descripcionDano}
                     onChange={(e) => setDescripcionDano(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     rows="3"
                     placeholder="Describa el daño..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fotos del Daño</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fotos del Daño</label>
                   <input
                     type="file"
                     multiple
                     accept="image/*"
                     onChange={(e) => setFotosDano(Array.from(e.target.files))}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalDano(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400">Cancelar</button>
+                <button onClick={() => setShowModalDano(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
                 <button
                   onClick={handleReportarDano}
                   disabled={procesando}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {procesando ? <Loader className="animate-spin" size={16} /> : <AlertTriangle size={16} />}
                   Reportar
@@ -1058,15 +1058,15 @@ const PanelRepartidores = () => {
         {/* Modal No Entrega */}
         {showModalNoEntrega && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h3 className="text-xl font-bold mb-4 text-red-600 flex items-center gap-2"><XCircle /> Reportar No Entrega</h3>
+            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <h3 className="text-xl font-bold mb-4 text-rose-600 flex items-center gap-2"><XCircle /> Reportar No Entrega</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Motivo</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Motivo</label>
                   <select
                     value={motivoNoEntrega}
                     onChange={(e) => setMotivoNoEntrega(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   >
                     <option value="">Seleccione un motivo...</option>
                     <option value="cliente_ausente">Cliente Ausente</option>
@@ -1078,34 +1078,34 @@ const PanelRepartidores = () => {
                 </div>
                 {motivoNoEntrega === 'otro' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Especificar Motivo</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Especificar Motivo</label>
                     <textarea
                       value={otroMotivoNoEntrega}
                       onChange={(e) => setOtroMotivoNoEntrega(e.target.value)}
-                      className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                       rows="2"
                       placeholder="Especifique el motivo..."
                     />
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción</label>
                   <textarea
                     value={descripcionNoEntrega}
                     onChange={(e) => setDescripcionNoEntrega(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     rows="3"
                     placeholder="Detalles adicionales..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fotos (Fachada/Prueba)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fotos (Fachada/Prueba)</label>
                   <input
                     type="file"
                     multiple
                     accept="image/*"
                     onChange={(e) => setFotosNoEntrega(Array.from(e.target.files))}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -1115,15 +1115,15 @@ const PanelRepartidores = () => {
                     onChange={(e) => setIntentarNuevamente(e.target.checked)}
                     id="reintento"
                   />
-                  <label htmlFor="reintento" className="text-sm text-gray-700 dark:text-gray-300">Se puede reintentar hoy</label>
+                  <label htmlFor="reintento" className="text-sm text-slate-700 dark:text-slate-300">Se puede reintentar hoy</label>
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalNoEntrega(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400">Cancelar</button>
+                <button onClick={() => setShowModalNoEntrega(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
                 <button
                   onClick={handleReportarNoEntrega}
                   disabled={procesando}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {procesando ? <Loader className="animate-spin" size={16} /> : <XCircle size={16} />}
                   Reportar Fallo
@@ -1136,18 +1136,18 @@ const PanelRepartidores = () => {
         {/* Modal Pago */}
         {showModalPago && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-green-600 flex items-center gap-2"><DollarSign /> Confirmar Pago</h3>
-              <p className="mb-4 text-gray-800 dark:text-white">
+            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4 text-emerald-600 flex items-center gap-2"><DollarSign /> Confirmar Pago</h3>
+              <p className="mb-4 text-slate-800 dark:text-white">
                 Monto a cobrar: <span className="font-bold text-lg">RD$ {(facturaActual.pago?.total || 0).toFixed(2)}</span>
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Método de Pago</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Método de Pago</label>
                   <select
                     value={metodoPago}
                     onChange={(e) => setMetodoPago(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   >
                     <option value="">Seleccione un método...</option>
                     <option value="efectivo">Efectivo</option>
@@ -1157,39 +1157,39 @@ const PanelRepartidores = () => {
                 </div>
                 {metodoPago === 'efectivo' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto Recibido (Efectivo)</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Monto Recibido (Efectivo)</label>
                     <input
                       type="number"
                       step="0.01"
                       value={montoRecibido}
                       onChange={(e) => setMontoRecibido(parseFloat(e.target.value))}
-                      className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                       placeholder="0.00"
                     />
                     {montoRecibido > 0 && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                         Cambio: RD$ {(montoRecibido - (facturaActual.pago?.total || 0)).toFixed(2)}
                       </p>
                     )}
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Comentario (Opcional)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Comentario (Opcional)</label>
                   <textarea
                     value={comentarioPago}
                     onChange={(e) => setComentarioPago(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     rows="2"
                     placeholder="Notas sobre el pago..."
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalPago(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400">Cancelar</button>
+                <button onClick={() => setShowModalPago(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
                 <button
                   onClick={handleConfirmarPago}
                   disabled={procesando || !metodoPago || (metodoPago === 'efectivo' && montoRecibido < (facturaActual.pago?.total || 0))}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
                   Confirmar
@@ -1202,36 +1202,36 @@ const PanelRepartidores = () => {
         {/* Modal Finalizar Entrega */}
         {showModalEntregar && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-green-600 flex items-center gap-2"><CheckCircle /> Finalizar Entrega</h3>
+            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4 text-emerald-600 flex items-center gap-2"><CheckCircle /> Finalizar Entrega</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Recibido por (Nombre)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Recibido por (Nombre)</label>
                   <input
                     type="text"
                     value={nombreReceptor}
                     onChange={(e) => setNombreReceptor(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     placeholder="Nombre de quien recibe"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Notas de Entrega</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notas de Entrega</label>
                   <textarea
                     value={notasEntrega}
                     onChange={(e) => setNotasEntrega(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     rows="2"
                     placeholder="Comentarios opcionales..."
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalEntregar(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400">Cancelar</button>
+                <button onClick={() => setShowModalEntregar(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
                 <button
                   onClick={handleMarcarEntregada}
                   disabled={procesando}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
                   Confirmar Entrega
@@ -1244,21 +1244,21 @@ const PanelRepartidores = () => {
         {/* Modal Finalizar Ruta */}
         {showModalFinalizar && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
               <h3 className="text-xl font-bold mb-4 text-purple-600 flex items-center gap-2"><Truck /> Finalizar Ruta</h3>
-              <p className="mb-4 text-gray-600 dark:text-gray-400">¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.</p>
+              <p className="mb-4 text-slate-600 dark:text-slate-400">¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.</p>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Notas Finales</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notas Finales</label>
                 <textarea
                   value={notasFinalizacion}
                   onChange={(e) => setNotasFinalizacion(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   rows="3"
                   placeholder="Observaciones sobre la ruta..."
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowModalFinalizar(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400">Cancelar</button>
+                <button onClick={() => setShowModalFinalizar(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
                 <button
                   onClick={handleFinalizarRuta}
                   disabled={procesando}
@@ -1275,19 +1275,19 @@ const PanelRepartidores = () => {
         {/* Modal Agregar Gasto */}
         {showModalGasto && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-gray-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-yellow-600 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4 text-amber-600 flex items-center gap-2">
                 <DollarSign /> Agregar Gasto
               </h3>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Tipo de Gasto
                 </label>
                 <select
                   value={tipoGasto}
                   onChange={(e) => setTipoGasto(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                 >
                   <option value="combustible">⛽ Combustible</option>
                   <option value="peaje">🛣️ Peaje</option>
@@ -1299,7 +1299,7 @@ const PanelRepartidores = () => {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Monto (RD$)
                 </label>
                 <input
@@ -1308,19 +1308,19 @@ const PanelRepartidores = () => {
                   min="0"
                   value={montoGasto}
                   onChange={(e) => setMontoGasto(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   placeholder="0.00"
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Descripción (opcional)
                 </label>
                 <textarea
                   value={descripcionGasto}
                   onChange={(e) => setDescripcionGasto(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   rows="3"
                   placeholder="Detalles adicionales del gasto..."
                 />
@@ -1332,14 +1332,14 @@ const PanelRepartidores = () => {
                     setShowModalGasto(false);
                     resetFormGasto();
                   }}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400"
+                  className="px-4 py-2 text-slate-600 dark:text-slate-400"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleAgregarGasto}
                   disabled={procesando || !montoGasto || parseFloat(montoGasto) <= 0}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
                 >
                   {procesando ? <Loader className="animate-spin" size={16} /> : <DollarSign size={16} />}
                   Registrar Gasto
