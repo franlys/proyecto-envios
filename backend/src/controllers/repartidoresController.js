@@ -56,6 +56,7 @@ async function getBase64Images(fotosUrls) {
       // Descargar el archivo y convertirlo a base64
       console.log(`   📥 Descargando archivo...`);
       const [fileBuffer] = await file.download();
+      console.log(`   📊 Tamaño del buffer: ${fileBuffer.length} bytes`);
 
       // Detectar tipo MIME según extensión
       const extension = filePath.toLowerCase().split('.').pop();
@@ -63,13 +64,16 @@ async function getBase64Images(fotosUrls) {
       if (extension === 'png') mimeType = 'image/png';
       else if (extension === 'gif') mimeType = 'image/gif';
       else if (extension === 'webp') mimeType = 'image/webp';
+      console.log(`   🎨 Tipo MIME detectado: ${mimeType}`);
 
       // Convertir a base64
       const base64 = fileBuffer.toString('base64');
+      console.log(`   📝 Longitud base64: ${base64.length} caracteres`);
       const dataUri = `data:${mimeType};base64,${base64}`;
+      console.log(`   🔗 Data URI generada: ${dataUri.substring(0, 100)}...`);
 
       base64Images.push(dataUri);
-      console.log(`   ✅ Imagen convertida a base64 (${Math.round(base64.length / 1024)} KB)`);
+      console.log(`   ✅ Imagen convertida a base64 (${Math.round(fileBuffer.length / 1024)} KB)`);
 
     } catch (error) {
       console.error(`   ❌ Error procesando imagen: ${error.message}`);
