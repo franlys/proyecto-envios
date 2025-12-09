@@ -75,15 +75,15 @@ const DetalleRuta = () => {
     );
   }
 
-  const facturasEntregadas = facturas.filter(f => f.estado === 'entregado').length;
-  const facturasNoEntregadas = facturas.filter(f => f.estado === 'no_entregado').length;
-  const facturasPendientes = facturas.filter(f => 
+  const facturasEntregadas = facturas.filter(f => f.estado === 'entregado' || f.estado === 'entregada').length;
+  const facturasNoEntregadas = facturas.filter(f => f.estado === 'no_entregado' || f.estado === 'no_entregada').length;
+  const facturasPendientes = facturas.filter(f =>
     f.estado === 'asignado' || f.estado === 'pendiente' || f.estado === 'confirmada'
   ).length;
-  
+
   const totalGastos = gastos.reduce((sum, g) => sum + (g.monto || 0), 0);
   const totalCobrado = facturas
-    .filter(f => f.estado === 'entregado')
+    .filter(f => f.estado === 'entregado' || f.estado === 'entregada')
     .reduce((sum, f) => sum + (f.monto || 0), 0);
   
   const balance = (ruta.montoAsignado || 0) - totalGastos;
@@ -362,12 +362,12 @@ const TablaFacturas = ({ facturas }) => {
               </td>
               <td className="px-4 py-3">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  factura.estado === 'entregado' ? 'bg-emerald-100 text-emerald-800' :
-                  factura.estado === 'no_entregado' ? 'bg-rose-100 text-rose-800' :
+                  factura.estado === 'entregado' || factura.estado === 'entregada' ? 'bg-emerald-100 text-emerald-800' :
+                  factura.estado === 'no_entregado' || factura.estado === 'no_entregada' ? 'bg-rose-100 text-rose-800' :
                   'bg-amber-100 text-amber-800'
                 }`}>
-                  {factura.estado === 'entregado' ? 'Entregado' :
-                   factura.estado === 'no_entregado' ? 'No Entregado' :
+                  {factura.estado === 'entregado' || factura.estado === 'entregada' ? 'Entregado' :
+                   factura.estado === 'no_entregado' || factura.estado === 'no_entregada' ? 'No Entregado' :
                    'Pendiente'}
                 </span>
               </td>
