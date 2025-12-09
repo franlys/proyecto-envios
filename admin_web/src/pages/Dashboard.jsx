@@ -15,7 +15,6 @@ import {
   MapPin,
   FileText,
   Users,
-  CheckCircle2,
   Activity,
   TrendingUp
 } from 'lucide-react';
@@ -287,7 +286,7 @@ const Dashboard = () => {
         <StatCard
           title="Rutas en Curso"
           value={rutasActivas.length}
-          subtitle={`Backend: ${stats.totalRutas || 0}`}
+          subtitle={`Total registradas: ${stats.totalRutas || 0}`}
           icon={MapPin}
           color="amber"
           realtime={true}
@@ -305,31 +304,7 @@ const Dashboard = () => {
       </div>
 
       {/* Estadísticas adicionales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.5 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Usuarios del Sistema</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-white mb-1">
-                <AnimatedNumber value={stats.totalUsuarios || 0} />
-              </p>
-              <div className="flex items-center gap-2">
-                <Badge variant="success" size="sm" dot>
-                  Activos: {stats.usuariosActivos || 0}
-                </Badge>
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
-              <Users className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </motion.div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -351,30 +326,6 @@ const Dashboard = () => {
             </div>
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
               <FileText className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.7 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Estado del Sistema</p>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="success" size="md" dot>
-                  Operativo
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-500">
-                Todos los servicios funcionando
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
-              <CheckCircle2 className="w-6 h-6 text-white" />
             </div>
           </div>
         </motion.div>
