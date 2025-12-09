@@ -59,8 +59,9 @@ async function getPublicUrls(fotosUrls) {
         // Hacer el archivo público
         await file.makePublic();
 
-        // Generar URL pública
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        // Generar URL pública - usar filePath encodificado para caracteres especiales
+        const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
         publicUrls.push(publicUrl);
         console.log(`   ✅ URL pública: ${publicUrl.substring(0, 100)}...`);
       } catch (makePublicError) {
