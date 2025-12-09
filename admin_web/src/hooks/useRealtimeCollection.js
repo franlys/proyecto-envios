@@ -25,19 +25,6 @@ export const useRealtimeCollection = (
   const [error, setError] = useState(null);
   const unsubscribeRef = useRef(null);
 
-  // ✅ FIX CRÍTICO: Estabilizar filtros y orderBy para evitar loops infinitos
-  // Usamos useRef para mantener versiones estables de los arrays
-  const prevFiltersRef = useRef();
-  const prevOrderByRef = useRef();
-
-  // Comparar contenido serializado en lugar de referencias
-  const filtersChanged = JSON.stringify(additionalFilters) !== JSON.stringify(prevFiltersRef.current);
-  const orderByChanged = JSON.stringify(orderByFields) !== JSON.stringify(prevOrderByRef.current);
-
-  // Solo actualizar si el contenido realmente cambió
-  if (filtersChanged) prevFiltersRef.current = additionalFilters;
-  if (orderByChanged) prevOrderByRef.current = orderByFields;
-
   const companyId = userData?.companyId;
 
   useEffect(() => {
@@ -59,21 +46,17 @@ export const useRealtimeCollection = (
         // CRÍTICO: Siempre filtrar por companyId para aislar datos
         q = query(q, where('companyId', '==', companyId));
 
-        // Aplicar filtros adicionales (usar las referencias estables)
-        if (prevFiltersRef.current) {
-          prevFiltersRef.current.forEach(([field, operator, value]) => {
-            q = query(q, where(field, operator, value));
-          });
-        }
+        // Aplicar filtros adicionales
+        additionalFilters.forEach(([field, operator, value]) => {
+          q = query(q, where(field, operator, value));
+        });
 
-        // Aplicar ordenamiento (usar las referencias estables)
-        if (prevOrderByRef.current) {
-          prevOrderByRef.current.forEach(([field, direction = 'asc']) => {
-            q = query(q, orderBy(field, direction));
-          });
-        }
+        // Aplicar ordenamiento
+        orderByFields.forEach(([field, direction = 'asc']) => {
+          q = query(q, orderBy(field, direction));
+        });
 
-        console.log(`🔄 Configurando listener para ${collectionName} con ${prevFiltersRef.current?.length || 0} filtros`);
+        console.log(`🔄 Configurando listener para ${collectionName} con ${additionalFilters.length} filtros`);
 
         // Configurar el listener de tiempo real
         unsubscribeRef.current = onSnapshot(
@@ -121,7 +104,8 @@ export const useRealtimeCollection = (
         unsubscribeRef.current();
       }
     };
-  }, [collectionName, companyId, filtersChanged, orderByChanged]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectionName, companyId]);
 
   return { data, loading, error };
 };

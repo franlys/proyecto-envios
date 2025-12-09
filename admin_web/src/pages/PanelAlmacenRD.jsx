@@ -783,7 +783,7 @@ const PanelAlmacenRD = () => {
                             <div className="flex items-center gap-3 mb-2">
                               <span className="text-sm font-medium text-slate-500">#{index + 1}</span>
                               <h4 className="font-semibold text-slate-900 dark:text-white">
-                                {item.descripcion}
+                                {item.descripcion || item.producto || 'Sin descripción'}
                               </h4>
                               {item.danado && (
                                 <span className="px-2 py-1 bg-rose-100 text-rose-800 rounded text-xs font-medium">
@@ -1255,7 +1255,7 @@ const PanelAlmacenRD = () => {
                       >
                         <div>
                           <p className="font-medium text-slate-900 dark:text-white">
-                            {item.descripcion}
+                            {item.descripcion || item.producto || 'Sin descripción'}
                           </p>
                           <p className="text-sm text-slate-600 dark:text-slate-400">
                             Cantidad: {item.cantidad}

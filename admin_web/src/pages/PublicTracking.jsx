@@ -252,7 +252,7 @@ const PublicTracking = () => {
                     )}
                   </div>
                   <p className={`text-sm ${isCompletado ? 'text-slate-600' : 'text-slate-400'}`}>
-                    {item.descripcion}
+                    {item.descripcion || item.producto || 'Sin descripción'}
                   </p>
                   {item.fecha && (
                     <p className="text-xs text-slate-500 mt-1">

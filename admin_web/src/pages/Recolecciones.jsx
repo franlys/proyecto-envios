@@ -361,7 +361,7 @@ const Recolecciones = () => {
                     <div key={idx} className="flex items-center gap-3 text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">
                       <Package className="text-slate-400" size={16} />
                       <div className="flex-1">
-                        <p className="font-medium">{item.descripcion}</p>
+                        <p className="font-medium">{item.descripcion || item.producto || 'Sin descripción'}</p>
                         <div className="flex gap-4 text-xs text-slate-600 mt-1">
                           <span>Cantidad: {item.cantidad}</span>
                         </div>
@@ -520,7 +520,7 @@ const Recolecciones = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="md:col-span-2">
                             <label className="text-sm text-slate-600">Descripción</label>
-                            <p className="text-slate-900">{item.descripcion}</p>
+                            <p className="text-slate-900">{item.descripcion || item.producto || 'Sin descripción'}</p>
                           </div>
                           <div>
                             <label className="text-sm text-slate-600">Cantidad</label>

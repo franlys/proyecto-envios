@@ -1139,7 +1139,7 @@ const PanelSecretarias = () => {
                       >
                         <div>
                           <p className="font-medium text-slate-900 dark:text-white">
-                            {item.descripcion}
+                            {item.descripcion || item.producto || 'Sin descripción'}
                           </p>
                           <p className="text-sm text-slate-600 dark:text-slate-400">
                             Cantidad: {item.cantidad}

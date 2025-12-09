@@ -272,7 +272,7 @@ const ImpresionFacturasRuta = () => {
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="text-xs font-semibold text-slate-800 leading-tight">{item.descripcion}</p>
+                            <p className="text-xs font-semibold text-slate-800 leading-tight">{item.descripcion || item.producto || 'Sin descripción'}</p>
                             <div className="flex gap-2 text-xs text-slate-600">
                               {item.cantidad > 1 && <span>Cant: {item.cantidad}</span>}
                               {item.peso && <span>Peso: {item.peso}</span>}

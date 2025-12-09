@@ -206,7 +206,7 @@ export const createRecoleccion = async (req, res) => {
 
       items: itemsArray.map(item => ({
         cantidad: parseInt(item.cantidad) || 1,
-        descripcion: item.descripcion || '',
+        descripcion: item.descripcion || item.producto || '', // ✅ Soportar ambos campos
         precio: parseFloat(item.precio) || 0
       })),
 

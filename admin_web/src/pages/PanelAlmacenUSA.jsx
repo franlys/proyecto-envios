@@ -1002,7 +1002,7 @@ const PanelAlmacenUSA = () => {
                                   #{index + 1}
                                 </span>
                                 <h4 className="font-semibold text-slate-900 dark:text-white">
-                                  {item.descripcion}
+                                  {item.descripcion || item.producto || 'Sin descripción'}
                                 </h4>
                               </div>
                               <div className="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-400">
