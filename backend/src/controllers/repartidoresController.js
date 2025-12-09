@@ -7,16 +7,16 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ==========================================================================
-// HELPER: Convertir imágenes de Firebase Storage a base64 para emails
+// HELPER: Generar signed URLs de larga duración para imágenes en emails
 // ==========================================================================
-async function getBase64Images(fotosUrls) {
+async function getSignedUrlsForEmail(fotosUrls) {
   if (!fotosUrls || fotosUrls.length === 0) {
     console.log('⚠️ No hay fotos para procesar');
     return [];
   }
 
   const bucket = storage.bucket();
-  const base64Images = [];
+  const signedUrls = [];
 
   console.log(`\n🔄 Procesando ${fotosUrls.length} fotos para email...`);
 
@@ -53,45 +53,26 @@ async function getBase64Images(fotosUrls) {
         continue;
       }
 
-      // Descargar el archivo y convertirlo a base64
-      console.log(`   📥 Descargando archivo...`);
-      const downloadResult = await file.download();
-      console.log(`   📦 Resultado de descarga:`, typeof downloadResult, Array.isArray(downloadResult));
+      // Generar signed URL de larga duración (30 días)
+      console.log(`   🔐 Generando signed URL...`);
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 días
+      });
 
-      const fileBuffer = downloadResult[0];
-
-      if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
-        console.log(`   ❌ Buffer inválido o undefined, saltando...`);
-        continue;
-      }
-
-      console.log(`   📊 Tamaño del buffer: ${fileBuffer.length} bytes`);
-
-      // Detectar tipo MIME según extensión
-      const extension = filePath.toLowerCase().split('.').pop();
-      let mimeType = 'image/jpeg'; // default
-      if (extension === 'png') mimeType = 'image/png';
-      else if (extension === 'gif') mimeType = 'image/gif';
-      else if (extension === 'webp') mimeType = 'image/webp';
-      console.log(`   🎨 Tipo MIME detectado: ${mimeType}`);
-
-      // Convertir a base64
-      const base64 = fileBuffer.toString('base64');
-      console.log(`   📝 Longitud base64: ${base64.length} caracteres`);
-      const dataUri = `data:${mimeType};base64,${base64}`;
-      console.log(`   🔗 Data URI generada: ${dataUri.substring(0, 100)}...`);
-
-      base64Images.push(dataUri);
-      console.log(`   ✅ Imagen convertida a base64 (${Math.round(fileBuffer.length / 1024)} KB)`);
+      signedUrls.push(signedUrl);
+      console.log(`   ✅ Signed URL generada: ${signedUrl.substring(0, 120)}...`);
 
     } catch (error) {
-      console.error(`   ❌ Error procesando imagen: ${error.message}`);
-      // Continuar con la siguiente imagen
+      console.error(`   ❌ Error generando signed URL: ${error.message}`);
+      // Usar URL original como fallback
+      signedUrls.push(url);
+      console.log(`   ℹ️ Usando URL original como fallback`);
     }
   }
 
-  console.log(`\n✅ Total de imágenes procesadas: ${base64Images.length}/${fotosUrls.length}\n`);
-  return base64Images;
+  console.log(`\n✅ Total de signed URLs generadas: ${signedUrls.length}/${fotosUrls.length}\n`);
+  return signedUrls;
 }
 
 // ==========================================================================
@@ -876,11 +857,11 @@ export const entregarFactura = async (req, res) => {
       console.log(`   Remitente: ${data.remitente?.nombre} (${remitenteEmail || 'sin email'})`);
       console.log(`   Destinatario: ${data.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
 
-      // 🖼️ Convertir fotos a base64 para incrustar en emails
-      console.log(`📸 Convirtiendo ${fotosEntrega.length} fotos a base64 para email...`);
+      // 🔐 Generar signed URLs de larga duración para fotos en emails
+      console.log(`📸 Generando signed URLs para ${fotosEntrega.length} fotos...`);
       console.log(`   URLs originales:`, fotosEntrega);
-      const fotosBase64 = await getBase64Images(fotosEntrega);
-      console.log(`✅ Fotos convertidas a base64: ${fotosBase64.length} de ${fotosEntrega.length}`);
+      const fotosParaEmail = await getSignedUrlsForEmail(fotosEntrega);
+      console.log(`✅ Signed URLs generadas: ${fotosParaEmail.length} de ${fotosEntrega.length}`);
 
       // Calcular totales de items
       const totalItems = data.items?.length || 0;
@@ -909,12 +890,12 @@ export const entregarFactura = async (req, res) => {
             ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
           </div>
 
-          ${fotosBase64 && fotosBase64.length > 0 ? `
+          ${fotosParaEmail && fotosParaEmail.length > 0 ? `
           <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica</h3>
-            <p style="margin-bottom: 15px;">Se capturaron ${fotosBase64.length} foto(s) como evidencia de la entrega:</p>
+            <p style="margin-bottom: 15px;">Se capturaron ${fotosParaEmail.length} foto(s) como evidencia de la entrega:</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-              ${fotosBase64.map((foto, idx) => `
+              ${fotosParaEmail.map((foto, idx) => `
                 <div style="text-align: center;">
                   <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                   <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
@@ -956,12 +937,12 @@ export const entregarFactura = async (req, res) => {
             ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
           </div>
 
-          ${fotosBase64 && fotosBase64.length > 0 ? `
+          ${fotosParaEmail && fotosParaEmail.length > 0 ? `
           <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica de la Entrega</h3>
-            <p style="margin-bottom: 15px;">Se capturaron ${fotosBase64.length} foto(s) como evidencia:</p>
+            <p style="margin-bottom: 15px;">Se capturaron ${fotosParaEmail.length} foto(s) como evidencia:</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-              ${fotosBase64.map((foto, idx) => `
+              ${fotosParaEmail.map((foto, idx) => `
                 <div style="text-align: center;">
                   <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                   <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
