@@ -85,8 +85,14 @@ function AppContent() {
 
   return (
     <Layout>
-      {/* ✅ 2. Añadir el componente Toaster aquí */}
-      <Toaster richColors position="top-right" />
+      {/* ✅ 2. Añadir el componente Toaster aquí - bottom-center para mejor visibilidad en móvil */}
+      <Toaster
+        richColors
+        position="bottom-center"
+        expand={true}
+        closeButton={true}
+        duration={4000}
+      />
       <Routes>
         {/* Dashboard dinámico según rol */}
         <Route path="/dashboard" element={<DashboardRouter />} />
