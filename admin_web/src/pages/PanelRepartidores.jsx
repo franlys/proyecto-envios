@@ -1245,28 +1245,28 @@ const PanelRepartidores = () => {
 
         {/* Modal Finalizar Ruta */}
         {showModalFinalizar && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md max-h-[85vh] flex flex-col">
+          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md my-4 sm:my-0 flex flex-col max-h-[95vh] sm:max-h-[85vh]">
               {/* Header */}
-              <div className="p-4 border-b dark:border-slate-700">
-                <h3 className="text-xl font-bold text-purple-600 flex items-center gap-2">
-                  <Truck /> Finalizar Ruta
+              <div className="p-3 sm:p-4 border-b dark:border-slate-700 flex-shrink-0">
+                <h3 className="text-lg sm:text-xl font-bold text-purple-600 flex items-center gap-2">
+                  <Truck size={20} /> Finalizar Ruta
                 </h3>
               </div>
 
               {/* Content - scrollable */}
-              <div className="p-4 overflow-y-auto flex-1">
-                <p className="mb-4 text-slate-600 dark:text-slate-400">
+              <div className="p-3 sm:p-4 overflow-y-auto flex-1">
+                <p className="mb-3 text-sm sm:text-base text-slate-600 dark:text-slate-400">
                   ¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.
                 </p>
-                <div className="mb-4">
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Notas Finales
                   </label>
                   <textarea
                     value={notasFinalizacion}
                     onChange={(e) => setNotasFinalizacion(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    className="w-full p-2 text-sm border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     rows="3"
                     placeholder="Observaciones sobre la ruta..."
                   />
@@ -1274,20 +1274,20 @@ const PanelRepartidores = () => {
               </div>
 
               {/* Footer - fixed buttons */}
-              <div className="p-4 border-t dark:border-slate-700 flex justify-end gap-2">
+              <div className="p-3 sm:p-4 border-t dark:border-slate-700 flex justify-end gap-2 flex-shrink-0">
                 <button
                   onClick={() => setShowModalFinalizar(false)}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                  className="px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleFinalizarRuta}
                   disabled={procesando}
-                  className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-3 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                 >
-                  {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                  Finalizar Ruta
+                  {procesando ? <Loader className="animate-spin" size={14} /> : <CheckCircle size={14} />}
+                  Finalizar
                 </button>
               </div>
             </div>
