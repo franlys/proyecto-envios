@@ -140,8 +140,10 @@ const PanelRepartidores = () => {
               entregado: i.entregado
             })));
           }
+        } else {
+          // Cambiar a vista de ruta solo si no estamos en vista de factura
+          setVistaActual('ruta');
         }
-        if (vistaActual === 'lista') setVistaActual('ruta');
       }
     } catch (e) {
       toast.error('Error cargando detalle de ruta');
