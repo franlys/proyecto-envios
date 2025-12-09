@@ -10,12 +10,21 @@ import { sendEmail, generateBrandedEmailHTML } from '../services/notificationSer
 // HELPER: Convertir URLs de Firebase Storage a URLs públicas accesibles
 // ==========================================================================
 async function getPublicUrls(fotosUrls) {
-  if (!fotosUrls || fotosUrls.length === 0) return [];
+  if (!fotosUrls || fotosUrls.length === 0) {
+    console.log('⚠️ No hay fotos para procesar');
+    return [];
+  }
 
   const bucket = storage.bucket();
   const publicUrls = [];
 
-  for (const url of fotosUrls) {
+  console.log(`\n🔄 Procesando ${fotosUrls.length} fotos...`);
+
+  for (let i = 0; i < fotosUrls.length; i++) {
+    const url = fotosUrls[i];
+    console.log(`\n📸 Foto ${i + 1}/${fotosUrls.length}:`);
+    console.log(`   URL original: ${url.substring(0, 100)}...`);
+
     try {
       // Extraer el path del archivo desde la URL
       let filePath = url;
@@ -25,11 +34,26 @@ async function getPublicUrls(fotosUrls) {
         const urlParts = url.split('/o/')[1];
         if (urlParts) {
           filePath = decodeURIComponent(urlParts.split('?')[0]);
+          console.log(`   Path extraído: ${filePath.substring(0, 80)}...`);
+        } else {
+          console.log(`   ⚠️ No se pudo extraer path de URL de Firebase Storage`);
         }
+      } else {
+        console.log(`   ℹ️ No es URL de Firebase Storage, usando como path directo`);
       }
 
       // Intentar hacer el archivo público y obtener URL pública
       const file = bucket.file(filePath);
+
+      // Verificar si existe primero
+      const [exists] = await file.exists();
+      console.log(`   ¿Existe el archivo? ${exists ? '✅ Sí' : '❌ No'}`);
+
+      if (!exists) {
+        console.log(`   ⚠️ Archivo no existe, usando URL original`);
+        publicUrls.push(url);
+        continue;
+      }
 
       try {
         // Hacer el archivo público
@@ -38,10 +62,11 @@ async function getPublicUrls(fotosUrls) {
         // Generar URL pública
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
         publicUrls.push(publicUrl);
-        console.log(`✅ URL pública generada para: ${filePath}`);
+        console.log(`   ✅ URL pública: ${publicUrl.substring(0, 100)}...`);
       } catch (makePublicError) {
         // Si ya es público o no se puede hacer público, intentar con signed URL
-        console.log(`⚠️ No se pudo hacer público ${filePath}, usando signed URL...`);
+        console.log(`   ⚠️ No se pudo hacer público (${makePublicError.message})`);
+        console.log(`   🔄 Intentando generar signed URL...`);
 
         const [signedUrl] = await file.getSignedUrl({
           action: 'read',
@@ -49,12 +74,13 @@ async function getPublicUrls(fotosUrls) {
         });
 
         publicUrls.push(signedUrl);
-        console.log(`✅ URL firmada generada para: ${filePath}`);
+        console.log(`   ✅ URL firmada: ${signedUrl.substring(0, 100)}...`);
       }
     } catch (error) {
-      console.error(`❌ Error procesando URL ${url}:`, error.message);
+      console.error(`   ❌ Error procesando URL: ${error.message}`);
       // Si falla todo, usar la URL original
       publicUrls.push(url);
+      console.log(`   ℹ️ Usando URL original como fallback`);
     }
   }
 
@@ -844,9 +870,10 @@ export const entregarFactura = async (req, res) => {
       console.log(`   Destinatario: ${data.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
 
       // 🔐 Generar URLs firmadas para las fotos (válidas por 7 días)
-      console.log(`📸 Generando URLs firmadas para ${fotosEntrega.length} fotos...`);
+      console.log(`📸 Generando URLs públicas para ${fotosEntrega.length} fotos...`);
+      console.log(`   URLs originales:`, fotosEntrega);
       const fotosPublicas = await getPublicUrls(fotosEntrega);
-      console.log(`✅ URLs firmadas generadas exitosamente`);
+      console.log(`✅ URLs públicas generadas exitosamente:`, fotosPublicas);
 
       // Calcular totales de items
       const totalItems = data.items?.length || 0;

@@ -85,10 +85,10 @@ function AppContent() {
 
   return (
     <Layout>
-      {/* ✅ 2. Añadir el componente Toaster aquí - bottom-center para mejor visibilidad en móvil */}
+      {/* ✅ 2. Añadir el componente Toaster aquí */}
       <Toaster
         richColors
-        position="bottom-center"
+        position="top-right"
         expand={true}
         closeButton={true}
         duration={4000}

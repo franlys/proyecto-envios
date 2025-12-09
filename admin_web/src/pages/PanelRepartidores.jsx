@@ -1243,22 +1243,42 @@ const PanelRepartidores = () => {
 
         {/* Modal Finalizar Ruta */}
         {showModalFinalizar && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-purple-600 flex items-center gap-2"><Truck /> Finalizar Ruta</h3>
-              <p className="mb-4 text-slate-600 dark:text-slate-400">¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.</p>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notas Finales</label>
-                <textarea
-                  value={notasFinalizacion}
-                  onChange={(e) => setNotasFinalizacion(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  rows="3"
-                  placeholder="Observaciones sobre la ruta..."
-                />
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md max-h-[85vh] flex flex-col">
+              {/* Header */}
+              <div className="p-4 border-b dark:border-slate-700">
+                <h3 className="text-xl font-bold text-purple-600 flex items-center gap-2">
+                  <Truck /> Finalizar Ruta
+                </h3>
               </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setShowModalFinalizar(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
+
+              {/* Content - scrollable */}
+              <div className="p-4 overflow-y-auto flex-1">
+                <p className="mb-4 text-slate-600 dark:text-slate-400">
+                  ¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.
+                </p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Notas Finales
+                  </label>
+                  <textarea
+                    value={notasFinalizacion}
+                    onChange={(e) => setNotasFinalizacion(e.target.value)}
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    rows="3"
+                    placeholder="Observaciones sobre la ruta..."
+                  />
+                </div>
+              </div>
+
+              {/* Footer - fixed buttons */}
+              <div className="p-4 border-t dark:border-slate-700 flex justify-end gap-2">
+                <button
+                  onClick={() => setShowModalFinalizar(false)}
+                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                >
+                  Cancelar
+                </button>
                 <button
                   onClick={handleFinalizarRuta}
                   disabled={procesando}
