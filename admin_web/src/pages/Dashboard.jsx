@@ -3,15 +3,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { useRealtimeRutasActivas, useRealtimeUsuarios } from '../hooks/useRealtimeCollection';
+import { useRealtimeUsuarios } from '../hooks/useRealtimeCollection';
 import MonitorCargadores from '../components/monitoring/MonitorCargadores';
-import MonitorRepartidores from '../components/monitoring/MonitorRepartidores';
 import Card, { CardBody } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import { motion } from 'framer-motion';
 import {
   Package,
-  MapPin,
   Users,
   Activity,
   TrendingUp,
@@ -66,7 +64,6 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   // 🔥 Datos en tiempo real con Firestore listeners
-  const { data: rutasActivas } = useRealtimeRutasActivas();
   const { data: usuarios } = useRealtimeUsuarios();
 
   // Redireccionar según rol específico
@@ -264,40 +261,21 @@ const Dashboard = () => {
       </motion.div>
 
       {/* Estadísticas principales - TIEMPO REAL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <StatCard
-          title="Embarques en Tránsito"
-          value={stats.embarquesActivos}
-          subtitle="Camino a República Dominicana"
-          icon={Package}
-          color="indigo"
-          realtime={false}
-          delay={0.1}
-        />
-        <StatCard
-          title="Rutas en Curso"
-          value={rutasActivas.length}
-          subtitle={`Total registradas: ${stats.totalRutas || 0}`}
-          icon={MapPin}
-          color="amber"
-          realtime={true}
-          delay={0.2}
-        />
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <StatCard
           title="Usuarios Activos"
           value={usuarios.length}
-          subtitle={`Total: ${stats.totalUsuarios || 0}`}
+          subtitle={`Total en sistema: ${stats.totalUsuarios || 0}`}
           icon={Users}
           color="slate"
           realtime={true}
-          delay={0.3}
+          delay={0.1}
         />
       </div>
 
-      {/* Monitores en Tiempo Real */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+      {/* Monitor de Cargadores */}
+      <div className="mb-4 sm:mb-6">
         <MonitorCargadores />
-        <MonitorRepartidores />
       </div>
 
       {/* Accesos rápidos */}
