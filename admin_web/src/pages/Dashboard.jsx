@@ -3,18 +3,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { useRealtimeUsuarios } from '../hooks/useRealtimeCollection';
+import { useRealtimeRutasActivas, useRealtimeUsuarios } from '../hooks/useRealtimeCollection';
 import MonitorCargadores from '../components/monitoring/MonitorCargadores';
+import MonitorRepartidores from '../components/monitoring/MonitorRepartidores';
 import Card, { CardBody } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import { motion } from 'framer-motion';
 import {
   Package,
+  MapPin,
   Users,
   Activity,
   TrendingUp,
   Warehouse,
-  Truck
+  Truck,
+  CheckCircle2
 } from 'lucide-react';
 
 // 🎯 Componente para animar números (CountUp effect)
@@ -64,6 +67,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   // 🔥 Datos en tiempo real con Firestore listeners
+  const { data: rutasActivas } = useRealtimeRutasActivas();
   const { data: usuarios } = useRealtimeUsuarios();
 
   // Redireccionar según rol específico
@@ -261,7 +265,16 @@ const Dashboard = () => {
       </motion.div>
 
       {/* Estadísticas principales - TIEMPO REAL */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <StatCard
+          title="Rutas en Curso"
+          value={rutasActivas.length}
+          subtitle={`Total registradas: ${stats.totalRutas || 0}`}
+          icon={MapPin}
+          color="amber"
+          realtime={true}
+          delay={0.1}
+        />
         <StatCard
           title="Usuarios Activos"
           value={usuarios.length}
@@ -269,13 +282,37 @@ const Dashboard = () => {
           icon={Users}
           color="slate"
           realtime={true}
-          delay={0.1}
+          delay={0.2}
         />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Estado del Sistema</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="success" size="md" dot>
+                  Operativo
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-500">
+                Todos los servicios funcionando
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
+              <CheckCircle2 className="w-6 h-6 text-white" />
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Monitor de Cargadores */}
-      <div className="mb-4 sm:mb-6">
+      {/* Monitores en Tiempo Real */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
         <MonitorCargadores />
+        <MonitorRepartidores />
       </div>
 
       {/* Accesos rápidos */}
