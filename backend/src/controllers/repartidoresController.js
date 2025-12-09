@@ -7,18 +7,18 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 
 // ==========================================================================
-// HELPER: Convertir URLs de Firebase Storage a URLs públicas accesibles
+// HELPER: Convertir imágenes de Firebase Storage a base64 para emails
 // ==========================================================================
-async function getPublicUrls(fotosUrls) {
+async function getBase64Images(fotosUrls) {
   if (!fotosUrls || fotosUrls.length === 0) {
     console.log('⚠️ No hay fotos para procesar');
     return [];
   }
 
   const bucket = storage.bucket();
-  const publicUrls = [];
+  const base64Images = [];
 
-  console.log(`\n🔄 Procesando ${fotosUrls.length} fotos...`);
+  console.log(`\n🔄 Procesando ${fotosUrls.length} fotos para email...`);
 
   for (let i = 0; i < fotosUrls.length; i++) {
     const url = fotosUrls[i];
@@ -42,50 +42,43 @@ async function getPublicUrls(fotosUrls) {
         console.log(`   ℹ️ No es URL de Firebase Storage, usando como path directo`);
       }
 
-      // Intentar hacer el archivo público y obtener URL pública
       const file = bucket.file(filePath);
 
-      // Verificar si existe primero
+      // Verificar si existe
       const [exists] = await file.exists();
       console.log(`   ¿Existe el archivo? ${exists ? '✅ Sí' : '❌ No'}`);
 
       if (!exists) {
-        console.log(`   ⚠️ Archivo no existe, usando URL original`);
-        publicUrls.push(url);
+        console.log(`   ⚠️ Archivo no existe, saltando...`);
         continue;
       }
 
-      try {
-        // Hacer el archivo público
-        await file.makePublic();
+      // Descargar el archivo y convertirlo a base64
+      console.log(`   📥 Descargando archivo...`);
+      const [fileBuffer] = await file.download();
 
-        // Generar URL pública - usar filePath encodificado para caracteres especiales
-        const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
-        publicUrls.push(publicUrl);
-        console.log(`   ✅ URL pública: ${publicUrl.substring(0, 100)}...`);
-      } catch (makePublicError) {
-        // Si ya es público o no se puede hacer público, intentar con signed URL
-        console.log(`   ⚠️ No se pudo hacer público (${makePublicError.message})`);
-        console.log(`   🔄 Intentando generar signed URL...`);
+      // Detectar tipo MIME según extensión
+      const extension = filePath.toLowerCase().split('.').pop();
+      let mimeType = 'image/jpeg'; // default
+      if (extension === 'png') mimeType = 'image/png';
+      else if (extension === 'gif') mimeType = 'image/gif';
+      else if (extension === 'webp') mimeType = 'image/webp';
 
-        const [signedUrl] = await file.getSignedUrl({
-          action: 'read',
-          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 días
-        });
+      // Convertir a base64
+      const base64 = fileBuffer.toString('base64');
+      const dataUri = `data:${mimeType};base64,${base64}`;
 
-        publicUrls.push(signedUrl);
-        console.log(`   ✅ URL firmada: ${signedUrl.substring(0, 100)}...`);
-      }
+      base64Images.push(dataUri);
+      console.log(`   ✅ Imagen convertida a base64 (${Math.round(base64.length / 1024)} KB)`);
+
     } catch (error) {
-      console.error(`   ❌ Error procesando URL: ${error.message}`);
-      // Si falla todo, usar la URL original
-      publicUrls.push(url);
-      console.log(`   ℹ️ Usando URL original como fallback`);
+      console.error(`   ❌ Error procesando imagen: ${error.message}`);
+      // Continuar con la siguiente imagen
     }
   }
 
-  return publicUrls;
+  console.log(`\n✅ Total de imágenes procesadas: ${base64Images.length}/${fotosUrls.length}\n`);
+  return base64Images;
 }
 
 // ==========================================================================
@@ -870,11 +863,11 @@ export const entregarFactura = async (req, res) => {
       console.log(`   Remitente: ${data.remitente?.nombre} (${remitenteEmail || 'sin email'})`);
       console.log(`   Destinatario: ${data.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
 
-      // 🔐 Generar URLs firmadas para las fotos (válidas por 7 días)
-      console.log(`📸 Generando URLs públicas para ${fotosEntrega.length} fotos...`);
+      // 🖼️ Convertir fotos a base64 para incrustar en emails
+      console.log(`📸 Convirtiendo ${fotosEntrega.length} fotos a base64 para email...`);
       console.log(`   URLs originales:`, fotosEntrega);
-      const fotosPublicas = await getPublicUrls(fotosEntrega);
-      console.log(`✅ URLs públicas generadas exitosamente:`, fotosPublicas);
+      const fotosBase64 = await getBase64Images(fotosEntrega);
+      console.log(`✅ Fotos convertidas a base64: ${fotosBase64.length} de ${fotosEntrega.length}`);
 
       // Calcular totales de items
       const totalItems = data.items?.length || 0;
@@ -903,12 +896,12 @@ export const entregarFactura = async (req, res) => {
             ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
           </div>
 
-          ${fotosPublicas && fotosPublicas.length > 0 ? `
+          ${fotosBase64 && fotosBase64.length > 0 ? `
           <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica</h3>
-            <p style="margin-bottom: 15px;">Se capturaron ${fotosPublicas.length} foto(s) como evidencia de la entrega:</p>
+            <p style="margin-bottom: 15px;">Se capturaron ${fotosBase64.length} foto(s) como evidencia de la entrega:</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-              ${fotosPublicas.map((foto, idx) => `
+              ${fotosBase64.map((foto, idx) => `
                 <div style="text-align: center;">
                   <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                   <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
@@ -950,12 +943,12 @@ export const entregarFactura = async (req, res) => {
             ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
           </div>
 
-          ${fotosPublicas && fotosPublicas.length > 0 ? `
+          ${fotosBase64 && fotosBase64.length > 0 ? `
           <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica de la Entrega</h3>
-            <p style="margin-bottom: 15px;">Se capturaron ${fotosPublicas.length} foto(s) como evidencia:</p>
+            <p style="margin-bottom: 15px;">Se capturaron ${fotosBase64.length} foto(s) como evidencia:</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-              ${fotosPublicas.map((foto, idx) => `
+              ${fotosBase64.map((foto, idx) => `
                 <div style="text-align: center;">
                   <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                   <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
