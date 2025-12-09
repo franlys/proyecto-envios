@@ -11,12 +11,12 @@ import Badge from '../components/ui/Badge';
 import { motion } from 'framer-motion';
 import {
   Package,
-  TruckIcon,
   MapPin,
-  FileText,
   Users,
   Activity,
-  TrendingUp
+  TrendingUp,
+  Warehouse,
+  Truck
 } from 'lucide-react';
 
 // 🎯 Componente para animar números (CountUp effect)
@@ -264,24 +264,15 @@ const Dashboard = () => {
       </motion.div>
 
       {/* Estadísticas principales - TIEMPO REAL */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <StatCard
-          title="Embarques Activos"
+          title="Embarques en Tránsito"
           value={stats.embarquesActivos}
-          subtitle={`Total: ${stats.totalEmbarques || 0}`}
+          subtitle="Camino a República Dominicana"
           icon={Package}
           color="indigo"
           realtime={false}
           delay={0.1}
-        />
-        <StatCard
-          title="Recolecciones Hoy"
-          value={stats.recoleccionesHoy}
-          subtitle={`Total: ${stats.totalRecolecciones || 0}`}
-          icon={TruckIcon}
-          color="emerald"
-          realtime={false}
-          delay={0.2}
         />
         <StatCard
           title="Rutas en Curso"
@@ -290,7 +281,7 @@ const Dashboard = () => {
           icon={MapPin}
           color="amber"
           realtime={true}
-          delay={0.3}
+          delay={0.2}
         />
         <StatCard
           title="Usuarios Activos"
@@ -299,36 +290,8 @@ const Dashboard = () => {
           icon={Users}
           color="slate"
           realtime={true}
-          delay={0.4}
+          delay={0.3}
         />
-      </div>
-
-      {/* Estadísticas adicionales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Total de Facturas</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-white mb-1">
-                <AnimatedNumber value={stats.totalFacturas || 0} />
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-500">
-                {stats.totalFacturas > 0
-                  ? `${Math.round((stats.facturasEntregadas / stats.totalFacturas) * 100)}% entregadas`
-                  : 'Sin facturas'
-                }
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 ml-3 shadow-sm">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
-          </div>
-        </motion.div>
       </div>
 
       {/* Monitores en Tiempo Real */}
@@ -358,22 +321,22 @@ const Dashboard = () => {
             onClick={() => navigate('/embarques')}
           />
           <QuickAccessButton
-            title="Recolecciones"
-            icon={TruckIcon}
+            title="Almacén USA"
+            icon={Warehouse}
+            color="indigo"
+            onClick={() => navigate('/almacen-usa')}
+          />
+          <QuickAccessButton
+            title="Almacén RD"
+            icon={Warehouse}
             color="emerald"
-            onClick={() => navigate('/recolecciones')}
+            onClick={() => navigate('/almacen-rd')}
           />
           <QuickAccessButton
             title="Rutas"
-            icon={MapPin}
+            icon={Truck}
             color="amber"
             onClick={() => navigate('/rutas')}
-          />
-          <QuickAccessButton
-            title="Reportes"
-            icon={FileText}
-            color="slate"
-            onClick={() => navigate('/reportes')}
           />
         </div>
       </motion.div>
