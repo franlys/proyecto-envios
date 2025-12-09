@@ -141,7 +141,7 @@ export const useRealtimeRutasEnEntrega = () => {
 };
 
 /**
- * Hook especializado para monitorear usuarios activos
+ * Hook especializado para monitorear usuarios activos (conectados en los últimos 5 minutos)
  */
 export const useRealtimeUsuarios = (rolFiltro = null) => {
   const filters = [['activo', '==', true]];
@@ -149,5 +149,41 @@ export const useRealtimeUsuarios = (rolFiltro = null) => {
     filters.push(['rol', '==', rolFiltro]);
   }
 
-  return useRealtimeCollection('usuarios', filters);
+  const { data: todosUsuarios, loading, error } = useRealtimeCollection('usuarios', filters);
+
+  // Filtrar en el cliente: solo usuarios con actividad en los últimos 5 minutos
+  const [usuariosActivos, setUsuariosActivos] = useState([]);
+
+  useEffect(() => {
+    if (!todosUsuarios) return;
+
+    const ahora = new Date();
+    const TIEMPO_INACTIVIDAD = 5 * 60 * 1000; // 5 minutos en milisegundos
+
+    const activos = todosUsuarios.filter(usuario => {
+      if (!usuario.ultimaActividad) {
+        // Si no tiene ultimaActividad, no está activo (aún no ha enviado heartbeat)
+        return false;
+      }
+
+      // Convertir Firestore Timestamp a Date
+      let fechaActividad;
+      if (usuario.ultimaActividad?.toDate) {
+        fechaActividad = usuario.ultimaActividad.toDate();
+      } else if (usuario.ultimaActividad?.seconds) {
+        fechaActividad = new Date(usuario.ultimaActividad.seconds * 1000);
+      } else if (usuario.ultimaActividad instanceof Date) {
+        fechaActividad = usuario.ultimaActividad;
+      } else {
+        return false;
+      }
+
+      const tiempoInactivo = ahora - fechaActividad;
+      return tiempoInactivo < TIEMPO_INACTIVIDAD;
+    });
+
+    setUsuariosActivos(activos);
+  }, [todosUsuarios]);
+
+  return { data: usuariosActivos, loading, error };
 };

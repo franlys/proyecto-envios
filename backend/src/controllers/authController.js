@@ -19,43 +19,9 @@ export const register = async (req, res) => {
   try {
     console.log('Iniciando registro para:', email, 'por admin:', adminUid);
 
-    // Validar datos básicos
-    if (!email || !password || !nombre || !rol) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email, password, nombre y rol son obligatorios' 
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'La contraseña debe tener al menos 6 caracteres' 
-      });
-    }
-
-    // ✅ VALIDACIÓN DE ROLES
-    const rolesValidos = [
-      'admin_general', 
-      'secretaria', 
-      'repartidor', 
-      'recolector', 
-      'almacen_eeuu', 
-      'almacen_rd',
-      'cargador' // <--- ASEGÚRATE QUE ESTÉ ASÍ (SINGULAR)
-    ];
-
-    if (!rolesValidos.includes(rol)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Rol no válido. Roles permitidos: ${rolesValidos.join(', ')}` 
-      });
-    }
-
-    // Obtener datos del administrador que crea
+    // 1. Obtener datos del administrador que crea
     let adminData = null;
     if (adminUid) {
-      // ✅ CORRECCIÓN: 'users' -> 'usuarios'
       const adminDoc = await db.collection('usuarios').doc(adminUid).get();
       if (adminDoc.exists) {
         adminData = adminDoc.data();
@@ -64,7 +30,41 @@ export const register = async (req, res) => {
 
     console.log('Admin data:', adminData?.rol);
 
-    // Determinar la companyId
+    // 2. Validar datos básicos
+    if (!email || !password || !nombre || !rol) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email, password, nombre y rol son obligatorios'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'La contraseña debe tener al menos 6 caracteres'
+      });
+    }
+
+    // 3. Validación de Roles
+    const rolesValidos = [
+      'admin_general',
+      'secretaria',
+      'repartidor',
+      'recolector',
+      'almacen_eeuu',
+      'almacen_rd',
+      'cargador',
+      'propietario'
+    ];
+
+    if (!rolesValidos.includes(rol)) {
+      return res.status(400).json({
+        success: false,
+        error: `Rol no válido. Roles permitidos: ${rolesValidos.join(', ')}`
+      });
+    }
+
+    // 4. Determinar la companyId
     let finalCompanyId = null;
 
     if (adminData?.rol === 'super_admin') {
@@ -76,11 +76,11 @@ export const register = async (req, res) => {
       finalCompanyId = adminData.companyId;
       console.log('Admin General asignando su companyId:', finalCompanyId);
     } else {
-      // Casos borde (p.ej. primer admin)
+      // Casos borde (p.ej. primer admin o admin sin companyId)
       console.warn('No se pudo determinar la companyId. Dejando nulo.');
     }
 
-    // 1. Crear usuario en Firebase Authentication
+    // 5. Crear usuario en Firebase Authentication
     const userRecord = await admin.auth().createUser({
       email: email,
       password: password,
@@ -90,10 +90,9 @@ export const register = async (req, res) => {
 
     console.log('Usuario creado en Auth:', userRecord.uid);
 
-    // 2. Crear documento de usuario en Firestore
-    // ✅ CORRECCIÓN: 'users' -> 'usuarios'
+    // 6. Crear documento de usuario en Firestore
     const userDocRef = db.collection('usuarios').doc(userRecord.uid);
-    
+
     const newUser = {
       uid: userRecord.uid,
       nombre: nombre,
@@ -113,8 +112,8 @@ export const register = async (req, res) => {
 
     console.log('Documento de usuario creado en Firestore');
 
-    // 3. Establecer custom claims (rol y companyId)
-    await admin.auth().setCustomUserClaims(userRecord.uid, { 
+    // 7. Establecer custom claims (rol y companyId)
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
       rol: rol,
       companyId: finalCompanyId || null
     });
@@ -135,18 +134,18 @@ export const register = async (req, res) => {
 
     // Manejar errores comunes
     if (error.code === 'auth/email-already-exists') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'El correo electrónico ya está en uso' 
+      return res.status(400).json({
+        success: false,
+        error: 'El correo electrónico ya está en uso'
       });
     }
     if (error.code === 'auth/invalid-password') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'La contraseña no es válida' 
+      return res.status(400).json({
+        success: false,
+        error: 'La contraseña no es válida'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'Error interno al registrar el empleado',
@@ -162,9 +161,9 @@ export const login = async (req, res) => {
   // Esta función es manejada por Firebase Auth en el frontend
   // Este endpoint solo existiría para login con email/pass personalizado
   // Por ahora, solo devolvemos un placeholder
-  res.status(501).json({ 
-    success: false, 
-    error: 'La autenticación se maneja en el cliente (frontend)' 
+  res.status(501).json({
+    success: false,
+    error: 'La autenticación se maneja en el cliente (frontend)'
   });
 };
 
@@ -177,9 +176,9 @@ export const getUserData = async (req, res) => {
 
   try {
     if (uid !== requestingUid) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'No autorizado para ver este perfil' 
+      return res.status(403).json({
+        success: false,
+        error: 'No autorizado para ver este perfil'
       });
     }
 
@@ -187,9 +186,9 @@ export const getUserData = async (req, res) => {
     const userDoc = await db.collection('usuarios').doc(uid).get();
 
     if (!userDoc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Usuario no encontrado en Firestore' 
+      return res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado en Firestore'
       });
     }
 
@@ -201,7 +200,7 @@ export const getUserData = async (req, res) => {
 
     if (userData.rol !== claims.rol || userData.companyId !== claims.companyId) {
       console.warn(`Discrepancia de datos para ${uid}. Firestore: ${userData.rol}, Claims: ${claims.rol}. Actualizando claims...`);
-      
+
       // Firestore (la base de datos) es la fuente de verdad
       await admin.auth().setCustomUserClaims(uid, {
         rol: userData.rol,
@@ -429,6 +428,46 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error al restablecer la contrasena',
+      details: error.message
+    });
+  }
+};
+
+// ========================================
+// HEARTBEAT - REGISTRAR ACTIVIDAD DEL USUARIO
+// ========================================
+/**
+ * Endpoint para que los clientes (web/móvil) registren su actividad
+ * Debe llamarse cada 1-2 minutos mientras la app esté activa
+ */
+export const heartbeat = async (req, res) => {
+  try {
+    const userId = req.userData?.uid;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuario no autenticado'
+      });
+    }
+
+    // Actualizar timestamp de última actividad
+    await db.collection('usuarios').doc(userId).update({
+      ultimaActividad: FieldValue.serverTimestamp(),
+      fechaActualizacion: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Actividad registrada',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error en heartbeat:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al registrar actividad',
       details: error.message
     });
   }

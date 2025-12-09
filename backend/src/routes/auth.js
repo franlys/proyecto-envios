@@ -1,10 +1,7 @@
-// backend/src/routes/auth.js
 import express from 'express';
 import { db, admin } from '../config/firebase.js';
 import { verifyToken } from '../middleware/auth.js';
-
-// ✅ 1. IMPORTAR LA FUNCIÓN CORRECTA DEL CONTROLADOR
-import { register, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { register, forgotPassword, resetPassword, heartbeat } from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -12,7 +9,7 @@ const router = express.Router();
  * GET /api/auth/test
  */
 router.get('/test', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Auth route working',
     timestamp: new Date().toISOString()
   });
@@ -46,17 +43,14 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 /**
  * POST /api/auth/register
- * ✅ 2. USAR LA FUNCIÓN DEL CONTROLADOR
- * (Toda la lógica antigua de este archivo fue eliminada)
  */
 router.post('/register', register);
-
 
 /**
  * POST /api/auth/login
  */
 router.post('/login', async (req, res) => {
-  res.json({ 
+  res.json({
     message: 'El login se maneja directamente con Firebase en el frontend',
     hint: 'Usa signInWithEmailAndPassword(auth, email, password)'
   });
@@ -82,8 +76,6 @@ router.post('/refresh-token', verifyToken, async (req, res) => {
 
 /**
  * PATCH /api/auth/update-profile
- * (Esta ruta parece ser de 'empleados.js' o 'userController.js',
- * pero la dejamos como estaba en tu archivo original)
  */
 router.patch('/update-profile', verifyToken, async (req, res) => {
   try {
@@ -98,7 +90,6 @@ router.patch('/update-profile', verifyToken, async (req, res) => {
     if (telefono) updateData.telefono = telefono;
     if (direccion) updateData.direccion = direccion;
 
-    // NOTA: Esta lógica usa 'usuarios' que es la misma colección
     await db.collection('usuarios').doc(userId).update(updateData);
 
     if (nombre) {
@@ -155,34 +146,38 @@ router.post('/change-password', verifyToken, async (req, res) => {
 
 /**
  * POST /api/auth/forgot-password
- * Solicitar recuperacion de contrasena
  */
 router.post('/forgot-password', forgotPassword);
 
 /**
  * POST /api/auth/reset-password
- * Restablecer contrasena con token
  */
 router.post('/reset-password', resetPassword);
+
+/**
+ * POST /api/auth/heartbeat
+ * Registra la actividad del usuario (debe llamarse cada 1-2 minutos)
+ */
+router.post('/heartbeat', verifyToken, heartbeat);
 
 /**
  * GET /api/auth/verify-role/:rol
  */
 router.get('/verify-role/:rol', (req, res) => {
   const { rol } = req.params;
-  
-  // Esta lista SÍ debe incluir 'cargador'
+
   const rolesValidos = [
-    'super_admin', 
-    'admin_general', 
+    'super_admin',
+    'admin_general',
     'admin',
     'recolector',
     'almacen_rd',
     'almacen_eeuu',
-    'secretaria', 
-    'almacen', 
+    'secretaria',
+    'almacen',
     'repartidor',
-    'cargador' // <-- AÑADIDO AQUÍ TAMBIÉN
+    'cargador',
+    'propietario'
   ];
 
   const esValido = rolesValidos.includes(rol);

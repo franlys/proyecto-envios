@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner'; // ✅ 1. Importar Toaster
+import useHeartbeat from './hooks/useHeartbeat'; // ✅ Heartbeat automático
 import Layout from './components/Layout';
 import Login from './components/auth/Login';
 import Dashboard from './pages/Dashboard';
@@ -56,6 +57,9 @@ const DashboardRouter = () => {
 function AppContent() {
   const { userData, loading } = useAuth();
   const [isExitingLogin, setIsExitingLogin] = useState(false);
+
+  // 💓 Enviar heartbeat automático cada 90 segundos
+  useHeartbeat(90000);
 
   // Show loading spinner while checking auth status
   if (loading) {
