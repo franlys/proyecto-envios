@@ -2,9 +2,64 @@
 // ✅ VERSIÓN DEFINITIVA - GESTIÓN DE REPARTIDORES Y ENTREGAS
 // Incluye sincronización de estadoGeneral y notificaciones de entrega
 
-import { db } from '../config/firebase.js';
+import { db, storage } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
+
+// ==========================================================================
+// HELPER: Convertir URLs de Firebase Storage a URLs públicas accesibles
+// ==========================================================================
+async function getPublicUrls(fotosUrls) {
+  if (!fotosUrls || fotosUrls.length === 0) return [];
+
+  const bucket = storage.bucket();
+  const publicUrls = [];
+
+  for (const url of fotosUrls) {
+    try {
+      // Extraer el path del archivo desde la URL
+      let filePath = url;
+
+      // Si es una URL completa de Firebase Storage, extraer el path
+      if (url.includes('firebasestorage.googleapis.com')) {
+        const urlParts = url.split('/o/')[1];
+        if (urlParts) {
+          filePath = decodeURIComponent(urlParts.split('?')[0]);
+        }
+      }
+
+      // Intentar hacer el archivo público y obtener URL pública
+      const file = bucket.file(filePath);
+
+      try {
+        // Hacer el archivo público
+        await file.makePublic();
+
+        // Generar URL pública
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        publicUrls.push(publicUrl);
+        console.log(`✅ URL pública generada para: ${filePath}`);
+      } catch (makePublicError) {
+        // Si ya es público o no se puede hacer público, intentar con signed URL
+        console.log(`⚠️ No se pudo hacer público ${filePath}, usando signed URL...`);
+
+        const [signedUrl] = await file.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 días
+        });
+
+        publicUrls.push(signedUrl);
+        console.log(`✅ URL firmada generada para: ${filePath}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error procesando URL ${url}:`, error.message);
+      // Si falla todo, usar la URL original
+      publicUrls.push(url);
+    }
+  }
+
+  return publicUrls;
+}
 
 // ==========================================================================
 // OBTENER RUTAS ASIGNADAS AL REPARTIDOR
@@ -788,6 +843,11 @@ export const entregarFactura = async (req, res) => {
       console.log(`   Remitente: ${data.remitente?.nombre} (${remitenteEmail || 'sin email'})`);
       console.log(`   Destinatario: ${data.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
 
+      // 🔐 Generar URLs firmadas para las fotos (válidas por 7 días)
+      console.log(`📸 Generando URLs firmadas para ${fotosEntrega.length} fotos...`);
+      const fotosPublicas = await getPublicUrls(fotosEntrega);
+      console.log(`✅ URLs firmadas generadas exitosamente`);
+
       // Calcular totales de items
       const totalItems = data.items?.length || 0;
       const itemsEntregados = (data.items || []).filter(i => i.entregado).length;
@@ -815,12 +875,12 @@ export const entregarFactura = async (req, res) => {
             ${notasEntrega ? `<p><strong>Notas:</strong> ${notasEntrega}</p>` : ''}
           </div>
 
-          ${data.fotosEntrega && data.fotosEntrega.length > 0 ? `
+          ${fotosPublicas && fotosPublicas.length > 0 ? `
           <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica</h3>
-            <p style="margin-bottom: 15px;">Se capturaron ${data.fotosEntrega.length} foto(s) como evidencia de la entrega:</p>
+            <p style="margin-bottom: 15px;">Se capturaron ${fotosPublicas.length} foto(s) como evidencia de la entrega:</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-              ${data.fotosEntrega.map((foto, idx) => `
+              ${fotosPublicas.map((foto, idx) => `
                 <div style="text-align: center;">
                   <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                   <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
@@ -862,12 +922,12 @@ export const entregarFactura = async (req, res) => {
             ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
           </div>
 
-          ${data.fotosEntrega && data.fotosEntrega.length > 0 ? `
+          ${fotosPublicas && fotosPublicas.length > 0 ? `
           <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2e7d32;">📸 Evidencia Fotográfica de la Entrega</h3>
-            <p style="margin-bottom: 15px;">Se capturaron ${data.fotosEntrega.length} foto(s) como evidencia:</p>
+            <p style="margin-bottom: 15px;">Se capturaron ${fotosPublicas.length} foto(s) como evidencia:</p>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-              ${data.fotosEntrega.map((foto, idx) => `
+              ${fotosPublicas.map((foto, idx) => `
                 <div style="text-align: center;">
                   <img src="${foto}" alt="Evidencia ${idx + 1}" style="width: 100%; max-width: 300px; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                   <p style="margin-top: 5px; font-size: 12px; color: #666;">Foto ${idx + 1}</p>
