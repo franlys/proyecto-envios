@@ -55,7 +55,16 @@ async function getBase64Images(fotosUrls) {
 
       // Descargar el archivo y convertirlo a base64
       console.log(`   📥 Descargando archivo...`);
-      const [fileBuffer] = await file.download();
+      const downloadResult = await file.download();
+      console.log(`   📦 Resultado de descarga:`, typeof downloadResult, Array.isArray(downloadResult));
+
+      const fileBuffer = downloadResult[0];
+
+      if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
+        console.log(`   ❌ Buffer inválido o undefined, saltando...`);
+        continue;
+      }
+
       console.log(`   📊 Tamaño del buffer: ${fileBuffer.length} bytes`);
 
       // Detectar tipo MIME según extensión
