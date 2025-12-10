@@ -1,0 +1,15 @@
+🔥 Firebase Config v2.1 - Con Storage para Recolecciones
+✅ Firebase inicializado correctamente
+📦 Storage Bucket: embarques-7ad6e.firebasestorage.app
+🔍 Debugging finances for company: embarques_ivan
+📅 Date range: 2025-11-04T17:37:50.463Z to 2025-12-04T17:37:50.463Z
+👉 Testing 'recolecciones' query (Ingresos)...
+✅ 'recolecciones' query success. Found 0 docs.
+👉 Testing 'facturas activas' query...
+✅ 'facturas activas' query success. Found 9 docs.
+👉 Testing 'pagos_repartidores' query...
+❌ 'pagos_repartidores' query FAILED: 9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/embarques-7ad6e/firestore/indexes?create_composite=Clpwcm9qZWN0cy9lbWJhcnF1ZXMtN2FkNmUvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3BhZ29zX3JlcGFydGlkb3Jlcy9pbmRleGVzL18QARoNCgljb21wYW55SWQQARoJCgVmZWNoYRABGgwKCF9fbmFtZV9fEAE
+💡 Likely missing index.
+👉 Testing 'gastos_operacionales' query...
+❌ 'gastos_operacionales' query FAILED: 9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/embarques-7ad6e/firestore/indexes?create_composite=Clxwcm9qZWN0cy9lbWJhcnF1ZXMtN2FkNmUvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL2dhc3Rvc19vcGVyYWNpb25hbGVzL2luZGV4ZXMvXxABGg0KCWNvbXBhbnlJZBABGgkKBWZlY2hhEAEaDAoIX19uYW1lX18QAQ
+💡 Likely missing index.

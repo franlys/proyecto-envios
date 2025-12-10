@@ -30,6 +30,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import sectoresRoutes from './routes/sectores.js'; // ✅ NUEVO - Sistema de Sectores
 import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión de Gastos de Ruta
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
+import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // =====================================================
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174', // ✅ Agregado para cuando el puerto 5173 está ocupado
   'http://localhost:3000',
   'http://localhost:5000',
   process.env.FRONTEND_URL,
@@ -133,6 +135,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sectores', sectoresRoutes); // ✅ NUEVO - Sistema de Sectores
 app.use('/api/gastos-ruta', gastosRutaRoutes); // ✅ NUEVO - Gestión de Gastos de Ruta
 app.use('/api/tracking', trackingRoutes); // ✅ NUEVO - Tracking Público
+app.use('/api/finanzas', finanzasRoutes); // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
 
 // =====================================================
 // RUTA RAÍZ
