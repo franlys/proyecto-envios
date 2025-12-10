@@ -111,28 +111,28 @@ const DetalleRuta = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <button
           onClick={() => navigate('/rutas')}
-          className="flex items-center text-slate-600 hover:text-slate-800 mb-4"
+          className="flex items-center text-slate-600 hover:text-slate-800 mb-3 sm:mb-4 text-sm sm:text-base"
         >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Volver a Rutas
+          Volver
         </button>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">{ruta.nombre}</h1>
-              <p className="text-slate-600 mt-1">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 truncate">{ruta.nombre}</h1>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">
                 Creada el {new Date(ruta.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <div>
+            <div className="flex-shrink-0">
               {getEstadoBadge(ruta.estado)}
             </div>
           </div>
@@ -140,86 +140,86 @@ const DetalleRuta = () => {
       </div>
 
       {/* Información del Repartidor */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 mb-3 sm:mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          Repartidor Asignado
+          <span className="truncate">Repartidor Asignado</span>
         </h2>
-        
+
         {ruta.empleadoNombre ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div>
-              <label className="text-sm font-medium text-slate-500">Nombre</label>
-              <p className="text-slate-900 font-medium">{ruta.empleadoNombre}</p>
+              <label className="text-xs sm:text-sm font-medium text-slate-500">Nombre</label>
+              <p className="text-sm sm:text-base text-slate-900 font-medium break-words">{ruta.empleadoNombre}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500">Email</label>
-              <p className="text-slate-900">{ruta.empleadoEmail || 'No disponible'}</p>
+              <label className="text-xs sm:text-sm font-medium text-slate-500">Email</label>
+              <p className="text-sm sm:text-base text-slate-900 break-all">{ruta.empleadoEmail || 'No disponible'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-500">Teléfono</label>
-              <p className="text-slate-900">{ruta.empleadoTelefono || 'No disponible'}</p>
+              <label className="text-xs sm:text-sm font-medium text-slate-500">Teléfono</label>
+              <p className="text-sm sm:text-base text-slate-900">{ruta.empleadoTelefono || 'No disponible'}</p>
             </div>
           </div>
         ) : (
-          <p className="text-slate-500">No hay repartidor asignado</p>
+          <p className="text-sm sm:text-base text-slate-500">No hay repartidor asignado</p>
         )}
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Total Facturas</p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">{facturas.length}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-500">Total<br className="sm:hidden"/>Facturas</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mt-0.5 sm:mt-1">{facturas.length}</p>
             </div>
-            <div className="p-3 bg-indigo-100 rounded-full">
-              <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 sm:p-2.5 md:p-3 bg-indigo-100 rounded-full flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Entregadas</p>
-              <p className="text-3xl font-bold text-emerald-600 mt-1">{facturasEntregadas}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-500">Entregadas</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-600 mt-0.5 sm:mt-1">{facturasEntregadas}</p>
             </div>
-            <div className="p-3 bg-emerald-100 rounded-full">
-              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 sm:p-2.5 md:p-3 bg-emerald-100 rounded-full flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">No Entregadas</p>
-              <p className="text-3xl font-bold text-rose-600 mt-1">{facturasNoEntregadas}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-500">No<br className="sm:hidden"/>Entregadas</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-rose-600 mt-0.5 sm:mt-1">{facturasNoEntregadas}</p>
             </div>
-            <div className="p-3 bg-rose-100 rounded-full">
-              <svg className="w-8 h-8 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 sm:p-2.5 md:p-3 bg-rose-100 rounded-full flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Pendientes</p>
-              <p className="text-3xl font-bold text-amber-600 mt-1">{facturasPendientes}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-500">Pendientes</p>
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-600 mt-0.5 sm:mt-1">{facturasPendientes}</p>
             </div>
-            <div className="p-3 bg-amber-100 rounded-full">
-              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 sm:p-2.5 md:p-3 bg-amber-100 rounded-full flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -228,39 +228,39 @@ const DetalleRuta = () => {
       </div>
 
       {/* Resumen Financiero */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 mb-3 sm:mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Resumen Financiero
+          <span className="truncate">Resumen Financiero</span>
         </h2>
 
-        <div className="grid grid-cols-4 gap-4">
-          <div className="p-4 bg-indigo-50 rounded-lg">
-            <label className="text-sm font-medium text-indigo-700">Monto Asignado</label>
-            <p className="text-2xl font-bold text-indigo-900 mt-1">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-3 sm:p-4 bg-indigo-50 rounded-lg">
+            <label className="text-[10px] sm:text-xs md:text-sm font-medium text-indigo-700">Monto<br className="sm:hidden"/>Asignado</label>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-indigo-900 mt-0.5 sm:mt-1">
               ${(ruta.montoAsignado || 0).toLocaleString()}
             </p>
           </div>
 
-          <div className="p-4 bg-emerald-50 rounded-lg">
-            <label className="text-sm font-medium text-emerald-700">Total Cobrado</label>
-            <p className="text-2xl font-bold text-emerald-900 mt-1">
+          <div className="p-3 sm:p-4 bg-emerald-50 rounded-lg">
+            <label className="text-[10px] sm:text-xs md:text-sm font-medium text-emerald-700">Total Cobrado</label>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-900 mt-0.5 sm:mt-1">
               ${totalCobrado.toLocaleString()}
             </p>
           </div>
 
-          <div className="p-4 bg-rose-50 rounded-lg">
-            <label className="text-sm font-medium text-rose-700">Total Gastos</label>
-            <p className="text-2xl font-bold text-rose-900 mt-1">
+          <div className="p-3 sm:p-4 bg-rose-50 rounded-lg">
+            <label className="text-[10px] sm:text-xs md:text-sm font-medium text-rose-700">Total Gastos</label>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-rose-900 mt-0.5 sm:mt-1">
               ${totalGastos.toLocaleString()}
             </p>
           </div>
 
-          <div className="p-4 bg-purple-50 rounded-lg">
-            <label className="text-sm font-medium text-purple-700">Balance</label>
-            <p className={`text-2xl font-bold mt-1 ${balance >= 0 ? 'text-purple-900' : 'text-rose-600'}`}>
+          <div className="p-3 sm:p-4 bg-purple-50 rounded-lg">
+            <label className="text-[10px] sm:text-xs md:text-sm font-medium text-purple-700">Balance</label>
+            <p className={`text-lg sm:text-xl md:text-2xl font-bold mt-0.5 sm:mt-1 ${balance >= 0 ? 'text-purple-900' : 'text-rose-600'}`}>
               ${balance.toLocaleString()}
             </p>
           </div>

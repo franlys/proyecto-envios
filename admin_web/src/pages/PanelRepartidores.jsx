@@ -24,10 +24,13 @@ import {
   X,
   Plus,
   Image,
-  Printer
+  Printer,
+  Bell,
+  User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PullToRefresh from '../components/common/PullToRefresh';
+import logo from '../assets/logo.png';
 
 const PanelRepartidores = () => {
   // ==============================================================================
@@ -596,18 +599,45 @@ const PanelRepartidores = () => {
   // ==============================================================================
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-2 xxs:p-3 xs:p-4 pb-20">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4 xxs:mb-6">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg xxs:text-xl xs:text-2xl font-bold text-slate-900 dark:text-white truncate">Panel de Repartidor</h1>
-            <p className="text-xs xxs:text-sm xs:text-base text-slate-600 dark:text-slate-400 truncate">Hola, {userData?.nombre}</p>
-          </div>
-          <div className="flex items-center gap-1 xxs:gap-2 flex-shrink-0 ml-2">
-            <ConnectionStatusIndicator />
-            <LiveIndicator />
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 pb-20">
+        {/* Header - Sticky en mobile */}
+        <div className="sticky top-0 z-40 bg-white dark:bg-slate-800 shadow-sm">
+          <div className="px-3 sm:px-4 py-2.5 sm:py-3">
+            <div className="flex items-center justify-between gap-2">
+              {/* Logo + Titulo */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <img src={logo} alt="ProLogix" className="h-8 sm:h-10 w-auto object-contain flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-sm sm:text-base font-bold bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent truncate">
+                    ProLogix
+                  </h1>
+                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 truncate">
+                    {userData?.nombre || 'Repartidor'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Indicators y Usuario - más compactos */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                <ConnectionStatusIndicator />
+                <LiveIndicator />
+
+                {/* Campana de notificaciones */}
+                <button className="relative p-1.5 sm:p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                {/* Avatar Usuario */}
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+                  {userData?.nombre?.charAt(0).toUpperCase() || 'R'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Content Container */}
+        <div className="p-3 sm:p-4">
 
         {/* VISTA: LISTA DE RUTAS */}
         {vistaActual === 'lista' && (
@@ -654,16 +684,16 @@ const PanelRepartidores = () => {
 
         {/* VISTA: DETALLE DE RUTA */}
         {vistaActual === 'ruta' && rutaSeleccionada && (
-          <div className="space-y-4">
-            <button onClick={volverALista} className="flex items-center text-slate-600 dark:text-slate-400 mb-2">
-              <ArrowLeft size={20} className="mr-1" /> Volver a mis rutas
+          <div className="space-y-3 sm:space-y-4">
+            <button onClick={volverALista} className="flex items-center text-slate-600 dark:text-slate-400 mb-2 text-sm sm:text-base">
+              <ArrowLeft size={18} className="mr-1 sm:mr-2" /> Volver
             </button>
 
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-bold dark:text-white">{rutaSeleccionada.nombre}</h2>
-                  <p className="text-sm text-slate-500">
+            <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-xl font-bold dark:text-white truncate">{rutaSeleccionada.nombre}</h2>
+                  <p className="text-xs sm:text-sm text-slate-500">
                     {rutaSeleccionada.facturas?.filter(f => f.estado === 'entregada').length} / {rutaSeleccionada.facturas?.length} completadas
                   </p>
                 </div>
@@ -671,9 +701,9 @@ const PanelRepartidores = () => {
                   <button
                     onClick={handleIniciarEntregas}
                     disabled={procesando}
-                    className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center gap-2"
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
-                    <Truck size={18} /> Iniciar Ruta
+                    <Truck size={16} /> Iniciar
                   </button>
                 ) : (
                   <div className="flex gap-2">
@@ -683,20 +713,20 @@ const PanelRepartidores = () => {
                         window.open(printUrl, '_blank');
                       }}
                       className="p-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
-                      title="Imprimir Facturas"
+                      title="Imprimir"
                     >
-                      <Printer size={20} />
+                      <Printer size={18} />
                     </button>
                     <button
                       onClick={() => setShowModalGasto(true)}
                       className="p-2 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
-                      title="Registrar Gasto"
+                      title="Gasto"
                     >
-                      <DollarSign size={20} />
+                      <DollarSign size={18} />
                     </button>
                     <button
                       onClick={() => setShowModalFinalizar(true)}
-                      className="px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-2 text-sm"
+                      className="px-2 sm:px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
                     >
                       Finalizar
                     </button>
@@ -706,15 +736,15 @@ const PanelRepartidores = () => {
 
               {/* Resumen de Gastos */}
               {totalGastos > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Gastos Registrados: <span className="text-rose-600">RD$ {totalGastos.toFixed(2)}</span>
+                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Gastos: <span className="text-rose-600">RD$ {totalGastos.toFixed(2)}</span>
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {rutaSeleccionada.facturas?.map((factura, index) => (
                 <div
                   key={factura.id}
@@ -722,25 +752,27 @@ const PanelRepartidores = () => {
                     setFacturaActual(factura);
                     setVistaActual('factura');
                   }}
-                  className={`p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20' :
+                  className={`p-3 sm:p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20' :
                     factura.estado === 'no_entregada' ? 'bg-rose-50 border-rose-500 dark:bg-rose-900/20' :
                       'bg-white border-slate-300 dark:bg-slate-800 dark:border-slate-600'
                     }`}
                 >
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <span className="bg-slate-200 dark:bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                      <span className="bg-slate-200 dark:bg-slate-700 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">
                         {index + 1}
                       </span>
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{factura.destinatario?.nombre}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">{factura.destinatario?.nombre}</p>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">
                           {factura.destinatario?.direccion}
                         </p>
                       </div>
                     </div>
-                    {factura.estado === 'entregada' && <CheckCircle className="text-emerald-600" size={20} />}
-                    {factura.estado === 'no_entregada' && <XCircle className="text-rose-600" size={20} />}
+                    <div className="flex-shrink-0 ml-2">
+                      {factura.estado === 'entregada' && <CheckCircle className="text-emerald-600" size={18} />}
+                      {factura.estado === 'no_entregada' && <XCircle className="text-rose-600" size={18} />}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -750,55 +782,55 @@ const PanelRepartidores = () => {
 
         {/* VISTA: DETALLE DE FACTURA (ENTREGA) */}
         {vistaActual === 'factura' && facturaActual && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <button onClick={volverARuta} className="p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-700">
-                <ArrowLeft size={24} />
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <button onClick={volverARuta} className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-700">
+                <ArrowLeft size={20} />
               </button>
-              <h2 className="text-xl font-bold dark:text-white">Detalle de Entrega</h2>
+              <h2 className="text-lg sm:text-xl font-bold dark:text-white">Entrega</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
               <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Cliente</p>
-                <p className="font-bold text-lg text-slate-900 dark:text-white">{facturaActual.destinatario?.nombre}</p>
-                <p className="text-slate-600 dark:text-slate-300 flex items-start gap-2 mt-1">
-                  <MapPin size={16} className="mt-1 flex-shrink-0" />
-                  {facturaActual.destinatario?.direccion}
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Cliente</p>
+                <p className="font-bold text-base sm:text-lg text-slate-900 dark:text-white break-words">{facturaActual.destinatario?.nombre}</p>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2 mt-1">
+                  <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                  <span className="break-words">{facturaActual.destinatario?.direccion}</span>
                 </p>
                 <div className="flex gap-2 flex-wrap mt-2">
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium shadow-sm text-xs sm:text-sm"
                   >
-                    <Navigation size={16} />
-                    Google Maps
+                    <Navigation size={14} />
+                    Maps
                   </a>
                   <a
                     href={`https://waze.com/ul?q=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}&navigate=yes`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition font-medium shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition font-medium shadow-sm text-xs sm:text-sm"
                   >
-                    <Navigation size={16} />
+                    <Navigation size={14} />
                     Waze
                   </a>
                 </div>
               </div>
-              <div className="md:border-l md:pl-4">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pago Contraentrega:</p>
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Estado: <span className={`font-bold ${facturaActual.pago?.estado === 'pagada' ? 'text-emerald-600' : 'text-amber-600'}`}>{facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Pendiente'}</span></p>
+              <div className="pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l sm:pl-4">
+                <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Pago Contraentrega:</p>
+                <p className="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Estado: <span className={`font-bold ${facturaActual.pago?.estado === 'pagada' ? 'text-emerald-600' : 'text-amber-600'}`}>{facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Pendiente'}</span></p>
               </div>
             </div>
 
             {/* Items Checklist */}
-            <h3 className="font-bold text-lg mb-3 text-slate-900 dark:text-white flex items-center gap-2">
-              <Package size={20} /> Items a Entregar
+            <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-slate-900 dark:text-white flex items-center gap-2">
+              <Package size={18} /> Items a Entregar
             </h3>
-            <div className="space-y-3 mb-6">
+            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
               {facturaActual.items?.map((item, index) => {
                 // Determinar el estado del item
                 const isDanado = item.danado || item.estadoItem === 'danado';
@@ -837,51 +869,51 @@ const PanelRepartidores = () => {
                 return (
                   <div
                     key={index}
-                    className={`p-3 border rounded-lg flex justify-between items-center ${bgClasses} ${item._optimistic ? 'opacity-70' : ''}`}
+                    className={`p-2.5 sm:p-3 border rounded-lg flex justify-between items-center gap-2 ${bgClasses} ${item._optimistic ? 'opacity-70' : ''}`}
                   >
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-white">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base text-slate-900 dark:text-white break-words">
                         {item.producto || item.descripcion || 'Item sin nombre'}
                       </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">Cant: {item.cantidad}</p>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Cant: {item.cantidad}</p>
                       {isDanado && item.descripcionDano && (
                         <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠️ {item.descripcionDano}</p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
                       {isEntregado ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
-                          <CheckCircle size={20} className="fill-current" />
-                          <span className="font-medium text-sm">Entregado</span>
+                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
+                          <CheckCircle size={16} className="fill-current" />
+                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">Entregado</span>
                         </div>
                       ) : isDanado ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
-                          <AlertTriangle size={20} className="fill-current" />
-                          <span className="font-medium text-sm">Dañado</span>
+                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
+                          <AlertTriangle size={16} className="fill-current" />
+                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">Dañado</span>
                         </div>
                       ) : isNoEntregado ? (
-                        <div className="flex items-center gap-2 px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-full">
-                          <XCircle size={20} className="fill-current" />
-                          <span className="font-medium text-sm">No Entregado</span>
+                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-full">
+                          <XCircle size={16} className="fill-current" />
+                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">No Entregado</span>
                         </div>
                       ) : (
                         <>
                           <button
                             onClick={() => handleEntregarItem(index)}
-                            className="p-2 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition"
-                            title="Marcar entregado"
+                            className="p-1.5 sm:p-2 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition"
+                            title="Entregar"
                           >
-                            <CheckCircle size={20} />
+                            <CheckCircle size={18} />
                           </button>
                           <button
                             onClick={() => {
                               setItemDanado({ ...item, index });
                               setShowModalDano(true);
                             }}
-                            className="p-2 bg-rose-100 text-rose-700 rounded-full hover:bg-rose-200 transition"
-                            title="Reportar Daño"
+                            className="p-1.5 sm:p-2 bg-rose-100 text-rose-700 rounded-full hover:bg-rose-200 transition"
+                            title="Daño"
                           >
-                            <AlertTriangle size={20} />
+                            <AlertTriangle size={18} />
                           </button>
                         </>
                       )}
@@ -892,12 +924,12 @@ const PanelRepartidores = () => {
             </div>
 
             {/* Evidencia Fotográfica Section */}
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm mb-6">
-              <h3 className="font-bold text-lg mb-3 text-slate-900 dark:text-white flex items-center gap-2">
-                <Camera size={20} /> Evidencia de Entrega
+            <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-sm mb-4 sm:mb-6">
+              <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-slate-900 dark:text-white flex items-center gap-2">
+                <Camera size={18} /> Evidencia
               </h3>
 
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-2 mb-3 sm:mb-4">
                 <label className="flex-1">
                   <input
                     type="file"
@@ -908,8 +940,8 @@ const PanelRepartidores = () => {
                     className="hidden"
                     id="camera-input"
                   />
-                  <div className="w-full px-3 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
-                    <Camera size={20} />
+                  <div className="w-full px-2 py-2 sm:px-3 sm:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm sm:text-base">
+                    <Camera size={18} />
                     <span>Cámara</span>
                   </div>
                 </label>
@@ -923,17 +955,17 @@ const PanelRepartidores = () => {
                     className="hidden"
                     id="gallery-input"
                   />
-                  <div className="w-full px-3 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-2 font-medium">
-                    <Image size={20} />
+                  <div className="w-full px-2 py-2 sm:px-3 sm:py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm sm:text-base">
+                    <Image size={18} />
                     <span>Galería</span>
                   </div>
                 </label>
               </div>
 
               {fotosEvidencia.length > 0 && (
-                <div className="mb-4 p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    📸 {fotosEvidencia.length} foto(s) seleccionada(s)
+                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    📸 {fotosEvidencia.length} foto(s)
                   </p>
                   <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
                     {fotosEvidencia.map((file, idx) => (
@@ -947,26 +979,26 @@ const PanelRepartidores = () => {
                           onClick={() => setFotosEvidencia(prev => prev.filter((_, i) => i !== idx))}
                           className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-1 hover:bg-rose-700"
                         >
-                          <X size={14} />
+                          <X size={12} />
                         </button>
                       </div>
                     ))}
                   </div>
 
-                  <div className="flex justify-end gap-2 mt-4">
+                  <div className="flex justify-end gap-2 mt-3">
                     <button
                       onClick={() => setFotosEvidencia([])}
-                      className="px-4 py-2 text-slate-600 dark:text-slate-400"
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 text-slate-600 dark:text-slate-400 text-sm"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleSubirFotos}
                       disabled={subiendoFotos}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 font-medium"
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 font-medium text-sm"
                     >
-                      {subiendoFotos ? <Loader className="animate-spin" size={16} /> : <Camera size={16} />}
-                      {subiendoFotos ? 'Subiendo...' : 'Subir Evidencia'}
+                      {subiendoFotos ? <Loader className="animate-spin" size={14} /> : <Camera size={14} />}
+                      {subiendoFotos ? 'Subiendo...' : 'Subir'}
                     </button>
                   </div>
                 </div>
@@ -974,22 +1006,22 @@ const PanelRepartidores = () => {
             </div>
 
             {/* Botones de Acción Principal */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 onClick={() => setShowModalNoEntrega(true)}
-                className="p-4 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition flex flex-col items-center gap-2"
+                className="p-3 sm:p-4 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition flex flex-col items-center gap-1.5 sm:gap-2"
               >
-                <XCircle size={24} />
-                <span className="font-bold">No Entregado</span>
+                <XCircle size={20} />
+                <span className="font-bold text-xs sm:text-sm">No Entregado</span>
               </button>
 
               <button
                 onClick={() => setShowModalPago(true)}
                 disabled={facturaActual.pago?.estado === 'pagada' || facturaActual.pago?.total <= 0}
-                className="p-4 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-3 sm:p-4 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition flex flex-col items-center gap-1.5 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <DollarSign size={24} />
-                <span className="font-bold">
+                <DollarSign size={20} />
+                <span className="font-bold text-xs sm:text-sm text-center">
                   {facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Confirmar Pago'}
                 </span>
               </button>
@@ -997,14 +1029,14 @@ const PanelRepartidores = () => {
               <button
                 onClick={() => setShowModalEntregar(true)}
                 disabled={facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'}
-                className={`col-span-2 p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${
+                className={`col-span-2 p-3 sm:p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${
                   facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'
                     ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                     : 'bg-emerald-600 text-white hover:bg-emerald-700'
                 }`}
               >
-                <CheckCircle size={24} />
-                <span className="font-bold text-lg">
+                <CheckCircle size={20} />
+                <span className="font-bold text-sm sm:text-base">
                   {facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada' ? 'Ya Entregada' : 'Finalizar Entrega'}
                 </span>
               </button>
@@ -1371,6 +1403,8 @@ const PanelRepartidores = () => {
           </div>
         )}
 
+        </div>
+        {/* End Content Container */}
       </div>
     </PullToRefresh>
   );
