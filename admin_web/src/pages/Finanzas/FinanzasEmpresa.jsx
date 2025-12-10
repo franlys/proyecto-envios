@@ -24,6 +24,18 @@ import {
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { toast } from 'sonner';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 
 const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -135,6 +147,9 @@ const FinanzasEmpresa = () => {
   // Facturas pendientes
   const [facturasPendientes, setFacturasPendientes] = useState([]);
 
+  // Métricas mensuales para gráficas
+  const [metricasMensuales, setMetricasMensuales] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -156,6 +171,12 @@ const FinanzasEmpresa = () => {
         const facturasRes = await api.get('/finanzas/empresa/facturas-pendientes');
         if (facturasRes.data.success) {
           setFacturasPendientes(facturasRes.data.data);
+        }
+
+        // Fetch métricas mensuales para gráficas (últimos 12 meses)
+        const metricasRes = await api.get('/finanzas/empresa/metricas-mensuales?meses=12');
+        if (metricasRes.data.success) {
+          setMetricasMensuales(metricasRes.data.data);
         }
 
       } catch (error) {
@@ -396,6 +417,109 @@ const FinanzasEmpresa = () => {
                 </div>
               </div>
             </motion.div>
+
+            {/* Gráficas de Tendencias Mensuales */}
+            {metricasMensuales.length > 0 && (
+              <>
+                {/* Gráfica de Ingresos vs Gastos */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                  className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
+                >
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                    Tendencia Mensual: Ingresos vs Gastos
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={metricasMensuales}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="mes"
+                        stroke="#64748b"
+                        style={{ fontSize: '12px' }}
+                      />
+                      <YAxis
+                        stroke="#64748b"
+                        style={{ fontSize: '12px' }}
+                        tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="ingresos"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        name="Ingresos"
+                        dot={{ fill: '#10b981', r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="gastos"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        name="Gastos"
+                        dot={{ fill: '#ef4444', r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                {/* Gráfica de Utilidad Mensual */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.6 }}
+                  className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
+                >
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                    Utilidad Neta Mensual
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={metricasMensuales}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="mes"
+                        stroke="#64748b"
+                        style={{ fontSize: '12px' }}
+                      />
+                      <YAxis
+                        stroke="#64748b"
+                        style={{ fontSize: '12px' }}
+                        tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="utilidad"
+                        fill="#6366f1"
+                        name="Utilidad Neta"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </motion.div>
+              </>
+            )}
           </div>
         )}
 
