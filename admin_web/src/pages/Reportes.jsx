@@ -24,15 +24,17 @@ const Reportes = () => {
     cargarDatosIniciales();
   }, []);
 
-  useEffect(() => {
-    // Establecer fechas por defecto (último mes)
-    const hoy = new Date();
-    const hace30Dias = new Date();
-    hace30Dias.setDate(hoy.getDate() - 30);
-    
-    setFechaDesde(hace30Dias.toISOString().split('T')[0]);
-    setFechaHasta(hoy.toISOString().split('T')[0]);
-  }, []);
+  // ✅ REMOVIDO: Ya no establecemos fechas por defecto
+  // Esto permite ver TODOS los datos históricos sin restricción de fecha
+  // El usuario puede agregar filtros manualmente si lo desea
+  // useEffect(() => {
+  //   const hoy = new Date();
+  //   const hace30Dias = new Date();
+  //   hace30Dias.setDate(hoy.getDate() - 30);
+  //
+  //   setFechaDesde(hace30Dias.toISOString().split('T')[0]);
+  //   setFechaHasta(hoy.toISOString().split('T')[0]);
+  // }, []);
 
   // ✅ CORREGIDO: Aplicando la Regla de Oro
   const cargarDatosIniciales = async () => {
