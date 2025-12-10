@@ -39,6 +39,8 @@ export const getOverview = async (req, res) => {
       .get();
 
     let ingresosTotal = 0;
+    let totalCobrosFacturas = 0; // ✅ NUEVO: Cobros adicionales en facturas
+
     facturasSnapshot.forEach(doc => {
       const factura = doc.data();
 
@@ -55,9 +57,19 @@ export const getOverview = async (req, res) => {
 
       // Solo contar si está dentro del rango de fechas
       if (facturaDate && facturaDate >= startDate) {
+        // ✅ Ingreso base: monto del envío
         ingresosTotal += factura.monto || 0;
+
+        // ✅ NUEVO: Agregar cobros adicionales si existen
+        // (pago contra entrega, monto pendiente cobrado, etc.)
+        if (factura.pago && factura.pago.montoPagado > 0) {
+          totalCobrosFacturas += factura.pago.montoPagado || 0;
+        }
       }
     });
+
+    // ✅ NUEVO: Ingresos totales incluyen el monto del envío + cobros
+    const ingresosTotales = ingresosTotal + totalCobrosFacturas;
 
     // 2. Calcular gastos (con conversión de monedas)
     const gastosDesglosados = await calcularGastos(companyId, startDate, tasaDolar);
@@ -67,8 +79,8 @@ export const getOverview = async (req, res) => {
       gastosDesglosados.recolectoresUSD +
       gastosDesglosados.otrosUSD;
 
-    // 3. Calcular utilidad
-    const utilidad = ingresosTotal - gastosTotal;
+    // 3. Calcular utilidad (usando ingresos totales que incluyen cobros)
+    const utilidad = ingresosTotales - gastosTotal;
 
     // 4. Contar facturas activas
     const facturasActivasSnapshot = await db.collection('facturas')
@@ -84,14 +96,16 @@ export const getOverview = async (req, res) => {
       facturas: 5.2
     };
 
-    console.log(`✅ [Finanzas Empresa] Ingresos: $${ingresosTotal}, Gastos: $${gastosTotal}, Utilidad: $${utilidad}`);
+    console.log(`✅ [Finanzas Empresa] Ingresos: $${ingresosTotales} (Envíos: $${ingresosTotal} + Cobros: $${totalCobrosFacturas}), Gastos: $${gastosTotal}, Utilidad: $${utilidad}`);
 
     res.json({
       success: true,
       data: {
         tasaDolar: tasaDolar,
         ingresos: {
-          total: ingresosTotal,
+          total: ingresosTotales, // ✅ Ahora incluye envíos + cobros
+          envios: ingresosTotal, // ✅ NUEVO: Desglose de ingresos por envíos
+          cobros: totalCobrosFacturas, // ✅ NUEVO: Desglose de cobros en facturas
           change: cambios.ingresos,
           changeType: 'up'
         },
@@ -251,6 +265,8 @@ export const getMetricasMensuales = async (req, res) => {
         .get();
 
       let ingresos = 0;
+      let cobros = 0; // ✅ NUEVO: Cobros en facturas
+
       facturasSnapshot.forEach(doc => {
         const factura = doc.data();
         // Filtrar por fecha en memoria
@@ -266,8 +282,16 @@ export const getMetricasMensuales = async (req, res) => {
         // Solo contar si está dentro del rango del mes
         if (facturaDate && facturaDate >= inicioMes && facturaDate <= finMes) {
           ingresos += factura.monto || 0;
+
+          // ✅ NUEVO: Agregar cobros adicionales
+          if (factura.pago && factura.pago.montoPagado > 0) {
+            cobros += factura.pago.montoPagado || 0;
+          }
         }
       });
+
+      // ✅ Ingresos totales incluyen envíos + cobros
+      const ingresosTotales = ingresos + cobros;
 
       // Calcular gastos del mes
       const gastosDesglosados = await calcularGastos(companyId, inicioMes, tasaDolar);
@@ -276,9 +300,9 @@ export const getMetricasMensuales = async (req, res) => {
       metricas.push({
         mes: fecha.toLocaleString('es-DO', { month: 'short', year: 'numeric' }),
         fecha: fecha.toISOString(),
-        ingresos: ingresos,
+        ingresos: ingresosTotales, // ✅ Usa ingresos totales (envíos + cobros)
         gastos: gastos,
-        utilidad: ingresos - gastos
+        utilidad: ingresosTotales - gastos // ✅ Utilidad correcta con cobros incluidos
       });
     }
 
