@@ -417,7 +417,7 @@ export const getSuscripcion = async (req, res) => {
       data: {
         plan: companyData.plan || 'Basic',
         precio: precio,
-        fechaInicio: companyData.createdAt?.toDate() || new Date(),
+        fechaInicio: (companyData.createdAt && typeof companyData.createdAt.toDate === 'function') ? companyData.createdAt.toDate() : new Date(companyData.createdAt || new Date()),
         proximoPago: proximoPago,
         estado: companyData.active ? 'activo' : 'inactivo',
         limites: limites,
@@ -526,8 +526,8 @@ export const getFacturasPendientes = async (req, res) => {
           id: doc.id,
           numero: factura.numero || doc.id.substring(0, 8).toUpperCase(),
           concepto: factura.concepto || 'Suscripción mensual',
-          fecha: factura.createdAt?.toDate() || new Date(),
-          fechaVencimiento: factura.fechaVencimiento?.toDate() || new Date(),
+          fecha: (factura.createdAt && typeof factura.createdAt.toDate === 'function') ? factura.createdAt.toDate() : new Date(factura.createdAt || new Date()),
+          fechaVencimiento: (factura.fechaVencimiento && typeof factura.fechaVencimiento.toDate === 'function') ? factura.fechaVencimiento.toDate() : new Date(factura.fechaVencimiento || new Date()),
           monto: factura.monto || 0,
           estado: factura.estado || 'pendiente'
         });
