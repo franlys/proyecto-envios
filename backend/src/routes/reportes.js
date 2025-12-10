@@ -69,9 +69,10 @@ router.get('/rutas', async (req, res) => {
       
       facturasSnapshot.forEach(facturaDoc => {
         const factura = facturaDoc.data();
-        if (factura.estado === 'entregado') {
+        // ✅ CORRECCIÓN: Soportar ambas variantes del estado
+        if (factura.estado === 'entregado' || factura.estado === 'entregada') {
           facturasEntregadas++;
-        } else if (factura.estado === 'no_entregado') {
+        } else if (factura.estado === 'no_entregado' || factura.estado === 'no_entregada') {
           facturasNoEntregadas++;
         }
       });
@@ -354,16 +355,15 @@ router.get('/facturas', async (req, res) => {
 
       facturas.push(facturaCompleta);
 
-      switch (facturaData.estado) {
-        case 'entregado':
-          facturasEntregadas++;
-          montoEntregado += facturaData.monto || 0;
-          break;
-        case 'no_entregado':
-          facturasNoEntregadas++;
-          break;
-        default:
-          facturasPendientes++;
+      // ✅ CORRECCIÓN: Soportar ambas variantes del estado
+      const estado = facturaData.estado;
+      if (estado === 'entregado' || estado === 'entregada') {
+        facturasEntregadas++;
+        montoEntregado += facturaData.monto || 0;
+      } else if (estado === 'no_entregado' || estado === 'no_entregada') {
+        facturasNoEntregadas++;
+      } else {
+        facturasPendientes++;
       }
       
       montoTotal += facturaData.monto || 0;
@@ -471,7 +471,9 @@ router.get('/liquidacion/:empleadoId', async (req, res) => {
 
       let entregadasRuta = 0;
       facturasSnapshot.forEach(facturaDoc => {
-        if (facturaDoc.data().estado === 'entregado') {
+        // ✅ CORRECCIÓN: Soportar ambas variantes del estado
+        const estado = facturaDoc.data().estado;
+        if (estado === 'entregado' || estado === 'entregada') {
           entregadasRuta++;
         }
       });
@@ -595,16 +597,14 @@ router.get('/dashboard', async (req, res) => {
 
     facturasSnapshot.forEach(doc => {
       const factura = doc.data();
-      switch (factura.estado) {
-        case 'pendiente':
-          facturasPendientes++;
-          break;
-        case 'entregado':
-          facturasEntregadas++;
-          break;
-        case 'no_entregado':
-          facturasNoEntregadas++;
-          break;
+      // ✅ CORRECCIÓN: Soportar ambas variantes del estado
+      const estado = factura.estado;
+      if (estado === 'entregado' || estado === 'entregada') {
+        facturasEntregadas++;
+      } else if (estado === 'no_entregado' || estado === 'no_entregada') {
+        facturasNoEntregadas++;
+      } else {
+        facturasPendientes++;
       }
     });
 
