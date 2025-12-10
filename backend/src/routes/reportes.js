@@ -161,6 +161,11 @@ router.get('/gastos', async (req, res) => {
 
     let query = db.collection('gastos');
 
+    // ✅ CORRECCIÓN: Filtrar por companyId para usuarios no super_admin
+    if (userData.rol !== 'super_admin' && userData.companyId) {
+      query = query.where('companyId', '==', userData.companyId);
+    }
+
     if (rutaId) {
       query = query.where('rutaId', '==', rutaId);
     }
@@ -205,9 +210,10 @@ router.get('/gastos', async (req, res) => {
           rutaCompanyId = rutaData.companyId;
           rutasConGastos.add(gastoData.rutaId);
 
-          if (userData.rol !== 'super_admin' && rutaCompanyId !== userData.companyId) {
-            continue;
-          }
+          // ✅ REMOVIDO: Ya no necesitamos este filtro porque se aplica en la query
+          // if (userData.rol !== 'super_admin' && rutaCompanyId !== userData.companyId) {
+          //   continue;
+          // }
 
           if (rutaData.empleadoId) {
             const empleadoDoc = await db.collection('usuarios').doc(rutaData.empleadoId).get();
