@@ -32,9 +32,10 @@ export const getOverview = async (req, res) => {
     // 1. Calcular ingresos por entregas (facturas entregadas)
     // Nota: No filtramos por fecha en la query porque updatedAt puede ser Timestamp o string
     // Filtraremos en memoria después
+    // ✅ CORRECCIÓN: Buscar ambas variantes del estado
     const facturasSnapshot = await db.collection('facturas')
       .where('companyId', '==', companyId)
-      .where('estado', '==', 'entregado')
+      .where('estado', 'in', ['entregado', 'entregada'])
       .get();
 
     let ingresosTotal = 0;
@@ -243,16 +244,29 @@ export const getMetricasMensuales = async (req, res) => {
       const finMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
 
       // Calcular ingresos del mes
+      // ✅ CORRECCIÓN: Buscar ambas variantes del estado
       const facturasSnapshot = await db.collection('facturas')
         .where('companyId', '==', companyId)
-        .where('estado', '==', 'entregado')
-        .where('updatedAt', '>=', inicioMes.toISOString())
-        .where('updatedAt', '<=', finMes.toISOString())
+        .where('estado', 'in', ['entregado', 'entregada'])
         .get();
 
       let ingresos = 0;
       facturasSnapshot.forEach(doc => {
-        ingresos += doc.data().monto || 0;
+        const factura = doc.data();
+        // Filtrar por fecha en memoria
+        let facturaDate;
+        if (factura.updatedAt) {
+          if (typeof factura.updatedAt === 'string') {
+            facturaDate = new Date(factura.updatedAt);
+          } else if (factura.updatedAt.toDate) {
+            facturaDate = factura.updatedAt.toDate();
+          }
+        }
+
+        // Solo contar si está dentro del rango del mes
+        if (facturaDate && facturaDate >= inicioMes && facturaDate <= finMes) {
+          ingresos += factura.monto || 0;
+        }
       });
 
       // Calcular gastos del mes
