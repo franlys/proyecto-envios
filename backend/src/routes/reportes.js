@@ -66,12 +66,19 @@ router.get('/rutas', async (req, res) => {
 
       let facturasEntregadas = 0;
       let facturasNoEntregadas = 0;
-      
+      let totalCobros = 0; // ✅ NUEVO: Total cobrado en facturas
+
       facturasSnapshot.forEach(facturaDoc => {
         const factura = facturaDoc.data();
         // ✅ CORRECCIÓN: Soportar ambas variantes del estado
         if (factura.estado === 'entregado' || factura.estado === 'entregada') {
           facturasEntregadas++;
+
+          // ✅ NUEVO: Calcular cobros (montoPagado durante la entrega)
+          // Solo contar si fue pagado durante la ruta (no pagos previos)
+          if (factura.pago && factura.pago.montoPagado > 0) {
+            totalCobros += factura.pago.montoPagado || 0;
+          }
         } else if (factura.estado === 'no_entregado' || factura.estado === 'no_entregada') {
           facturasNoEntregadas++;
         }
@@ -87,9 +94,13 @@ router.get('/rutas', async (req, res) => {
       });
 
       const totalFacturas = facturasSnapshot.size;
-      const porcentajeEntrega = totalFacturas > 0 
-        ? Math.round((facturasEntregadas / totalFacturas) * 100) 
+      const porcentajeEntrega = totalFacturas > 0
+        ? Math.round((facturasEntregadas / totalFacturas) * 100)
         : 0;
+
+      // ✅ NUEVO: Calcular efectivo a entregar
+      const balanceMonto = (rutaData.montoAsignado || 0) - totalGastos;
+      const efectivoAEntregar = balanceMonto + totalCobros;
 
       const rutaCompleta = {
         id: rutaDoc.id,
@@ -103,7 +114,9 @@ router.get('/rutas', async (req, res) => {
         porcentajeEntrega,
         montoAsignado: rutaData.montoAsignado || 0,
         totalGastos,
-        balance: (rutaData.montoAsignado || 0) - totalGastos
+        balance: balanceMonto,
+        totalCobros, // ✅ NUEVO
+        efectivoAEntregar // ✅ NUEVO
       };
 
       rutas.push(rutaCompleta);
@@ -114,6 +127,10 @@ router.get('/rutas', async (req, res) => {
       montoTotalAsignado += rutaData.montoAsignado || 0;
       totalGastosGeneral += totalGastos;
     }
+
+    // ✅ NUEVO: Calcular totales de cobros y efectivo
+    const totalCobrosGeneral = rutas.reduce((sum, r) => sum + (r.totalCobros || 0), 0);
+    const totalEfectivoAEntregar = rutas.reduce((sum, r) => sum + (r.efectivoAEntregar || 0), 0);
 
     // Ordenar en memoria después de obtener los datos
     rutas.sort((a, b) => {
@@ -126,12 +143,14 @@ router.get('/rutas', async (req, res) => {
       total_rutas: totalRutas,
       facturas_totales: facturasTotales,
       facturas_entregadas: facturasEntregadasTotal,
-      porcentaje_entrega: facturasTotales > 0 
-        ? Math.round((facturasEntregadasTotal / facturasTotales) * 100) 
+      porcentaje_entrega: facturasTotales > 0
+        ? Math.round((facturasEntregadasTotal / facturasTotales) * 100)
         : 0,
       monto_total_asignado: montoTotalAsignado,
       total_gastos: totalGastosGeneral,
-      balance_general: montoTotalAsignado - totalGastosGeneral
+      balance_general: montoTotalAsignado - totalGastosGeneral,
+      total_cobros: totalCobrosGeneral, // ✅ NUEVO
+      efectivo_total_a_entregar: totalEfectivoAEntregar // ✅ NUEVO
     };
 
     // ✅ FORMATO ESTANDARIZADO
