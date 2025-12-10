@@ -125,7 +125,9 @@ const Reportes = () => {
           'Porcentaje Entrega': `${ruta.porcentajeEntrega}%`,
           'Monto Asignado': ruta.montoAsignado,
           'Total Gastos': ruta.totalGastos,
-          'Balance': ruta.balance
+          'Balance': ruta.balance,
+          'Cobros': ruta.totalCobros || 0,
+          'A Entregar': ruta.efectivoAEntregar || 0
         }));
         break;
 
@@ -249,7 +251,7 @@ const Reportes = () => {
 
     // Determinar si un campo debe mostrar signo de dólar (solo campos monetarios)
     const shouldShowCurrency = (key) => {
-      const currencyFields = ['monto', 'gastos', 'balance', 'asignado'];
+      const currencyFields = ['monto', 'gastos', 'balance', 'asignado', 'cobros', 'efectivo', 'entregar'];
       return currencyFields.some(field => key.toLowerCase().includes(field));
     };
 
@@ -287,6 +289,8 @@ const Reportes = () => {
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase">Asignado</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase">Gastos</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase">Balance</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase">Cobros</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase">A Entregar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -311,6 +315,12 @@ const Reportes = () => {
                   <td className="px-4 py-3 text-sm text-right font-medium">
                     <span className={ruta.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                       ${ruta.balance}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right text-blue-600 dark:text-blue-400">${ruta.totalCobros || 0}</td>
+                  <td className="px-4 py-3 text-sm text-right font-bold">
+                    <span className={ruta.efectivoAEntregar >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      ${ruta.efectivoAEntregar || 0}
                     </span>
                   </td>
                 </tr>
