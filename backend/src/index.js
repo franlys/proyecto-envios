@@ -32,6 +32,9 @@ import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión d
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
 
+// Importar middleware de validación de plan
+import { checkPlanActivo } from './middleware/checkPlanActivo.js';
+
 const app = express();
 
 // Servir archivos estáticos (uploads)
@@ -116,26 +119,30 @@ app.get('/api/health', (req, res) => {
 // =====================================================
 // RUTAS PRINCIPALES
 // =====================================================
+// Rutas públicas (sin validación de plan)
 app.use('/api/auth', authRoutes);
-app.use('/api/companies', companiesRoutes);
-app.use('/api/empleados', empleadosRoutes);
-app.use('/api/reportes', reportesRoutes);
-app.use('/api/embarques', embarquesRoutes);
-app.use('/api/rutas', rutasRoutes);
-app.use('/api/tickets', ticketsRoutes);
-app.use('/api/recolecciones', recoleccionesRoutes);
-app.use('/api/contenedores', contenedoresRoutes);
-app.use('/api/almacen-usa', almacenUSARoutes);
-app.use('/api/almacen-rd', almacenRDRoutes);
-app.use('/api/secretarias', secretariasRoutes);
-app.use('/api/cargadores', cargadoresRoutes);
-app.use('/api/repartidores', repartidoresRoutes);
-app.use('/api/facturacion', facturacionRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/sectores', sectoresRoutes); // ✅ NUEVO - Sistema de Sectores
-app.use('/api/gastos-ruta', gastosRutaRoutes); // ✅ NUEVO - Gestión de Gastos de Ruta
-app.use('/api/tracking', trackingRoutes); // ✅ NUEVO - Tracking Público
-app.use('/api/finanzas', finanzasRoutes); // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
+app.use('/api/tracking', trackingRoutes); // ✅ Tracking Público
+app.use('/api/dashboard', dashboardRoutes); // Dashboard tiene su propia lógica de permisos
+app.use('/api/finanzas', finanzasRoutes); // ✅ Finanzas tiene su propia validación
+
+// ⚠️ RUTAS OPERATIVAS - Requieren Plan Activo (mínimo Plan Operativo)
+// Estas rutas están protegidas por el middleware checkPlanActivo
+app.use('/api/companies', checkPlanActivo, companiesRoutes);
+app.use('/api/empleados', checkPlanActivo, empleadosRoutes);
+app.use('/api/reportes', checkPlanActivo, reportesRoutes);
+app.use('/api/embarques', checkPlanActivo, embarquesRoutes);
+app.use('/api/rutas', checkPlanActivo, rutasRoutes);
+app.use('/api/tickets', checkPlanActivo, ticketsRoutes);
+app.use('/api/recolecciones', checkPlanActivo, recoleccionesRoutes);
+app.use('/api/contenedores', checkPlanActivo, contenedoresRoutes);
+app.use('/api/almacen-usa', checkPlanActivo, almacenUSARoutes);
+app.use('/api/almacen-rd', checkPlanActivo, almacenRDRoutes);
+app.use('/api/secretarias', checkPlanActivo, secretariasRoutes);
+app.use('/api/cargadores', checkPlanActivo, cargadoresRoutes);
+app.use('/api/repartidores', checkPlanActivo, repartidoresRoutes);
+app.use('/api/facturacion', checkPlanActivo, facturacionRoutes);
+app.use('/api/sectores', checkPlanActivo, sectoresRoutes);
+app.use('/api/gastos-ruta', checkPlanActivo, gastosRutaRoutes);
 
 // =====================================================
 // RUTA RAÍZ
@@ -354,7 +361,7 @@ app.listen(PORT, () => {
   console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 CORS configurado para Vercel`);
-  console.log(`✅ Backend 100% Completo - v4.1.0 (CON SECTORES)`);
+  console.log(`✅ Backend 100% Completo - v4.2.0 (CON VALIDACIÓN DE PLANES)`);
   console.log('\n📋 Sistemas Activos:');
   console.log('   ✅ Sistema Base (Auth, Companies, Empleados, etc.)');
   console.log('   ✅ Sistema de Recolecciones (Fase 1)');

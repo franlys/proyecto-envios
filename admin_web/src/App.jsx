@@ -10,6 +10,7 @@ import Layout from './components/Layout';
 import Login from './components/auth/Login';
 import Dashboard from './pages/Dashboard';
 import DashboardSuperAdmin from './pages/DashboardSuperAdmin';
+import DashboardPropietario from './pages/DashboardPropietario';
 import Companies from './pages/Companies';
 import Embarques from './pages/Embarques';
 import Rutas from './pages/Rutas';
@@ -49,9 +50,9 @@ const DashboardRouter = () => {
     return <DashboardSuperAdmin />;
   }
 
-  // Propietario es redirigido directamente a Finanzas (su dashboard)
+  // Propietario ve su dashboard interactivo especial
   if (userData?.rol === 'propietario') {
-    return <Navigate to="/finanzas" replace />;
+    return <DashboardPropietario />;
   }
 
   // Admin general ve el dashboard operativo
@@ -146,11 +147,24 @@ function AppContent() {
         } />
 
         {/* ============================================ */}
-        {/* RUTAS PARA PROPIETARIO (solo dashboards) */}
+        {/* RUTAS PARA PROPIETARIO (acceso completo como admin) */}
         {/* ============================================ */}
         {rol === 'propietario' && (
           <>
-            {/* El propietario solo ve dashboards - NO operaciones */}
+            <Route path="/recolecciones" element={<Recolecciones />} />
+            <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
+            <Route path="/embarques" element={<Embarques />} />
+            <Route path="/rutas" element={<Rutas />} />
+            <Route path="/rutas/:id" element={<DetalleRuta />} />
+            <Route path="/secretarias" element={<PanelSecretarias />} />
+            <Route path="/cargadores" element={<PanelCargadores />} />
+            <Route path="/repartidores" element={<PanelRepartidores />} />
+            <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
+            <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
+            <Route path="/empleados" element={<Empleados />} />
+            <Route path="/reportes" element={<Reportes />} />
+            <Route path="/almacen-usa" element={<PanelAlmacenUSA />} />
+            <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
           </>
         )}
 

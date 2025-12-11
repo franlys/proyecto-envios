@@ -77,10 +77,24 @@ const Layout = ({ children }) => {
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
-      // 💼 PROPIETARIO - Solo métricas empresariales (sin operaciones diarias)
+      // 💼 PROPIETARIO - Dashboard interactivo + acceso completo operativo + finanzas
       propietario: [
-        { path: '/finanzas', label: 'Inicio', icon: '📊' },
-        { path: '/finanzas', label: 'Finanzas', icon: '💼' }
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/finanzas', label: 'Finanzas', icon: '💼' },
+        { path: '/recolecciones', label: 'Recolecciones', icon: '📦' },
+        { path: '/embarques', label: 'Embarques', icon: '🚢' },
+        { path: '/almacen-usa', label: 'Almacén USA', icon: '🏭' },
+        { path: '/almacen-rd', label: 'Almacén RD', icon: '🚚' },
+        { path: '/secretarias', label: 'Panel Secretarías', icon: '📋' },
+        { path: '/cargadores', label: 'Panel Cargadores', icon: '📦' },
+        { path: '/repartidores', label: 'Panel Repartidores', icon: '🚗' },
+        { path: '/rutas', label: 'Rutas', icon: '🗺️' },
+        { path: '/facturas-no-entregadas', label: 'No Entregadas', icon: '⚠️' },
+        { path: '/facturas-pendientes-pago', label: 'Facturas Pendientes', icon: '💰' },
+        { path: '/empleados', label: 'Empleados', icon: '👥' },
+        { path: '/reportes', label: 'Reportes', icon: '📈' },
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
       // 👨‍💼 ADMIN GENERAL - Operaciones completas (sin finanzas)
       admin_general: [
