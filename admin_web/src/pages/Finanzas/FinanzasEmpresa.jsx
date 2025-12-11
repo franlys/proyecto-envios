@@ -39,6 +39,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import ComparadorPlanes from './ComparadorPlanes';
 
 const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -153,6 +154,11 @@ const FinanzasEmpresa = () => {
   // Métricas mensuales para gráficas
   const [metricasMensuales, setMetricasMensuales] = useState([]);
 
+  // Planes SaaS disponibles
+  const [planesDisponibles, setPlanesDisponibles] = useState([]);
+  const [planActual, setPlanActual] = useState(null);
+  const [cambiandoPlan, setCambiandoPlan] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -182,6 +188,12 @@ const FinanzasEmpresa = () => {
           setMetricasMensuales(metricasRes.data.data);
         }
 
+        // Fetch planes disponibles para SaaS
+        const planesRes = await api.get('/finanzas/empresa/planes-disponibles');
+        if (planesRes.data.success) {
+          setPlanesDisponibles(planesRes.data.data.planes);
+        }
+
       } catch (error) {
         console.error('Error fetching company finance data:', error);
         toast.error('Error al cargar finanzas de la empresa');
@@ -192,6 +204,38 @@ const FinanzasEmpresa = () => {
 
     fetchData();
   }, [dateRange]);
+
+  // Función para cambiar de plan
+  const handleCambiarPlan = async (nuevoPlanId) => {
+    try {
+      setCambiandoPlan(true);
+      const response = await api.post('/finanzas/empresa/cambiar-plan', {
+        nuevoPlanId
+      });
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+        // Actualizar el plan actual en la suscripción
+        setSuscripcion(prev => ({
+          ...prev,
+          plan: response.data.data.planNombre
+        }));
+        setPlanActual(nuevoPlanId);
+      }
+    } catch (error) {
+      console.error('Error al cambiar plan:', error);
+      if (error.response?.data?.advertencias) {
+        toast.error(error.response.data.message);
+        error.response.data.advertencias.forEach(adv => {
+          toast.warning(adv);
+        });
+      } else {
+        toast.error(error.response?.data?.message || 'Error al cambiar plan');
+      }
+    } finally {
+      setCambiandoPlan(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -571,7 +615,14 @@ const FinanzasEmpresa = () => {
         {/* TAB 2: SUSCRIPCIÓN SAAS */}
         {activeTab === 'suscripcion' && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Suscripción al Sistema</h2>
+            <ComparadorPlanes
+              planes={planesDisponibles}
+              planActual={suscripcion.plan?.toLowerCase()}
+              onCambiarPlan={handleCambiarPlan}
+              cambiando={cambiandoPlan}
+            />
+
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mt-12">Plan Actual - Detalles</h2>
 
             {/* Tarjeta de Plan Actual */}
             <motion.div
