@@ -101,4 +101,37 @@ router.get(
     finanzasEmpresaController.getTasaDolar
 );
 
+/**
+ * GET /api/finanzas/empresa/planes-disponibles
+ * Obtiene todos los planes SaaS disponibles
+ */
+router.get(
+    '/empresa/planes-disponibles',
+    authenticate,
+    authorize('propietario', 'super_admin'),
+    finanzasEmpresaController.getPlanesDisponibles
+);
+
+/**
+ * POST /api/finanzas/empresa/cambiar-plan
+ * Cambia el plan de suscripción de la empresa
+ */
+router.post(
+    '/empresa/cambiar-plan',
+    authenticate,
+    authorize('propietario'),
+    finanzasEmpresaController.cambiarPlan
+);
+
+/**
+ * GET /api/finanzas/empresa/verificar-limites
+ * Verifica si la empresa está dentro de los límites de su plan
+ */
+router.get(
+    '/empresa/verificar-limites',
+    authenticate,
+    authorize('propietario'),
+    finanzasEmpresaController.verificarLimites
+);
+
 export default router;

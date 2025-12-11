@@ -2,6 +2,13 @@
 // Muestra finanzas operativas de su empresa con conversión de monedas
 // Repartidores (RD$) -> USD, Recolectores (USD)
 import { db } from '../config/firebase.js';
+import {
+  PLANES_SAAS,
+  obtenerPlan,
+  obtenerTodosLosPlanes,
+  verificarLimite,
+  calcularAhorroAutomatizacion
+} from '../config/planesSaaS.js';
 
 /**
  * GET /api/finanzas/empresa/overview
@@ -484,6 +491,13 @@ async function calcularUsoActual(companyId) {
       .where('active', '==', true)
       .get();
 
+    // Contar camiones (empleados con rol 'repartidor')
+    const camionesSnapshot = await db.collection('users')
+      .where('companyId', '==', companyId)
+      .where('rol', '==', 'repartidor')
+      .where('active', '==', true)
+      .get();
+
     // Calcular almacenamiento usado (mock - requiere implementación real)
     // TODO: Implementar cálculo real de almacenamiento
     const almacenamientoUsado = '3.2 GB';
@@ -491,6 +505,7 @@ async function calcularUsoActual(companyId) {
     return {
       recolecciones: recoleccionesMes,
       usuarios: usuariosSnapshot.size,
+      camiones: camionesSnapshot.size,
       almacenamiento: almacenamientoUsado
     };
 
@@ -499,6 +514,7 @@ async function calcularUsoActual(companyId) {
     return {
       recolecciones: 0,
       usuarios: 0,
+      camiones: 0,
       almacenamiento: '0 GB'
     };
   }
@@ -584,3 +600,246 @@ async function obtenerTasaDolar() {
     return 58.50;
   }
 }
+
+// ============================================
+// ENDPOINTS DE SUSCRIPCIONES SAAS
+// ============================================
+
+/**
+ * GET /api/finanzas/empresa/planes-disponibles
+ * Obtiene todos los planes SaaS disponibles
+ */
+export const getPlanesDisponibles = async (req, res) => {
+  try {
+    const planes = obtenerTodosLosPlanes();
+
+    // Calcular ahorro estimado del plan automatizado
+    const ahorroAutomatizacion = calcularAhorroAutomatizacion();
+
+    res.json({
+      success: true,
+      data: {
+        planes,
+        ahorroAutomatizacion
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [Finanzas Empresa] Error al obtener planes disponibles:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener planes disponibles',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * POST /api/finanzas/empresa/cambiar-plan
+ * Cambia el plan de suscripción de la empresa
+ */
+export const cambiarPlan = async (req, res) => {
+  try {
+    const companyId = req.userData?.companyId;
+    const { nuevoPlanId } = req.body;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'CompanyId requerido'
+      });
+    }
+
+    if (!nuevoPlanId) {
+      return res.status(400).json({
+        success: false,
+        message: 'nuevoPlanId requerido'
+      });
+    }
+
+    // Verificar que el plan existe
+    const nuevoPlan = obtenerPlan(nuevoPlanId);
+    if (!nuevoPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Plan no encontrado'
+      });
+    }
+
+    // Obtener datos actuales de la empresa
+    const companyDoc = await db.collection('companies').doc(companyId).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Empresa no encontrada'
+      });
+    }
+
+    const companyData = companyDoc.data();
+    const planActual = companyData.plan || 'operativo';
+
+    // Verificar límites actuales vs nuevo plan
+    const uso = await calcularUsoActual(companyId);
+    const advertencias = [];
+
+    // Verificar límite de camiones
+    if (nuevoPlan.limites.camiones !== -1 && uso.camiones > nuevoPlan.limites.camiones) {
+      advertencias.push(`Actualmente tienes ${uso.camiones} camiones, pero el plan ${nuevoPlan.nombre} solo permite ${nuevoPlan.limites.camiones}`);
+    }
+
+    // Verificar límite de usuarios
+    if (nuevoPlan.limites.usuarios !== -1 && uso.usuarios > nuevoPlan.limites.usuarios) {
+      advertencias.push(`Actualmente tienes ${uso.usuarios} usuarios, pero el plan ${nuevoPlan.nombre} solo permite ${nuevoPlan.limites.usuarios}`);
+    }
+
+    // Si hay advertencias, retornarlas
+    if (advertencias.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede cambiar al plan seleccionado debido a los siguientes problemas',
+        advertencias
+      });
+    }
+
+    // Actualizar el plan en la base de datos
+    await db.collection('companies').doc(companyId).update({
+      plan: nuevoPlanId,
+      planAnterior: planActual,
+      planActualizadoAt: new Date(),
+      planActualizadoPor: req.userData.uid
+    });
+
+    // Crear registro de cambio de plan (para historial)
+    await db.collection('cambios_plan').add({
+      companyId,
+      planAnterior: planActual,
+      planNuevo: nuevoPlanId,
+      fecha: new Date(),
+      usuarioId: req.userData.uid,
+      usuarioEmail: req.userData.email
+    });
+
+    res.json({
+      success: true,
+      message: `Plan actualizado exitosamente a ${nuevoPlan.nombre}`,
+      data: {
+        planAnterior: planActual,
+        planNuevo: nuevoPlanId,
+        planNombre: nuevoPlan.nombre
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [Finanzas Empresa] Error al cambiar plan:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar plan de suscripción',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/finanzas/empresa/verificar-limites
+ * Verifica si la empresa está dentro de los límites de su plan actual
+ */
+export const verificarLimites = async (req, res) => {
+  try {
+    const companyId = req.userData?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'CompanyId requerido'
+      });
+    }
+
+    // Obtener datos de la empresa
+    const companyDoc = await db.collection('companies').doc(companyId).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Empresa no encontrada'
+      });
+    }
+
+    const companyData = companyDoc.data();
+    const planId = companyData.plan || 'operativo';
+    const plan = obtenerPlan(planId);
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Plan no encontrado'
+      });
+    }
+
+    // Calcular uso actual
+    const uso = await calcularUsoActual(companyId);
+
+    // Verificar cada límite
+    const verificaciones = {
+      camiones: {
+        limite: plan.limites.camiones,
+        uso: uso.camiones,
+        disponible: plan.limites.camiones === -1 ? 'Ilimitado' : plan.limites.camiones - uso.camiones,
+        excedido: plan.limites.camiones !== -1 && uso.camiones > plan.limites.camiones,
+        porcentaje: plan.limites.camiones === -1 ? 0 : Math.round((uso.camiones / plan.limites.camiones) * 100)
+      },
+      usuarios: {
+        limite: plan.limites.usuarios,
+        uso: uso.usuarios,
+        disponible: plan.limites.usuarios === -1 ? 'Ilimitado' : plan.limites.usuarios - uso.usuarios,
+        excedido: plan.limites.usuarios !== -1 && uso.usuarios > plan.limites.usuarios,
+        porcentaje: plan.limites.usuarios === -1 ? 0 : Math.round((uso.usuarios / plan.limites.usuarios) * 100)
+      },
+      recolecciones: {
+        limite: plan.limites.recolecciones,
+        uso: uso.recolecciones,
+        disponible: plan.limites.recolecciones === -1 ? 'Ilimitado' : plan.limites.recolecciones - uso.recolecciones,
+        excedido: plan.limites.recolecciones !== -1 && uso.recolecciones > plan.limites.recolecciones,
+        porcentaje: plan.limites.recolecciones === -1 ? 0 : Math.round((uso.recolecciones / plan.limites.recolecciones) * 100)
+      }
+    };
+
+    // Generar alertas si algún límite está cerca o excedido
+    const alertas = [];
+    Object.entries(verificaciones).forEach(([tipo, datos]) => {
+      if (datos.excedido) {
+        alertas.push({
+          tipo: 'error',
+          recurso: tipo,
+          mensaje: `Has excedido el límite de ${tipo}. Límite: ${datos.limite}, Uso: ${datos.uso}`
+        });
+      } else if (datos.porcentaje >= 80 && datos.porcentaje < 100) {
+        alertas.push({
+          tipo: 'warning',
+          recurso: tipo,
+          mensaje: `Estás cerca del límite de ${tipo}. Uso: ${datos.porcentaje}%`
+        });
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        plan: {
+          id: planId,
+          nombre: plan.nombre
+        },
+        verificaciones,
+        alertas,
+        todoOK: alertas.filter(a => a.tipo === 'error').length === 0
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [Finanzas Empresa] Error al verificar límites:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al verificar límites del plan',
+      error: error.message
+    });
+  }
+};
+
