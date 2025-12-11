@@ -8,12 +8,12 @@ import { obtenerPlan } from '../config/planesSaaS.js';
  */
 export const checkPlanActivo = async (req, res, next) => {
   try {
-    const companyId = req.userData?.companyId;
-
-    // Super Admin no tiene restricciones de plan
+    // ✅ Super Admin SIEMPRE tiene acceso sin restricciones
     if (req.userData?.rol === 'super_admin') {
       return next();
     }
+
+    const companyId = req.userData?.companyId;
 
     if (!companyId) {
       return res.status(400).json({
@@ -46,16 +46,21 @@ export const checkPlanActivo = async (req, res, next) => {
     }
 
     // Verificar que tenga un plan asignado
-    const planId = companyData.plan;
+    let planId = companyData.plan;
 
+    // ✅ MIGRACIÓN AUTOMÁTICA: Si no tiene plan, asignar Plan Operativo por defecto
     if (!planId) {
-      return res.status(403).json({
-        success: false,
-        message: 'La empresa no tiene un plan de suscripción asignado. Se requiere al menos el Plan Operativo para operar.',
-        code: 'NO_PLAN',
-        requiredAction: 'ASSIGN_PLAN',
-        minPlan: 'operativo'
+      console.log(`⚠️ [Plan Check] Empresa ${companyData.name} sin plan asignado. Asignando Plan Operativo...`);
+
+      // Asignar Plan Operativo automáticamente
+      await db.collection('companies').doc(companyId).update({
+        plan: 'operativo',
+        planAsignadoAt: new Date(),
+        planAsignadoPor: 'sistema_automatico'
       });
+
+      planId = 'operativo';
+      console.log(`✅ [Plan Check] Plan Operativo asignado automáticamente a ${companyData.name}`);
     }
 
     // Verificar que el plan sea válido
