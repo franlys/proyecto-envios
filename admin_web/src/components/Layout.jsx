@@ -166,10 +166,11 @@ const Layout = ({ children }) => {
   const getRolName = () => {
     const roles = {
       super_admin: 'Super Admin',
+      propietario: 'Propietario',
       admin_general: 'Administrador',
       recolector: 'Recolector',
       secretaria: 'Secretaría',
-      cargador: 'Cargador', // ✅ NUEVO
+      cargador: 'Cargador',
       almacen: 'Almacén RD',
       almacen_rd: 'Almacén RD',
       almacen_eeuu: 'Almacén EE.UU.',

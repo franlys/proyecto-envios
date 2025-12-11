@@ -29,6 +29,9 @@ import {
   Line,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -317,7 +320,7 @@ const FinanzasEmpresa = () => {
               />
             </div>
 
-            {/* Desglose de Gastos */}
+            {/* Desglose de Gastos con Gráfica de Pastel */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -329,7 +332,48 @@ const FinanzasEmpresa = () => {
                 Todos los valores convertidos a USD. Repartidores cobran en RD$, Recolectores en USD.
               </p>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Gráfica de Pastel */}
+                <div className="flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Repartidores', value: data.gastos.desglose.repartidoresUSD, color: '#6366f1' },
+                          { name: 'Recolectores', value: data.gastos.desglose.recolectoresUSD, color: '#10b981' },
+                          { name: 'Otros', value: data.gastos.desglose.otrosUSD, color: '#f59e0b' }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {[
+                          { color: '#6366f1' },
+                          { color: '#10b981' },
+                          { color: '#f59e0b' }
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Estadísticas Detalladas */}
+                <div className="space-y-4">
                 {/* Repartidores */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
@@ -414,6 +458,7 @@ const FinanzasEmpresa = () => {
                       {Math.round((data.gastos.desglose.otrosUSD / (data.gastos.total || 1)) * 100)}%
                     </span>
                   </div>
+                </div>
                 </div>
               </div>
             </motion.div>

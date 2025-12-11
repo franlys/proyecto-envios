@@ -412,12 +412,22 @@ export const getSuscripcion = async (req, res) => {
     // Obtener uso actual
     const uso = await calcularUsoActual(companyId);
 
+    // ✅ Convertir fechaInicio de manera segura
+    let fechaInicio = new Date();
+    if (companyData.createdAt) {
+      if (typeof companyData.createdAt.toDate === 'function') {
+        fechaInicio = companyData.createdAt.toDate();
+      } else if (typeof companyData.createdAt === 'string' || typeof companyData.createdAt === 'number') {
+        fechaInicio = new Date(companyData.createdAt);
+      }
+    }
+
     res.json({
       success: true,
       data: {
         plan: companyData.plan || 'Basic',
         precio: precio,
-        fechaInicio: (companyData.createdAt && typeof companyData.createdAt.toDate === 'function') ? companyData.createdAt.toDate() : new Date(companyData.createdAt || new Date()),
+        fechaInicio: fechaInicio,
         proximoPago: proximoPago,
         estado: companyData.active ? 'activo' : 'inactivo',
         limites: limites,
