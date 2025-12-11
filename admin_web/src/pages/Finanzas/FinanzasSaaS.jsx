@@ -9,11 +9,13 @@ import {
   DollarSign,
   ArrowUpRight,
   Download,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { toast } from 'sonner';
+import AdminPlanesSaaS from './AdminPlanesSaaS';
 
 const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -84,6 +86,7 @@ const KPICard = ({ title, value, change, icon: Icon, prefix = '', suffix = '', d
 };
 
 const FinanzasSaaS = () => {
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' o 'admin'
   const [dateRange, setDateRange] = useState('30');
   const [loading, setLoading] = useState(true);
 
@@ -149,30 +152,58 @@ const FinanzasSaaS = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Selector de rango */}
+              {/* Tabs */}
               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-                {[
-                  { value: '7', label: '7 días' },
-                  { value: '30', label: '30 días' },
-                  { value: '90', label: '90 días' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setDateRange(option.value)}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${dateRange === option.value
-                      ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'overview'
+                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${activeTab === 'admin'
+                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Administración
+                </button>
               </div>
 
-              <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-                <Download className="w-4 h-4" />
-                Exportar Reporte
-              </button>
+              {activeTab === 'overview' && (
+                <>
+                  {/* Selector de rango */}
+                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+                    {[
+                      { value: '7', label: '7 días' },
+                      { value: '30', label: '30 días' },
+                      { value: '90', label: '90 días' }
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setDateRange(option.value)}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${dateRange === option.value
+                          ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                    <Download className="w-4 h-4" />
+                    Exportar Reporte
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -180,6 +211,10 @@ const FinanzasSaaS = () => {
 
       {/* Main Content */}
       <div className="p-8 space-y-6">
+        {activeTab === 'admin' && <AdminPlanesSaaS />}
+
+        {activeTab === 'overview' && (
+          <>
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPICard
@@ -327,6 +362,8 @@ const FinanzasSaaS = () => {
             </table>
           </div>
         </motion.div>
+          </>
+        )}
       </div>
     </div>
   );

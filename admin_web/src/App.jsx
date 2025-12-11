@@ -49,8 +49,12 @@ const DashboardRouter = () => {
     return <DashboardSuperAdmin />;
   }
 
-  // Propietario ve el dashboard operativo de su empresa (NO el financiero)
-  // El dashboard financiero está en /finanzas
+  // Propietario es redirigido directamente a Finanzas (su dashboard)
+  if (userData?.rol === 'propietario') {
+    return <Navigate to="/finanzas" replace />;
+  }
+
+  // Admin general ve el dashboard operativo
   return <Dashboard />;
 };
 

@@ -79,7 +79,7 @@ const Layout = ({ children }) => {
       ],
       // 💼 PROPIETARIO - Solo métricas empresariales (sin operaciones diarias)
       propietario: [
-        { path: '/dashboard', label: 'Dashboard Empresarial', icon: '📊' },
+        { path: '/finanzas', label: 'Inicio', icon: '📊' },
         { path: '/finanzas', label: 'Finanzas', icon: '💼' }
       ],
       // 👨‍💼 ADMIN GENERAL - Operaciones completas (sin finanzas)

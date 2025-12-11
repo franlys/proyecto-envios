@@ -42,6 +42,61 @@ router.get(
     finanzasSaasController.getMetricasMensuales
 );
 
+/**
+ * GET /api/finanzas/saas/planes
+ * Obtiene todos los planes SaaS configurados
+ */
+router.get(
+    '/saas/planes',
+    authenticate,
+    authorize('super_admin'),
+    finanzasSaasController.getPlanes
+);
+
+/**
+ * PUT /api/finanzas/saas/planes/:planId
+ * Actualiza precio o características de un plan SaaS
+ */
+router.put(
+    '/saas/planes/:planId',
+    authenticate,
+    authorize('super_admin'),
+    finanzasSaasController.actualizarPlan
+);
+
+/**
+ * POST /api/finanzas/saas/generar-factura/:companyId
+ * Genera factura de suscripción para una empresa específica
+ */
+router.post(
+    '/saas/generar-factura/:companyId',
+    authenticate,
+    authorize('super_admin'),
+    finanzasSaasController.generarFacturaSuscripcion
+);
+
+/**
+ * POST /api/finanzas/saas/generar-facturas-masivas
+ * Genera facturas de suscripción para todas las empresas activas
+ */
+router.post(
+    '/saas/generar-facturas-masivas',
+    authenticate,
+    authorize('super_admin'),
+    finanzasSaasController.generarFacturasMasivas
+);
+
+/**
+ * GET /api/finanzas/saas/facturas
+ * Obtiene facturas SaaS generadas
+ */
+router.get(
+    '/saas/facturas',
+    authenticate,
+    authorize('super_admin'),
+    finanzasSaasController.getFacturasSaas
+);
+
 // ============================================
 // RUTAS FINANZAS EMPRESARIALES - Propietarios
 // ============================================
