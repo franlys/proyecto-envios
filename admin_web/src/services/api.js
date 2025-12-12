@@ -79,54 +79,72 @@ api.interceptors.request.use(
 // ========================================
 api.interceptors.response.use(
   (response) => {
+    // ✅ VALIDACIÓN: Verificar que la respuesta tenga el formato esperado
+    if (response.data && typeof response.data === 'object') {
+      // Si el backend devuelve { success: false }, convertir a error
+      if (response.data.success === false) {
+        const error = new Error(response.data.error || response.data.message || 'Error desconocido');
+        error.response = response;
+        error.isBackendError = true;
+        return Promise.reject(error);
+      }
+    }
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
 
+    // ✅ MANEJO DE 401: Renovar token automáticamente
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const user = auth.currentUser;
-        
+
         if (user) {
           console.log('🔄 Error 401 detectado, renovando token...');
-          
+
           const newToken = await user.getIdToken(true);
           localStorage.setItem('token', newToken);
-          
+
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          
+
           console.log('✅ Token renovado, reintentando petición original...');
-          
+
           return api(originalRequest);
         } else {
           console.log('❌ No hay usuario autenticado, redirigiendo al login...');
           localStorage.removeItem('token');
-          
+
           if (!window.location.pathname.includes('/login')) {
             window.location.href = '/login';
           }
-          
+
+          // Enriquecer error con mensaje amigable
+          error.userMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.';
           return Promise.reject(error);
         }
       } catch (refreshError) {
         console.error('❌ Error renovando token:', refreshError);
-        
+
         localStorage.removeItem('token');
-        
+
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
-        
+
+        refreshError.userMessage = 'Error renovando sesión. Por favor, inicia sesión nuevamente.';
         return Promise.reject(refreshError);
       }
     }
 
+    // ✅ ENRIQUECER ERROR CON INFORMACIÓN ÚTIL
+    let userMessage = 'Ha ocurrido un error inesperado';
+    let errorDetails = null;
+
     if (error.response) {
       const { status, data } = error.response;
-      
+
       console.error('❌ Error del servidor:', {
         status,
         url: error.config?.url,
@@ -134,29 +152,65 @@ api.interceptors.response.use(
         data
       });
 
-      switch (status) {
-        case 400:
-          console.error('❌ Bad Request - Datos inválidos o incompletos');
-          break;
-        case 403:
-          console.error('❌ Acceso denegado - Permisos insuficientes');
-          break;
-        case 404:
-          console.error('❌ Recurso no encontrado');
-          break;
-        case 500:
-          console.error('❌ Error interno del servidor');
-          break;
-        case 503:
-          console.error('❌ Servicio no disponible temporalmente');
-          break;
+      // ✅ EXTRAER MENSAJE DEL BACKEND (formato estandarizado)
+      if (data && typeof data === 'object') {
+        if (data.error) {
+          userMessage = data.error;
+          errorDetails = data;
+        } else if (data.message) {
+          userMessage = data.message;
+          errorDetails = data;
+        } else if (typeof data === 'string') {
+          userMessage = data;
+        }
+      }
+
+      // ✅ MENSAJES POR CÓDIGO DE ESTADO (fallback)
+      if (!data || (!data.error && !data.message)) {
+        switch (status) {
+          case 400:
+            userMessage = 'Datos inválidos o incompletos. Por favor, verifica la información.';
+            console.error('❌ Bad Request - Datos inválidos o incompletos');
+            break;
+          case 403:
+            userMessage = 'No tienes permisos para realizar esta acción.';
+            console.error('❌ Acceso denegado - Permisos insuficientes');
+            break;
+          case 404:
+            userMessage = 'El recurso solicitado no existe.';
+            console.error('❌ Recurso no encontrado');
+            break;
+          case 500:
+            userMessage = 'Error interno del servidor. Por favor, intenta nuevamente.';
+            console.error('❌ Error interno del servidor');
+            break;
+          case 503:
+            userMessage = 'El servicio no está disponible temporalmente. Por favor, intenta más tarde.';
+            console.error('❌ Servicio no disponible temporalmente');
+            break;
+          default:
+            userMessage = `Error del servidor (${status}). Por favor, intenta nuevamente.`;
+        }
       }
     } else if (error.request) {
+      // ✅ ERROR DE RED (sin respuesta del servidor)
       console.error('❌ Error de red - Sin respuesta del servidor:', error.message);
-      error.message = 'Error de conexión. Verifica tu conexión a internet.';
+      userMessage = 'Error de conexión. Verifica tu conexión a internet y que el servidor esté disponible.';
     } else {
+      // ✅ ERROR DE CONFIGURACIÓN
       console.error('❌ Error configurando petición:', error.message);
+      userMessage = 'Error configurando la petición. Por favor, contacta soporte técnico.';
     }
+
+    // ✅ ENRIQUECER EL OBJETO ERROR
+    error.userMessage = userMessage;
+    error.errorDetails = errorDetails;
+
+    // ✅ SOBRESCRIBIR error.message PARA QUE SEA MÁS ÚTIL EN CATCH BLOCKS
+    if (!error.originalMessage) {
+      error.originalMessage = error.message; // Preservar mensaje original
+    }
+    error.message = userMessage;
 
     return Promise.reject(error);
   }

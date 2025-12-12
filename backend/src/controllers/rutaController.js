@@ -13,21 +13,21 @@ const getUserDataSafe = async (uid) => {
 // ============================================================
 export const getAllRutas = async (req, res) => {
   try {
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = req.userData || await getUserDataSafe(req.userData?.uid);
     if (!userData || !userData.companyId) {
-      console.warn(`Usuario ${req.user.uid} sin compañía o no existe en BD.`);
+      console.warn(`Usuario ${req.userData?.uid} sin compañía o no existe en BD.`);
       return res.json({ success: true, data: [] });
     }
 
     let query = db.collection('rutas');
 
-    if (userData.rol !== 'super_admin') {
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && userData.rol !== 'admin_general') {
       query = query.where('companyId', '==', userData.companyId);
     }
 
     // Si es repartidor, solo mostrar sus rutas asignadas
     if (userData.rol === 'repartidor') {
-      query = query.where('repartidorId', '==', req.user.uid);
+      query = query.where('repartidorId', '==', req.userData.uid);
     }
 
     // Intentamos consulta ordenada
@@ -54,17 +54,41 @@ export const getAllRutas = async (req, res) => {
 const procesarRutasSnapshot = (snapshot) => {
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    const totalFacturas = data.totalFacturas || (data.facturas ? data.facturas.length : 0);
-    const facturasEntregadas = data.facturasEntregadas || 0;
+
+    // Validación defensiva de data
+    if (!data || typeof data !== 'object') {
+      return {
+        id: doc.id,
+        totalFacturas: 0,
+        facturasEntregadas: 0,
+        facturasNoEntregadas: 0,
+        totalGastos: 0,
+        empleadoNombre: 'Sin asignar',
+        montoAsignado: 0
+      };
+    }
+
+    // Calcular totalFacturas de forma defensiva
+    let totalFacturas = 0;
+    if (data.totalFacturas && !isNaN(data.totalFacturas)) {
+      totalFacturas = parseInt(data.totalFacturas);
+    } else if (data.facturas && Array.isArray(data.facturas)) {
+      totalFacturas = data.facturas.length;
+    }
+
+    const facturasEntregadas = parseInt(data.facturasEntregadas) || 0;
+    const totalGastos = parseFloat(data.totalGastos) || 0;
+    const montoAsignado = parseFloat(data.montoAsignado) || 0;
+
     return {
       id: doc.id,
       ...data,
       totalFacturas,
       facturasEntregadas,
       facturasNoEntregadas: totalFacturas - facturasEntregadas,
-      totalGastos: data.totalGastos || 0,
+      totalGastos,
       empleadoNombre: data.repartidorNombre || data.empleadoNombre || 'Sin asignar',
-      montoAsignado: data.montoAsignado || 0
+      montoAsignado
     };
   });
 };
@@ -83,7 +107,7 @@ export const createRutaAvanzada = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Faltan datos (repartidor, cargadores o facturas)' });
     }
 
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.status(403).json({ error: 'Usuario sin compañía asignada' });
 
     // Obtener facturas
@@ -96,17 +120,31 @@ export const createRutaAvanzada = async (req, res) => {
 
     facturasSnapshot.forEach(doc => {
       const f = doc.data();
-      const items = f.items || [];
+
+      // Validación defensiva de datos de factura
+      if (!f || typeof f !== 'object') {
+        console.warn(`⚠️ Factura ${doc.id} tiene datos inválidos, omitiendo...`);
+        return;
+      }
+
+      const items = Array.isArray(f.items) ? f.items : [];
       totalItems += items.length;
+
+      // Extraer datos del destinatario de forma defensiva
+      const destinatario = f.destinatario || {};
+      const clienteNombre = f.cliente || destinatario.nombre || 'Cliente';
+      const clienteDireccion = f.direccion || destinatario.direccion || '';
+      const clienteZona = f.zona || destinatario.zona || '';
+      const clienteSector = f.sector || destinatario.sector || '';
 
       facturasParaRuta.push({
         id: doc.id,
         facturaId: doc.id,
         codigoTracking: f.codigoTracking || f.numeroFactura || 'S/N',
-        cliente: f.cliente || f.destinatario?.nombre || 'Cliente',
-        direccion: f.direccion || f.destinatario?.direccion || '',
-        zona: f.zona || '',
-        sector: f.sector || '',
+        cliente: clienteNombre,
+        direccion: clienteDireccion,
+        zona: clienteZona,
+        sector: clienteSector,
         items: items,
         itemsCargados: 0,
         itemsTotal: items.length,
@@ -122,11 +160,10 @@ export const createRutaAvanzada = async (req, res) => {
     const nuevaRuta = {
       nombre: nombre || `Ruta ${new Date().toLocaleDateString()}`,
       companyId: userData.companyId,
-      creadoPor: req.user.uid,
+      creadoPor: req.userData.uid,
       repartidorId,
       repartidorNombre: repNombre,
-      empleadoId: repartidorId,
-      empleadoNombre: repNombre,
+      // ✅ ESTANDARIZACIÓN: Solo usar repartidorId (eliminado empleadoId duplicado)
       cargadoresIds,
       cargadorId: cargadoresIds[0],
       facturas: facturasParaRuta,
@@ -218,17 +255,44 @@ export const getRutaById = async (req, res) => {
     if (!doc.exists) return res.status(404).json({ error: 'Ruta no encontrada' });
 
     const rutaData = doc.data();
-    const gastosSnap = await db.collection('gastos').where('rutaId', '==', id).get();
 
+    // Validación defensiva de rutaData
+    if (!rutaData || typeof rutaData !== 'object') {
+      return res.status(500).json({
+        success: false,
+        error: 'Datos de ruta corruptos o inválidos'
+      });
+    }
+
+    // ✅ GASTOS: Leer desde el array 'gastos' dentro del documento de ruta
+    const gastosArray = Array.isArray(rutaData.gastos) ? rutaData.gastos : [];
     let totalGastos = 0;
     const gastos = [];
-    gastosSnap.forEach(g => {
-      const d = g.data();
-      totalGastos += (d.monto || 0);
-      gastos.push({ id: g.id, ...d });
+
+    gastosArray.forEach(g => {
+      // Validación defensiva de cada gasto
+      if (!g || typeof g !== 'object') return;
+
+      const monto = parseFloat(g.monto);
+      if (!isNaN(monto) && monto > 0) {
+        totalGastos += monto;
+      }
+      gastos.push(g);
     });
 
-    res.json({ success: true, data: { id: doc.id, ...rutaData, gastos, totalGastos, balance: (rutaData.montoAsignado || 0) - totalGastos } });
+    const montoAsignado = parseFloat(rutaData.montoAsignado) || 0;
+    const balance = montoAsignado - totalGastos;
+
+    res.json({
+      success: true,
+      data: {
+        id: doc.id,
+        ...rutaData,
+        gastos,
+        totalGastos,
+        balance
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -254,7 +318,16 @@ export const finalizarRuta = async (req, res) => {
     }
 
     const rutaData = rutaDoc.data();
-    const facturasEnRuta = rutaData.facturas || [];
+
+    // Validación defensiva de rutaData
+    if (!rutaData || typeof rutaData !== 'object') {
+      return res.status(500).json({
+        success: false,
+        error: 'Datos de ruta corruptos o inválidos'
+      });
+    }
+
+    const facturasEnRuta = Array.isArray(rutaData.facturas) ? rutaData.facturas : [];
 
     const batch = db.batch();
     let facturasNoEntregadasCount = 0;
@@ -262,11 +335,24 @@ export const finalizarRuta = async (req, res) => {
 
     // 1. Procesar todas las facturas de la ruta
     for (const facturaRuta of facturasEnRuta) {
+      // Validación defensiva de facturaRuta
+      if (!facturaRuta || typeof facturaRuta !== 'object') {
+        console.warn('⚠️ Factura en ruta tiene datos inválidos, omitiendo...');
+        continue;
+      }
+
       // Se asume que si el estado NO es 'entregada' (sino 'asignado', 'no_encontrado', etc.),
       // debe ser reasignada.
       if (facturaRuta.estado !== 'entregada') {
         facturasNoEntregadasCount++;
         const facturaId = facturaRuta.facturaId || facturaRuta.id; // El ID de la recolección
+
+        // Validar que facturaId es válido
+        if (!facturaId || typeof facturaId !== 'string' || facturaId.trim() === '') {
+          console.warn('⚠️ facturaId inválido en ruta, omitiendo...');
+          continue;
+        }
+
         const recoleccionRef = db.collection('recolecciones').doc(facturaId);
 
         // Crear reporte de no entrega
@@ -329,7 +415,7 @@ export const finalizarRuta = async (req, res) => {
 
 export const getContenedoresDisponibles = async (req, res) => {
   try {
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
     console.log('📦 Buscando contenedores disponibles para crear rutas...');
@@ -391,7 +477,7 @@ export const getContenedoresDisponibles = async (req, res) => {
 export const getFacturasDisponibles = async (req, res) => {
   try {
     const { contenedorId } = req.query;
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
     console.log('📦 Buscando facturas disponibles para rutas...');
@@ -458,7 +544,7 @@ export const getFacturasDisponibles = async (req, res) => {
 
 export const getRepartidoresDisponibles = async (req, res) => {
   try {
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
     const snap = await db.collection('usuarios')
@@ -471,7 +557,7 @@ export const getRepartidoresDisponibles = async (req, res) => {
 
 export const getCargadoresDisponibles = async (req, res) => {
   try {
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
     const snap = await db.collection('usuarios')

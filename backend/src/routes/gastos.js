@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(verifyToken);
 
 // POST - Crear nuevo gasto
-router.post('/', checkRole('empleado'), async (req, res) => {
+router.post('/', checkRole('empleado', 'propietario'), async (req, res) => {
   try {
     const { rutaId, tipo, descripcion, monto } = req.body;
 
@@ -29,19 +29,20 @@ router.post('/', checkRole('empleado'), async (req, res) => {
     const rutaData = rutaDoc.data();
 
     if (rutaData.estado === 'completada') {
-      return res.status(400).json({ 
-        error: 'No se pueden agregar gastos a una ruta completada' 
+      return res.status(400).json({
+        error: 'No se pueden agregar gastos a una ruta completada'
       });
     }
 
+    // ✅ ESTANDARIZACIÓN: Usar repartidorId en lugar de empleadoId
     const nuevoGasto = {
       rutaId,
-      empleadoId: rutaData.empleadoId,
+      repartidorId: rutaData.repartidorId,
       tipo,
       descripcion: descripcion || '',
       monto: parseFloat(monto),
       fecha: new Date(),
-      createdBy: req.user.uid,
+      createdBy: req.userData.uid,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -110,18 +111,22 @@ router.get('/ruta/:rutaId', async (req, res) => {
   }
 });
 
-// GET - Obtener gastos por empleado
+// GET - Obtener gastos por repartidor
+// ✅ ESTANDARIZACIÓN: Usar repartidorId internamente
 router.get('/empleado/:empleadoId', async (req, res) => {
   try {
-    const { empleadoId } = req.params;
+    const { empleadoId } = req.params; // Mantener nombre del parámetro para compatibilidad
+    const repartidorId = empleadoId; // Usar repartidorId internamente
+
     const { fechaDesde, fechaHasta } = req.query;
 
-    const empleadoDoc = await db.collection('empleados').doc(empleadoId).get();
-    if (!empleadoDoc.exists) {
-      return res.status(404).json({ error: 'Empleado no encontrado' });
+    const repartidorDoc = await db.collection('usuarios').doc(repartidorId).get();
+    if (!repartidorDoc.exists) {
+      return res.status(404).json({ error: 'Repartidor no encontrado' });
     }
 
-    let query = db.collection('gastos').where('empleadoId', '==', empleadoId);
+    // ✅ ESTANDARIZACIÓN: Buscar por repartidorId
+    let query = db.collection('gastos').where('repartidorId', '==', repartidorId);
 
     if (fechaDesde) {
       query = query.where('fecha', '>=', new Date(fechaDesde));
@@ -140,7 +145,7 @@ router.get('/empleado/:empleadoId', async (req, res) => {
 
     for (const doc of gastosSnapshot.docs) {
       const gastoData = doc.data();
-      
+
       let rutaNombre = 'Sin ruta';
       if (gastoData.rutaId) {
         const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
@@ -160,14 +165,14 @@ router.get('/empleado/:empleadoId', async (req, res) => {
     // ✅ CORRECCIÓN: success + data
     res.json({
       success: true,
-      empleado: { id: empleadoId, nombre: empleadoDoc.data().nombre },
+      empleado: { id: repartidorId, nombre: repartidorDoc.data().nombre },
       data: gastos,
       resumen: {
         totalGastos,
         cantidadGastos: gastos.length,
         gastosPorTipo,
-        promedioGasto: gastos.length > 0 
-          ? Math.round(totalGastos / gastos.length * 100) / 100 
+        promedioGasto: gastos.length > 0
+          ? Math.round(totalGastos / gastos.length * 100) / 100
           : 0
       }
     });
@@ -179,7 +184,7 @@ router.get('/empleado/:empleadoId', async (req, res) => {
 });
 
 // PUT - Actualizar gasto
-router.put('/:id', checkRole('admin_general', 'empleado'), async (req, res) => {
+router.put('/:id', checkRole('admin_general', 'propietario', 'empleado'), async (req, res) => {
   try {
     const { id } = req.params;
     const { tipo, descripcion, monto } = req.body;
@@ -194,15 +199,15 @@ router.put('/:id', checkRole('admin_general', 'empleado'), async (req, res) => {
     if (gastoData.rutaId) {
       const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
       if (rutaDoc.exists && rutaDoc.data().estado === 'completada') {
-        return res.status(400).json({ 
-          error: 'No se pueden modificar gastos de rutas completadas' 
+        return res.status(400).json({
+          error: 'No se pueden modificar gastos de rutas completadas'
         });
       }
     }
 
     const actualizacion = {
       updatedAt: new Date(),
-      updatedBy: req.user.uid
+      updatedBy: req.userData.uid
     };
 
     if (tipo) actualizacion.tipo = tipo;
@@ -230,7 +235,7 @@ router.put('/:id', checkRole('admin_general', 'empleado'), async (req, res) => {
 });
 
 // DELETE - Eliminar gasto
-router.delete('/:id', checkRole('admin_general'), async (req, res) => {
+router.delete('/:id', checkRole('super_admin', 'propietario', 'admin_general'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -244,8 +249,8 @@ router.delete('/:id', checkRole('admin_general'), async (req, res) => {
     if (gastoData.rutaId) {
       const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
       if (rutaDoc.exists && rutaDoc.data().estado === 'completada') {
-        return res.status(400).json({ 
-          error: 'No se pueden eliminar gastos de rutas completadas' 
+        return res.status(400).json({
+          error: 'No se pueden eliminar gastos de rutas completadas'
         });
       }
     }

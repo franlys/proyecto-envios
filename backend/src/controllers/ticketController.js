@@ -21,7 +21,7 @@ export const ticketController = {
       }
 
       // Obtener datos del usuario
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
 
       if (!userDoc.exists) {
         return res.status(404).json({
@@ -39,7 +39,7 @@ export const ticketController = {
         prioridad: prioridad || 'media',
         categoria: categoria || 'general',
         estado: 'abierto',
-        usuarioId: req.user.uid,
+        usuarioId: req.userData.uid,
         usuarioNombre: userData.nombre,
         usuarioEmail: userData.email,
         companyId: userData.companyId || null,
@@ -123,7 +123,7 @@ export const ticketController = {
   async getMyTickets(req, res) {
     try {
       const snapshot = await db.collection('tickets')
-        .where('usuarioId', '==', req.user.uid)
+        .where('usuarioId', '==', req.userData.uid)
         .get();
 
       const tickets = [];
@@ -168,7 +168,7 @@ export const ticketController = {
   async getAllTickets(req, res) {
     try {
       // Verificar rol de super_admin
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
 
       if (!userDoc.exists) {
         return res.status(404).json({
@@ -255,7 +255,7 @@ export const ticketController = {
       }
 
       // Verificar permisos
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
 
       if (!userDoc.exists) {
         return res.status(404).json({
@@ -328,7 +328,7 @@ export const ticketController = {
       const ticketData = ticketDoc.data();
 
       // Verificar permisos del usuario
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
 
       if (!userDoc.exists) {
         return res.status(404).json({
@@ -340,7 +340,7 @@ export const ticketController = {
       const userData = userDoc.data();
 
       // Solo el creador del ticket o super_admin pueden cerrarlo
-      const isOwner = ticketData.usuarioId === req.user.uid;
+      const isOwner = ticketData.usuarioId === req.userData.uid;
       const isSuperAdmin = userData.rol === 'super_admin';
 
       if (!isOwner && !isSuperAdmin) {

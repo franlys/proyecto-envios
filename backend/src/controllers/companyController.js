@@ -7,7 +7,7 @@ export const createCompany = async (req, res) => {
     const { nombre, adminEmail, adminPassword, telefono, direccion, plan, emailConfig, invoiceDesign } = req.body;
 
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
       return res.status(403).json({ error: 'No tienes permisos para crear compañías' });
     }
@@ -55,7 +55,7 @@ export const createCompany = async (req, res) => {
       telefono: telefono || '',
       activo: true,
       createdAt: new Date().toISOString(),
-      createdBy: req.user.uid
+      createdBy: req.userData.uid
     });
 
     // ======================================================================
@@ -71,10 +71,10 @@ export const createCompany = async (req, res) => {
       adminUserId: userRecord.uid,
       telefono: telefono || '',
       direccion: direccion || '',
-      plan: plan || 'basic',
+      plan: plan || 'operativo',
       activo: true,
       createdAt: new Date().toISOString(),
-      createdBy: req.user.uid,
+      createdBy: req.userData.uid,
       // ✅ NUEVO: Sistema de tracking con prefijos
       trackingPrefix,              // Prefijo único (ej: "EMI", "LOE")
       currentTrackingNumber: 0,    // Contador de tracking (inicia en 0)
@@ -133,7 +133,7 @@ export const createCompany = async (req, res) => {
 export const getAllCompanies = async (req, res) => {
   try {
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
@@ -168,11 +168,11 @@ export const getAllCompanies = async (req, res) => {
 export const getCompanyById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validar permisos
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
-    
+
     if (userData.rol !== 'super_admin' && userData.companyId !== id) {
       return res.status(403).json({ error: 'No tienes permisos para ver esta compañía' });
     }
@@ -200,7 +200,7 @@ export const updateCompany = async (req, res) => {
     const { nombre, telefono, direccion, plan, activo, emailConfig, invoiceDesign } = req.body;
 
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
       return res.status(403).json({ error: 'No tienes permisos para actualizar compañías' });
     }
@@ -251,7 +251,7 @@ export const toggleCompany = async (req, res) => {
     const { id } = req.params;
     
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
       return res.status(403).json({ error: 'No tienes permisos para modificar compañías' });
     }
@@ -284,7 +284,7 @@ export const resetUserPassword = async (req, res) => {
     const { userId, newPassword } = req.body;
 
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
       return res.status(403).json({ error: 'No tienes permisos para resetear contraseñas' });
     }
@@ -315,7 +315,7 @@ export const resetUserPassword = async (req, res) => {
     // Registrar el cambio en Firestore
     await db.collection('usuarios').doc(userId).update({
       passwordResetAt: new Date().toISOString(),
-      passwordResetBy: req.user.uid
+      passwordResetBy: req.userData.uid
     });
 
     res.json({ 
@@ -335,7 +335,7 @@ export const deleteCompany = async (req, res) => {
     const { id } = req.params;
 
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
     
     if (!userData || userData.rol !== 'super_admin') {
@@ -363,10 +363,13 @@ export const deleteCompany = async (req, res) => {
       .where('companyId', '==', id)
       .get();
 
-    const facturasSnapshot = await db.collection('facturas')
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    const recoleccionesSnapshot = await db.collection('recolecciones')
       .where('companyId', '==', id)
       .get();
 
+    // ✅ NOTA: 'gastos' ya no existe como colección (están en ruta.gastos array)
+    // Mantener por compatibilidad con datos legacy
     const gastosSnapshot = await db.collection('gastos')
       .where('companyId', '==', id)
       .get();
@@ -394,7 +397,7 @@ export const deleteCompany = async (req, res) => {
     usuariosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     embarquesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     rutasSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-    facturasSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+    recoleccionesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     gastosSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     historialSnapshot.docs.forEach(doc => batch.delete(doc.ref));
     batch.delete(db.collection('companies').doc(id));
@@ -405,7 +408,7 @@ export const deleteCompany = async (req, res) => {
       usuarios: usuariosSnapshot.size,
       embarques: embarquesSnapshot.size,
       rutas: rutasSnapshot.size,
-      facturas: facturasSnapshot.size,
+      recolecciones: recoleccionesSnapshot.size,
       gastos: gastosSnapshot.size,
       historial: historialSnapshot.size
     };
@@ -427,7 +430,7 @@ export const uploadCompanyLogo = async (req, res) => {
     const { id } = req.params;
 
     // Validar que el usuario sea super_admin
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
       return res.status(403).json({
         success: false,

@@ -4,7 +4,7 @@
  * FEATURES POR PLAN
  */
 const PLAN_FEATURES = {
-  basic: {
+  operativo: {
     // Límites de usuarios
     maxAdmins: 1,
     maxRepartidores: 5,
@@ -66,8 +66,8 @@ const PLAN_FEATURES = {
     logsAuditoria: false,
     backupAutomatico: 'semanal', // 'semanal', 'diario', 'horario'
   },
-  
-  premium: {
+
+  automatizado: {
     maxAdmins: 3,
     maxRepartidores: 20,
     maxSecretarias: 5,
@@ -121,8 +121,8 @@ const PLAN_FEATURES = {
     logsAuditoria: true,
     backupAutomatico: 'diario',
   },
-  
-  enterprise: {
+
+  smart: {
     maxAdmins: -1, // Ilimitado
     maxRepartidores: -1,
     maxSecretarias: -1,

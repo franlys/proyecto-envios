@@ -8,8 +8,19 @@ import { obtenerPlan } from '../config/planesSaaS.js';
  */
 export const checkPlanActivo = async (req, res, next) => {
   try {
-    // ✅ Super Admin SIEMPRE tiene acceso sin restricciones
-    if (req.userData?.rol === 'super_admin') {
+    console.log(`🔍 [checkPlanActivo] Verificando usuario: ${req.userData?.uid} - Rol: ${req.userData?.rol}`);
+
+    // ✅ Roles con acceso sin restricciones de plan:
+    // - super_admin: Administrador global del sistema SaaS
+    // - propietario: Dueño de la empresa (acceso informativo completo)
+    // - admin_general: Administrador operativo de la empresa
+    // - cargador: Operario que carga camiones
+    // - repartidor: Operario que entrega paquetes
+    // - secretaria: Personal que confirma facturas
+    const rolesConAccesoTotal = ['super_admin', 'propietario', 'admin_general', 'cargador', 'repartidor', 'secretaria'];
+
+    if (rolesConAccesoTotal.includes(req.userData?.rol)) {
+      console.log(`✅ [checkPlanActivo] ${req.userData.rol} detectado - Bypass activado`);
       return next();
     }
 
@@ -127,17 +138,17 @@ export const requireProfessionalPlan = async (req, res, next) => {
     const companyDoc = await db.collection('companies').doc(companyId).get();
     const planId = companyDoc.data()?.plan;
 
-    // Planes permitidos: profesional, enterprise
-    const planesPermitidos = ['profesional', 'enterprise'];
+    // Planes permitidos: automatizado, smart
+    const planesPermitidos = ['automatizado', 'smart'];
 
     if (!planId || !planesPermitidos.includes(planId)) {
       const plan = obtenerPlan(planId);
       return res.status(403).json({
         success: false,
-        message: 'Esta funcionalidad requiere Plan Profesional o superior',
+        message: 'Esta funcionalidad requiere Plan Automatizado o superior',
         code: 'UPGRADE_REQUIRED',
         currentPlan: plan?.nombre || 'Ninguno',
-        requiredPlans: ['Plan Profesional', 'Plan Enterprise']
+        requiredPlans: ['Plan Automatizado', 'Plan Smart Logistics']
       });
     }
 

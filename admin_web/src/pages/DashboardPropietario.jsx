@@ -5,8 +5,6 @@ import api from '../services/api';
 import { motion } from 'framer-motion';
 import {
   Package,
-  MapPin,
-  Users,
   Activity,
   TrendingUp,
   Warehouse,
@@ -15,8 +13,6 @@ import {
   AlertTriangle,
   DollarSign,
   BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
   Clock,
   ShoppingCart
 } from 'lucide-react';
@@ -69,7 +65,7 @@ const DashboardPropietario = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!userData || userData.rol !== 'propietario') {
+      if (!userData || (userData.rol !== 'propietario' && userData.rol !== 'super_admin')) {
         return;
       }
 
@@ -77,31 +73,72 @@ const DashboardPropietario = () => {
         setLoading(true);
         setError(null);
 
-        const response = await api.get('/dashboard/stats');
-        console.log('📊 Stats Dashboard Propietario:', response.data);
+        // ✅ Usar el nuevo endpoint de dashboard propietario
+        const response = await api.get('/dashboard/propietario');
+        console.log('📊 Dashboard Ejecutivo:', response.data);
 
-        const data = response.data;
+        // El backend devuelve: { success, companyId, timestamp, data }
+        const dashboardData = response.data.data;
 
         const transformedStats = {
-          embarquesActivos: data.embarques?.activos || 0,
-          recoleccionesHoy: data.recolecciones?.hoy || 0,
-          rutasEnCurso: data.rutas?.enCurso || data.rutas?.activas || 0,
-          facturasPendientes: data.facturas?.pendientes || 0,
-          totalUsuarios: data.usuarios?.total || 0,
-          usuariosActivos: data.usuarios?.activos || 0,
-          totalRecolecciones: data.recolecciones?.total || 0,
-          totalEmbarques: data.embarques?.total || 0,
-          totalRutas: data.rutas?.total || 0,
-          totalFacturas: data.facturas?.total || 0,
-          facturasEntregadas: data.facturas?.entregadas || 0,
-          empresa: data.empresa || null
+          // Contenedores
+          totalContenedores: dashboardData.contenedores?.total || 0,
+          contenedoresUSA: dashboardData.contenedores?.enUSA || 0,
+          contenedoresRD: dashboardData.contenedores?.enRD || 0,
+          contenedoresTransito: dashboardData.contenedores?.enTransito || 0,
+          contenedoresTrabajados: dashboardData.contenedores?.trabajados || 0,
+          porcentajeTrabajados: dashboardData.contenedores?.porcentajeTrabajados || 0,
+          porcentajeConfirmacion: dashboardData.contenedores?.facturas?.porcentajeConfirmacion || 0,
+          porcentajeEntregaContenedores: dashboardData.contenedores?.facturas?.porcentajeEntrega || 0,
+          facturasConfirmadas: dashboardData.contenedores?.facturas?.confirmadas || 0,
+          totalFacturasContenedor: dashboardData.contenedores?.facturas?.total || 0,
+
+          // Rutas
+          rutasActivas: dashboardData.rutas?.activas || 0,
+          rutasCompletadas: dashboardData.rutas?.completadas || 0,
+          rutasPendientes: dashboardData.rutas?.pendientes || 0,
+          totalRutas: dashboardData.rutas?.total || 0,
+          porcentajeEntregaRutas: dashboardData.rutas?.eficiencia?.porcentajeEntrega || 0,
+          facturasEnRutas: dashboardData.rutas?.eficiencia?.totalFacturas || 0,
+          facturasEntregadasRutas: dashboardData.rutas?.eficiencia?.entregadas || 0,
+
+          // Facturas
+          totalFacturas: dashboardData.facturas?.total || 0,
+          facturasEntregadas: dashboardData.facturas?.entregadas || 0,
+          facturasPendientes: dashboardData.facturas?.pendientes || 0,
+          facturasNoEntregadas: dashboardData.facturas?.noEntregadas || 0,
+          facturasEnRuta: dashboardData.facturas?.enRuta || 0,
+          porcentajeEntrega: dashboardData.facturas?.porcentajeEntrega || 0,
+
+          // No Entregadas
+          totalNoEntregadas: dashboardData.noEntregadas?.total || 0,
+          reincidencias: dashboardData.noEntregadas?.reincidencias || 0,
+          porcentajeReincidencia: dashboardData.noEntregadas?.porcentajeReincidencia || 0,
+          motivosNoEntrega: dashboardData.noEntregadas?.motivos || [],
+
+          // Recolecciones
+          recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0,
+          recoleccionesCompletadas: dashboardData.recolecciones?.hoy?.completadas || 0,
+          recoleccionesPendientes: dashboardData.recolecciones?.hoy?.pendientes || 0,
+
+          // Finanzas
+          cobrosFinanzas: dashboardData.finanzas?.mes?.cobros || 0,
+          gastosFinanzas: dashboardData.finanzas?.mes?.gastos || 0,
+          balanceFinanzas: dashboardData.finanzas?.mes?.balance || 0,
+
+          // Compatibilidad con métricas antiguas
+          embarquesActivos: 0,
+          recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0,
+          rutasEnCurso: dashboardData.rutas?.activas || 0,
+          totalEmbarques: 0,
+          empresa: null
         };
 
         setStats(transformedStats);
 
       } catch (err) {
-        console.error('❌ Error cargando estadísticas:', err);
-        setError(err.response?.data?.error || 'Error al cargar estadísticas');
+        console.error('❌ Error cargando dashboard ejecutivo:', err);
+        setError(err.response?.data?.error || 'Error al cargar dashboard');
       } finally {
         setLoading(false);
       }
@@ -151,15 +188,6 @@ const DashboardPropietario = () => {
     return null;
   }
 
-  // Calcular porcentajes y métricas
-  const porcentajeEntregas = stats.totalFacturas > 0
-    ? Math.round((stats.facturasEntregadas / stats.totalFacturas) * 100)
-    : 0;
-
-  const porcentajeUsuariosActivos = stats.totalUsuarios > 0
-    ? Math.round((stats.usuariosActivos / stats.totalUsuarios) * 100)
-    : 0;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 sm:p-6 lg:p-8">
       {/* Header Premium */}
@@ -201,68 +229,308 @@ const DashboardPropietario = () => {
         </div>
       </motion.div>
 
-      {/* Métricas Principales - Grid Interactivo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <MetricCard
-          title="Rutas en Curso"
-          value={stats.rutasEnCurso}
-          total={stats.totalRutas}
-          icon={MapPin}
-          gradient="from-amber-500 to-orange-500"
-          delay={0.1}
-          onClick={() => navigate('/rutas')}
-        />
-        <MetricCard
-          title="Embarques Activos"
-          value={stats.embarquesActivos}
-          total={stats.totalEmbarques}
-          icon={Package}
-          gradient="from-indigo-500 to-blue-500"
-          delay={0.2}
-          onClick={() => navigate('/embarques')}
-        />
-        <MetricCard
-          title="Equipo Activo"
-          value={stats.usuariosActivos}
-          total={stats.totalUsuarios}
-          icon={Users}
-          gradient="from-emerald-500 to-teal-500"
-          delay={0.3}
-          onClick={() => navigate('/empleados')}
-        />
-        <MetricCard
-          title="Facturas Pendientes"
-          value={stats.facturasPendientes}
-          total={stats.totalFacturas}
-          icon={AlertTriangle}
-          gradient="from-rose-500 to-pink-500"
-          delay={0.4}
-          onClick={() => navigate('/facturas-pendientes-pago')}
-        />
-      </div>
+      {/* 📦 Contenedores - Métricas Principales */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+          <Package className="w-6 h-6 mr-2 text-indigo-600" />
+          Contenedores
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <MetricCard
+            title="Total Contenedores"
+            value={stats.totalContenedores}
+            total={stats.totalContenedores}
+            icon={Package}
+            gradient="from-indigo-500 to-purple-500"
+            delay={0.1}
+          />
+          <MetricCard
+            title="En USA"
+            value={stats.contenedoresUSA}
+            total={stats.totalContenedores}
+            icon={Warehouse}
+            gradient="from-blue-500 to-cyan-500"
+            delay={0.2}
+          />
+          <MetricCard
+            title="En RD"
+            value={stats.contenedoresRD}
+            total={stats.totalContenedores}
+            icon={CheckCircle2}
+            gradient="from-emerald-500 to-teal-500"
+            delay={0.3}
+          />
+          <MetricCard
+            title="% Entrega Contenedores"
+            value={stats.porcentajeEntregaContenedores || 0}
+            total={100}
+            icon={TrendingUp}
+            gradient="from-emerald-500 to-green-500"
+            delay={0.4}
+            isPercentage
+          />
+          <MetricCard
+            title="% Confirmación"
+            value={stats.porcentajeConfirmacion}
+            total={100}
+            icon={CheckCircle2}
+            gradient="from-purple-500 to-pink-500"
+            delay={0.5}
+            isPercentage
+          />
+        </div>
+      </motion.div>
 
-      {/* Gráficos de Progreso */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Tasa de Entregas */}
-        <ProgressCard
-          title="Tasa de Entregas Exitosas"
-          value={porcentajeEntregas}
-          subtitle={`${stats.facturasEntregadas} de ${stats.totalFacturas} facturas entregadas`}
-          icon={CheckCircle2}
-          color="emerald"
-          delay={0.5}
-        />
+      {/* 🗺️ Rutas - Métricas */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="mb-8"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+          <Truck className="w-6 h-6 mr-2 text-emerald-600" />
+          Rutas y Entregas
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard
+            title="Rutas Activas"
+            value={stats.rutasActivas}
+            total={stats.totalRutas}
+            icon={Truck}
+            gradient="from-emerald-500 to-teal-500"
+            delay={0.1}
+            onClick={() => navigate('/reportes')}
+          />
+          <MetricCard
+            title="Completadas"
+            value={stats.rutasCompletadas}
+            total={stats.totalRutas}
+            icon={CheckCircle2}
+            gradient="from-blue-500 to-indigo-500"
+            delay={0.2}
+          />
+          <MetricCard
+            title="% Entrega"
+            value={stats.porcentajeEntregaRutas}
+            total={100}
+            icon={TrendingUp}
+            gradient="from-indigo-500 to-purple-500"
+            delay={0.3}
+            isPercentage
+          />
+          <MetricCard
+            title="Facturas Pendientes"
+            value={stats.facturasPendientes}
+            total={stats.totalFacturas}
+            icon={Clock}
+            gradient="from-amber-500 to-orange-500"
+            delay={0.4}
+          />
+        </div>
+      </motion.div>
 
-        {/* Actividad del Equipo */}
-        <ProgressCard
-          title="Actividad del Equipo"
-          value={porcentajeUsuariosActivos}
-          subtitle={`${stats.usuariosActivos} de ${stats.totalUsuarios} usuarios activos`}
-          icon={Activity}
-          color="indigo"
-          delay={0.6}
-        />
-      </div>
+      {/* ⚠️ No Entregadas - Análisis */}
+      {stats.totalNoEntregadas > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-8"
+        >
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+            <AlertTriangle className="w-6 h-6 mr-2 text-rose-600" />
+            Análisis de No Entregadas
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <MetricCard
+              title="Total No Entregadas"
+              value={stats.totalNoEntregadas}
+              total={stats.totalFacturas}
+              icon={AlertTriangle}
+              gradient="from-rose-500 to-pink-500"
+              delay={0.1}
+            />
+            <MetricCard
+              title="Reincidencias"
+              value={stats.reincidencias}
+              total={stats.totalNoEntregadas}
+              icon={Activity}
+              gradient="from-amber-500 to-orange-500"
+              delay={0.2}
+            />
+            <MetricCard
+              title="% Reincidencia"
+              value={stats.porcentajeReincidencia}
+              total={100}
+              icon={BarChart3}
+              gradient="from-red-500 to-rose-500"
+              delay={0.3}
+              isPercentage
+            />
+          </div>
+
+          {/* Motivos de No Entrega */}
+          {stats.motivosNoEntrega && stats.motivosNoEntrega.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6"
+            >
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">
+                Motivos de No Entrega
+              </h3>
+              <div className="space-y-4">
+                {stats.motivosNoEntrega.map((motivo, index) => (
+                  <div key={index}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {motivo.motivo}
+                      </span>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {motivo.count} ({motivo.porcentaje}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${motivo.porcentaje}%` }}
+                        transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
+                        className="bg-gradient-to-r from-rose-500 to-pink-500 h-2 rounded-full"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+
+      {/* 📦 Recolecciones de Hoy */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="mb-8"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+          <ShoppingCart className="w-6 h-6 mr-2 text-purple-600" />
+          Recolecciones de Hoy
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MetricCard
+            title="Total Hoy"
+            value={stats.recoleccionesHoy}
+            total={stats.recoleccionesHoy}
+            icon={ShoppingCart}
+            gradient="from-purple-500 to-pink-500"
+            delay={0.1}
+          />
+          <MetricCard
+            title="Completadas"
+            value={stats.recoleccionesCompletadas}
+            total={stats.recoleccionesHoy}
+            icon={CheckCircle2}
+            gradient="from-emerald-500 to-teal-500"
+            delay={0.2}
+          />
+          <MetricCard
+            title="Pendientes"
+            value={stats.recoleccionesPendientes}
+            total={stats.recoleccionesHoy}
+            icon={Clock}
+            gradient="from-amber-500 to-orange-500"
+            delay={0.3}
+          />
+        </div>
+      </motion.div>
+
+      {/* 💰 Resumen Financiero del Mes */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+        className="mb-8"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+          <DollarSign className="w-6 h-6 mr-2 text-emerald-600" />
+          Resumen Financiero del Mes
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Cobros</p>
+                <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  <AnimatedNumber value={stats.cobrosFinanzas} prefix="RD$ " />
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                  Ingresos del mes
+                </p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-7 h-7 text-white" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Gastos</p>
+                <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400">
+                  <AnimatedNumber value={stats.gastosFinanzas} prefix="RD$ " />
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                  Egresos del mes
+                </p>
+              </div>
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg">
+                <BarChart3 className="w-7 h-7 text-white" />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Balance</p>
+                <h3 className={`text-3xl font-bold ${stats.balanceFinanzas >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  <AnimatedNumber value={stats.balanceFinanzas} prefix="RD$ " />
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                  {stats.balanceFinanzas >= 0 ? 'Ganancia' : 'Pérdida'}
+                </p>
+              </div>
+              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stats.balanceFinanzas >= 0 ? 'from-emerald-500 to-teal-500' : 'from-rose-500 to-red-500'} flex items-center justify-center shadow-lg`}>
+                <DollarSign className="w-7 h-7 text-white" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
 
       {/* Accesos Rápidos Mejorados */}
       <motion.div
@@ -314,8 +582,9 @@ const DashboardPropietario = () => {
 };
 
 // Componente de Métrica Interactiva
-const MetricCard = ({ title, value, total, icon: Icon, gradient, delay, onClick }) => {
-  const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+const MetricCard = ({ title, value, total, icon: Icon, gradient, delay, onClick, isPercentage = false }) => {
+  const percentage = isPercentage ? value : (total > 0 ? Math.round((value / total) * 100) : 0);
+  const displayValue = isPercentage ? value : value;
 
   return (
     <motion.div
@@ -324,17 +593,19 @@ const MetricCard = ({ title, value, total, icon: Icon, gradient, delay, onClick 
       transition={{ duration: 0.5, delay }}
       whileHover={{ scale: 1.02, y: -5 }}
       onClick={onClick}
-      className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 cursor-pointer hover:shadow-xl transition-all"
+      className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 ${onClick ? 'cursor-pointer' : ''} hover:shadow-xl transition-all`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{title}</p>
           <h3 className="text-3xl font-bold text-slate-900 dark:text-white">
-            <AnimatedNumber value={value} />
+            <AnimatedNumber value={displayValue} suffix={isPercentage ? '%' : ''} />
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-            de {total} totales
-          </p>
+          {!isPercentage && (
+            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+              de {total} totales
+            </p>
+          )}
         </div>
         <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
           <Icon className="w-7 h-7 text-white" />
@@ -353,84 +624,6 @@ const MetricCard = ({ title, value, total, icon: Icon, gradient, delay, onClick 
       <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 text-right">
         {percentage}%
       </p>
-    </motion.div>
-  );
-};
-
-// Componente de Progreso Circular
-const ProgressCard = ({ title, value, subtitle, icon: Icon, color, delay }) => {
-  const colorConfig = {
-    emerald: {
-      gradient: 'from-emerald-500 to-teal-500',
-      stroke: 'stroke-emerald-500',
-      text: 'text-emerald-600 dark:text-emerald-400'
-    },
-    indigo: {
-      gradient: 'from-indigo-500 to-purple-500',
-      stroke: 'stroke-indigo-500',
-      text: 'text-indigo-600 dark:text-indigo-400'
-    }
-  };
-
-  const config = colorConfig[color] || colorConfig.indigo;
-  const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6"
-    >
-      <div className="flex items-center gap-3 mb-6">
-        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
-            <AnimatedNumber value={value} suffix="%" />
-          </p>
-          <p className="text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>
-        </div>
-
-        <div className="relative w-28 h-28">
-          <svg className="transform -rotate-90 w-28 h-28">
-            <circle
-              cx="56"
-              cy="56"
-              r="45"
-              stroke="currentColor"
-              strokeWidth="8"
-              fill="transparent"
-              className="text-slate-200 dark:text-slate-700"
-            />
-            <motion.circle
-              cx="56"
-              cy="56"
-              r="45"
-              stroke="currentColor"
-              strokeWidth="8"
-              fill="transparent"
-              strokeLinecap="round"
-              className={config.stroke}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset }}
-              transition={{ duration: 1, delay: delay + 0.3 }}
-              style={{
-                strokeDasharray: circumference
-              }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className={`text-2xl font-bold ${config.text}`}>{value}%</span>
-          </div>
-        </div>
-      </div>
     </motion.div>
   );
 };

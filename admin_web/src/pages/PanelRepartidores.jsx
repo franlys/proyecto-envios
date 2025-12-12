@@ -697,13 +697,13 @@ const PanelRepartidores = () => {
                     {rutaSeleccionada.facturas?.filter(f => f.estado === 'entregada').length} / {rutaSeleccionada.facturas?.length} completadas
                   </p>
                 </div>
-                {rutaSeleccionada.estado === 'pendiente' ? (
+                {rutaSeleccionada.estado === 'cargada' ? (
                   <button
                     onClick={handleIniciarEntregas}
                     disabled={procesando}
                     className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
-                    <Truck size={16} /> Iniciar
+                    <Truck size={16} /> Iniciar Entregas
                   </button>
                 ) : (
                   <div className="flex gap-2">

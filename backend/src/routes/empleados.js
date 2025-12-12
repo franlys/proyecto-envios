@@ -14,8 +14,8 @@ router.use(verifyToken);
  * ✅ CORREGIDO - GET /api/empleados
  * Obtener lista de empleados (usa el controlador)
  */
-router.get('/', 
-    checkRole('super_admin', 'admin_general', 'admin'), // Roles que pueden ver lista
+router.get('/',
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'), // Roles que pueden ver lista
     empleadoController.getEmpleados
 );
 
@@ -23,8 +23,8 @@ router.get('/',
  * ✅ CORREGIDO - GET /api/empleados/repartidores
  * Obtener solo repartidores activos (usa el controlador)
  */
-router.get('/repartidores', 
-    checkRole('super_admin', 'admin_general', 'admin', 'secretaria', 'almacen_rd'), // Roles que pueden ver repartidores
+router.get('/repartidores',
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin', 'secretaria', 'almacen_rd'), // Roles que pueden ver repartidores
     empleadoController.getRepartidores
 );
 
@@ -32,8 +32,8 @@ router.get('/repartidores',
  * ✅ CORREGIDO - GET /api/empleados/:id
  * Obtener un empleado específico (usa el controlador)
  */
-router.get('/:id', 
-    checkRole('super_admin', 'admin_general', 'admin'), 
+router.get('/:id',
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'),
     empleadoController.getEmpleado
 );
 
@@ -45,8 +45,8 @@ router.get('/:id',
  * Deberías decidir cuál usar. Por ahora, la dejamos apuntando
  * al controlador de empleados que SÍ tiene 'cargador'.
  */
-router.post('/', 
-    checkRole('super_admin', 'admin_general', 'admin'), 
+router.post('/',
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'),
     empleadoController.createEmpleado
 );
 
@@ -54,8 +54,8 @@ router.post('/',
  * ✅ CORREGIDO - PUT /api/empleados/:id
  * Actualizar empleado (usa el controlador)
  */
-router.put('/:id', 
-    checkRole('super_admin', 'admin_general', 'admin'), 
+router.put('/:id',
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'),
     empleadoController.updateEmpleado
 );
 
@@ -63,8 +63,8 @@ router.put('/:id',
  * ✅ CORREGIDO - DELETE /api/empleados/:id
  * Eliminar empleado (usa el controlador)
  */
-router.delete('/:id', 
-    checkRole('super_admin', 'admin_general', 'admin'), 
+router.delete('/:id',
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'),
     empleadoController.deleteEmpleado
 );
 
@@ -75,7 +75,7 @@ router.delete('/:id',
  * Activar/Desactivar un empleado
  */
 router.patch('/:id/toggle',
-    checkRole('super_admin', 'admin_general', 'admin'),
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'),
     empleadoController.toggleEmpleado
 );
 
@@ -84,7 +84,7 @@ router.patch('/:id/toggle',
  * Cambiar la contraseña de un empleado (solo admins)
  */
 router.post('/:id/change-password',
-    checkRole('super_admin', 'admin_general', 'admin'),
+    checkRole('super_admin', 'propietario', 'admin_general', 'admin'),
     empleadoController.changePassword
 );
 

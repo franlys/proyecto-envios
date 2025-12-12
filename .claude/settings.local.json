@@ -52,7 +52,20 @@
       "Bash(git reset:*)",
       "Bash(taskkill //F //PID 31844)",
       "Bash(taskkill //F //PID 16972)",
-      "Bash(taskkill //F //PID 40028)"
+      "Bash(taskkill //F //PID 40028)",
+      "Bash(node asignar_plan_enterprise.js:*)",
+      "Bash(taskkill //F //PID 13080)",
+      "Bash(taskkill //F //PID 21080)",
+      "Bash(timeout /t 2 /nobreak)",
+      "Bash(taskkill //F //PID 11412)",
+      "Bash(taskkill //F //PID 40728)",
+      "Bash(taskkill //F //PID 38776)",
+      "Bash(taskkill //F //PID 40924)",
+      "Bash(node -e:*)",
+      "Bash(node check_propietario_rol.js:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

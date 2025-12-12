@@ -170,7 +170,7 @@ export const registrarPago = async (req, res) => {
 
 export const getFacturasPendientes = async (req, res) => {
   try {
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
     console.log('📋 Obteniendo facturas pendientes de pago...');
@@ -204,7 +204,7 @@ export const getFacturasPendientes = async (req, res) => {
 export const getFacturasPorContenedor = async (req, res) => {
   try {
     const { contenedorId } = req.params;
-    const userData = await getUserDataSafe(req.user.uid);
+    const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.json({ success: true, data: [] });
 
     console.log(`📦 Obteniendo facturas para contenedor ${contenedorId}`);
@@ -236,7 +236,7 @@ export const getFacturasPorContenedor = async (req, res) => {
 
 export const getFacturasNoEntregadas = async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
 
     if (!userDoc.exists) {
       return res.status(404).json({
@@ -318,7 +318,7 @@ export const getFacturasNoEntregadas = async (req, res) => {
 // ============================================================
 export const debugEstadosFacturas = async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const companyId = userDoc.data()?.companyId;
 
     const snapshot = await db.collection('recolecciones')
@@ -355,7 +355,7 @@ export const debugEstadosFacturas = async (req, res) => {
 // ============================================================
 export const repararFacturasHuerfanas = async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const companyId = userDoc.data()?.companyId;
 
     console.log('🔧 Reparando facturas huérfanas...');

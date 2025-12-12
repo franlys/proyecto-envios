@@ -12,7 +12,7 @@ router.use(verifyToken);
 // ============================================
 router.get('/stats-almacen', async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     if (!userData.companyId) {
@@ -41,15 +41,15 @@ router.get('/stats-almacen', async (req, res) => {
       console.log('No hay rutas');
     }
 
-    // Stats de facturas no entregadas
+    // ✅ CORRECCIÓN: Stats de recolecciones no entregadas (no facturas)
     let facturasNoEntregadas = 0;
     let facturasListasParaRuta = 0;
     try {
-      const facturasSnapshot = await db.collection('facturas')
+      const recoleccionesSnapshot = await db.collection('recolecciones')
         .where('companyId', '==', userData.companyId)
         .get();
-      
-      facturasSnapshot.forEach(doc => {
+
+      recoleccionesSnapshot.forEach(doc => {
         const factura = doc.data();
         if (factura.estado === 'no_entregada') {
           facturasNoEntregadas++;
@@ -58,7 +58,7 @@ router.get('/stats-almacen', async (req, res) => {
         }
       });
     } catch (error) {
-      console.log('No hay facturas');
+      console.log('No hay recolecciones');
     }
 
     // ✅ FORMATO ESTANDARIZADO
@@ -85,7 +85,7 @@ router.get('/stats-almacen', async (req, res) => {
 // ============================================
 router.get('/', async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     if (!userDoc.exists) {
@@ -158,7 +158,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     const embarqueDoc = await db.collection('embarques').doc(id).get();
@@ -201,7 +201,7 @@ router.get('/:id', async (req, res) => {
 // ============================================
 router.post('/', async (req, res) => {
   try {
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     if (!userData.companyId) {
@@ -236,7 +236,7 @@ router.post('/', async (req, res) => {
       totalFacturas: 0,
       facturasEntregadas: 0,
       porcentajeCompletado: 0,
-      creadoPor: req.user.uid
+      creadoPor: req.userData.uid
     };
     
     const docRef = await db.collection('embarques').add(embarqueData);
@@ -264,7 +264,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
@@ -277,7 +277,7 @@ router.put('/:id', async (req, res) => {
     const updateData = {
       ...req.body,
       updatedAt: new Date(),
-      actualizadoPor: req.user.uid
+      actualizadoPor: req.userData.uid
     };
     
     await db.collection('embarques').doc(id).update(updateData);
@@ -301,7 +301,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     if (userData.rol !== 'admin' && userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
@@ -314,7 +314,7 @@ router.delete('/:id', async (req, res) => {
     await db.collection('embarques').doc(id).update({
       estado: 'inactivo',
       fechaEliminacion: new Date(),
-      eliminadoPor: req.user.uid
+      eliminadoPor: req.userData.uid
     });
     
     res.json({ 

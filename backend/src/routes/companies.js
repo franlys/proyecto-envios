@@ -52,27 +52,27 @@ router.get('/my-limits', async (req, res) => {
     // Si es super_admin, devolver límites ilimitados
     if (req.userData.rol === 'super_admin') {
       const limits = {
-        plan: 'enterprise',
-        usuarios: { 
-          key: 'Usuarios', 
-          current: 0, 
+        plan: 'smart',
+        usuarios: {
+          key: 'Usuarios',
+          current: 0,
           limit: -1,
-          percentage: 0, 
-          remaining: -1 
+          percentage: 0,
+          remaining: -1
         },
-        rutas: { 
-          key: 'Rutas Activas', 
-          current: 0, 
+        rutas: {
+          key: 'Rutas Activas',
+          current: 0,
           limit: -1,
-          percentage: 0, 
-          remaining: -1 
+          percentage: 0,
+          remaining: -1
         },
-        facturas_mes: { 
-          key: 'Facturas del Mes', 
-          current: 0, 
+        facturas_mes: {
+          key: 'Facturas del Mes',
+          current: 0,
           limit: -1,
-          percentage: 0, 
-          remaining: -1 
+          percentage: 0,
+          remaining: -1
         }
       };
       return res.json({
@@ -111,16 +111,16 @@ router.get('/my-limits', async (req, res) => {
       .where('estado', '==', 'activa')
       .get();
     
-    // Contar facturas del mes
+    // ✅ CORRECCIÓN: Contar recolecciones del mes (no facturas)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
-    const facturasSnapshot = await db.collection('facturas')
+
+    const recoleccionesSnapshot = await db.collection('recolecciones')
       .where('companyId', '==', req.userData.companyId)
       .get();
 
     let facturasMesCount = 0;
-    facturasSnapshot.forEach(doc => {
+    recoleccionesSnapshot.forEach(doc => {
       const data = doc.data();
       const fechaCreacion = data.fechaCreacion?.toDate ? data.fechaCreacion.toDate() : new Date(data.fechaCreacion || data.createdAt);
       if (fechaCreacion >= startOfMonth) {
@@ -130,12 +130,12 @@ router.get('/my-limits', async (req, res) => {
 
     // Definir límites por plan
     const planLimits = {
-      basic: { usuarios: 5, rutas: 10, facturas_mes: 100 },
-      premium: { usuarios: 25, rutas: 50, facturas_mes: 500 },
-      enterprise: { usuarios: -1, rutas: -1, facturas_mes: -1 }
+      operativo: { usuarios: 5, rutas: 10, facturas_mes: 100 },
+      automatizado: { usuarios: 25, rutas: 50, facturas_mes: 500 },
+      smart: { usuarios: -1, rutas: -1, facturas_mes: -1 }
     };
 
-    const plan = companyData.plan || 'basic';
+    const plan = companyData.plan || 'operativo';
     const limits = planLimits[plan];
 
     const currentCounts = {

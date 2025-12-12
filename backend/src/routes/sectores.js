@@ -315,7 +315,7 @@ router.get('/buscar', verifyToken, async (req, res) => {
 // ========================================
 // 📊 ESTADÍSTICAS POR SECTOR
 // ========================================
-router.get('/estadisticas', verifyToken, checkRole('almacen_rd', 'admin_general', 'super_admin'), async (req, res) => {
+router.get('/estadisticas', verifyToken, checkRole('almacen_rd', 'admin_general', 'propietario', 'super_admin'), async (req, res) => {
   const { zona } = req.query;
   
   try {
@@ -400,7 +400,7 @@ router.get('/estadisticas', verifyToken, checkRole('almacen_rd', 'admin_general'
 // ========================================
 // 🚀 OPTIMIZAR RUTA POR SECTORES
 // ========================================
-router.post('/optimizar-ruta', verifyToken, checkRole('almacen_rd', 'admin_general', 'super_admin'), async (req, res) => {
+router.post('/optimizar-ruta', verifyToken, checkRole('almacen_rd', 'admin_general', 'propietario', 'super_admin'), async (req, res) => {
   const { zona, facturasIds } = req.body;
   
   // Validaciones
@@ -512,7 +512,7 @@ router.post('/optimizar-ruta', verifyToken, checkRole('almacen_rd', 'admin_gener
 // ========================================
 // 💡 SUGERIR SECTORES PARA NUEVA RUTA
 // ========================================
-router.get('/sugerir', verifyToken, checkRole('almacen_rd', 'admin_general', 'super_admin'), async (req, res) => {
+router.get('/sugerir', verifyToken, checkRole('almacen_rd', 'admin_general', 'propietario', 'super_admin'), async (req, res) => {
   const { zona } = req.query;
   
   if (!zona) {

@@ -213,7 +213,8 @@ router.post('/upload-from-drive', async (req, res) => {
     console.log(`💾 Guardando ${facturas.length} facturas en Firestore...`);
     
     const batch = db.batch();
-    const facturasRef = db.collection('facturas');
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    const facturasRef = db.collection('recolecciones');
 
     facturas.forEach(factura => {
       const docRef = facturasRef.doc();
@@ -310,7 +311,8 @@ router.get('/', async (req, res) => {
   try {
     const { embarqueId, companyId } = req.query;
 
-    let query = db.collection('facturas');
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    let query = db.collection('recolecciones');
 
     if (embarqueId) {
       query = query.where('embarqueId', '==', embarqueId);
@@ -373,7 +375,8 @@ router.get('/:numeroContenedor', async (req, res) => {
     const { numeroContenedor } = req.params;
     const { companyId } = req.query;
 
-    let query = db.collection('facturas')
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    let query = db.collection('recolecciones')
       .where('contenedor', '==', numeroContenedor);
 
     if (companyId) {
@@ -427,7 +430,8 @@ router.delete('/:numeroContenedor', async (req, res) => {
     const { numeroContenedor } = req.params;
     const { companyId } = req.query;
 
-    let query = db.collection('facturas')
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    let query = db.collection('recolecciones')
       .where('contenedor', '==', numeroContenedor);
 
     if (companyId) {

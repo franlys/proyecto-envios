@@ -834,6 +834,30 @@ export const entregarFactura = async (req, res) => {
       fechaActualizacion: new Date().toISOString()
     });
 
+    // ✅ SINCRONIZAR CON COLECCIÓN PRINCIPAL 'recolecciones'
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    // Buscar si existe el mismo documento en la colección recolecciones
+    try {
+      const recoleccionPrincipalRef = db.collection('recolecciones').doc(facturaId);
+      const recoleccionPrincipalDoc = await recoleccionPrincipalRef.get();
+
+      if (recoleccionPrincipalDoc.exists) {
+        console.log(`🔄 Sincronizando estado con colección 'recolecciones' para ${facturaId}`);
+        await recoleccionPrincipalRef.update({
+          estado: 'entregada',
+          estadoGeneral: 'entregada',
+          fechaEntrega: new Date().toISOString(),
+          fechaActualizacion: new Date().toISOString()
+        });
+        console.log(`✅ Estado sincronizado en colección 'facturas'`);
+      } else {
+        console.log(`ℹ️ Factura ${facturaId} no existe en colección 'facturas', solo en 'recolecciones'`);
+      }
+    } catch (syncError) {
+      console.error(`⚠️ Error sincronizando con colección 'facturas':`, syncError.message);
+      // No fallar la operación principal si falla la sincronización
+    }
+
     // ✅ Enviar correo de confirmación con información completa
     try {
       // Obtener configuración de la compañía

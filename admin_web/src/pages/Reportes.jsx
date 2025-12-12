@@ -9,13 +9,19 @@ const Reportes = () => {
   const [tipoReporte, setTipoReporte] = useState('rutas');
   const [loading, setLoading] = useState(false);
   const [datosReporte, setDatosReporte] = useState(null);
-  
+
+  // ✅ Función para formatear números con comas
+  const formatNumber = (num) => {
+    if (num === null || num === undefined) return '0';
+    return Math.round(num).toLocaleString('en-US');
+  };
+
   // Filtros comunes
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [empleadoId, setEmpleadoId] = useState('');
   const [rutaId, setRutaId] = useState('');
-  
+
   // Listas para filtros
   const [empleados, setEmpleados] = useState([]);
   const [rutas, setRutas] = useState([]);
@@ -43,7 +49,7 @@ const Reportes = () => {
         api.get('/empleados/repartidores'),
         api.get('/rutas')
       ]);
-      
+
       // ✅ CORRECCIÓN: Validar success para empleados
       if (empleadosRes.data.success) {
         setEmpleados(empleadosRes.data.data || []);
@@ -57,7 +63,7 @@ const Reportes = () => {
       } else {
         throw new Error(rutasRes.data.error || 'Error al cargar rutas');
       }
-      
+
     } catch (error) {
       console.error('Error cargando datos:', error);
       alert('Error al cargar datos iniciales');
@@ -68,7 +74,7 @@ const Reportes = () => {
   const generarReporte = async () => {
     try {
       setLoading(true);
-      
+
       const params = {
         fechaDesde,
         fechaHasta,
@@ -235,7 +241,7 @@ const Reportes = () => {
       doc.setFont(undefined, 'bold');
       doc.text('Resumen:', 14, finalY);
       doc.setFont(undefined, 'normal');
-      
+
       let y = finalY + 7;
       Object.entries(datosReporte.resumen).forEach(([key, value]) => {
         doc.text(`${key}: ${value}`, 14, y);
@@ -251,7 +257,7 @@ const Reportes = () => {
 
     // Determinar si un campo debe mostrar signo de dólar (solo campos monetarios)
     const shouldShowCurrency = (key) => {
-      const currencyFields = ['monto', 'gastos', 'balance', 'asignado', 'cobros', 'efectivo', 'entregar'];
+      const currencyFields = ['monto', 'gastos', 'balance', 'asignado', 'cobros', 'efectivo', 'entregar', 'cobrado'];
       return currencyFields.some(field => key.toLowerCase().includes(field));
     };
 
@@ -263,7 +269,7 @@ const Reportes = () => {
               {key.replace(/_/g, ' ')}
             </p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">
-              {typeof value === 'number' && shouldShowCurrency(key) ? `$${value}` : value}
+              {typeof value === 'number' && shouldShowCurrency(key) ? `$${formatNumber(value)}` : value}
             </p>
           </div>
         ))}
@@ -302,25 +308,24 @@ const Reportes = () => {
                   <td className="px-4 py-3 text-sm text-center text-slate-900 dark:text-slate-100">{ruta.totalFacturas}</td>
                   <td className="px-4 py-3 text-sm text-center text-emerald-600 dark:text-emerald-400">{ruta.facturasEntregadas}</td>
                   <td className="px-4 py-3 text-sm text-center">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      ruta.porcentajeEntrega >= 90 ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' :
-                      ruta.porcentajeEntrega >= 70 ? 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200' :
-                      'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${ruta.porcentajeEntrega >= 90 ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' :
+                        ruta.porcentajeEntrega >= 70 ? 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200' :
+                          'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
+                      }`}>
                       {ruta.porcentajeEntrega}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">${ruta.montoAsignado}</td>
-                  <td className="px-4 py-3 text-sm text-right text-rose-600 dark:text-rose-400">${ruta.totalGastos}</td>
+                  <td className="px-4 py-3 text-sm text-right text-slate-900 dark:text-slate-100">${formatNumber(ruta.montoAsignado)}</td>
+                  <td className="px-4 py-3 text-sm text-right text-rose-600 dark:text-rose-400">${formatNumber(ruta.totalGastos)}</td>
                   <td className="px-4 py-3 text-sm text-right font-medium">
                     <span className={ruta.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      ${ruta.balance}
+                      ${formatNumber(ruta.balance)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-right text-blue-600 dark:text-blue-400">${ruta.totalCobros || 0}</td>
+                  <td className="px-4 py-3 text-sm text-right text-blue-600 dark:text-blue-400">${formatNumber(ruta.totalCobros || 0)}</td>
                   <td className="px-4 py-3 text-sm text-right font-bold">
                     <span className={ruta.efectivoAEntregar >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      ${ruta.efectivoAEntregar || 0}
+                      ${formatNumber(ruta.efectivoAEntregar || 0)}
                     </span>
                   </td>
                 </tr>
@@ -409,11 +414,10 @@ const Reportes = () => {
                   <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-100">{factura.cliente}</td>
                   <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{factura.direccion}</td>
                   <td className="px-4 py-3 text-sm text-center">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      factura.estado === 'entregado' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' :
-                      factura.estado === 'no_entregado' ? 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200' :
-                      'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs ${factura.estado === 'entregado' ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' :
+                        factura.estado === 'no_entregado' ? 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200' :
+                          'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200'
+                      }`}>
                       {factura.estado}
                     </span>
                   </td>
@@ -439,7 +443,7 @@ const Reportes = () => {
       {/* Selección de tipo de reporte */}
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-medium text-slate-800 dark:text-white mb-4">Configurar Reporte</h2>
-        
+
         {/* Tipo de Reporte */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
@@ -448,11 +452,10 @@ const Reportes = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               onClick={() => setTipoReporte('rutas')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                tipoReporte === 'rutas'
+              className={`p-4 rounded-lg border-2 transition-all ${tipoReporte === 'rutas'
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
                   : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-              }`}
+                }`}
             >
               <span className="text-2xl mb-2 block">🚚</span>
               <h3 className="font-medium text-slate-900 dark:text-white">Reporte de Rutas</h3>
@@ -463,11 +466,10 @@ const Reportes = () => {
 
             <button
               onClick={() => setTipoReporte('gastos')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                tipoReporte === 'gastos'
+              className={`p-4 rounded-lg border-2 transition-all ${tipoReporte === 'gastos'
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
                   : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-              }`}
+                }`}
             >
               <span className="text-2xl mb-2 block">💰</span>
               <h3 className="font-medium text-slate-900 dark:text-white">Reporte de Gastos</h3>
@@ -478,11 +480,10 @@ const Reportes = () => {
 
             <button
               onClick={() => setTipoReporte('facturas')}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                tipoReporte === 'facturas'
+              className={`p-4 rounded-lg border-2 transition-all ${tipoReporte === 'facturas'
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
                   : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-              }`}
+                }`}
             >
               <span className="text-2xl mb-2 block">📄</span>
               <h3 className="font-medium text-slate-900 dark:text-white">Reporte de Facturas</h3>

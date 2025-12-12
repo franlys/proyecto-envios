@@ -22,15 +22,15 @@ async function asignarPlanEnterprise() {
 
       // Actualizar por ID
       await db.collection('companies').doc('embarques_ivan').update({
-        plan: 'enterprise',
+        plan: 'smart',
         planAsignadoAt: new Date(),
         planAsignadoPor: 'admin_manual',
         planAnterior: companyDoc.data().plan || 'ninguno'
       });
 
-      console.log('✅ Plan Enterprise asignado exitosamente a Embarques Ivan (por ID)');
+      console.log('✅ Plan Smart Logistics asignado exitosamente a Embarques Ivan (por ID)');
       console.log(`📋 Plan anterior: ${companyDoc.data().plan || 'ninguno'}`);
-      console.log('📋 Plan nuevo: enterprise (120,000 RD$ / $2,052 USD)');
+      console.log('📋 Plan nuevo: smart (120,000 RD$ / $2,050 USD)');
 
     } else {
       // Actualizar por query
@@ -39,16 +39,16 @@ async function asignarPlanEnterprise() {
       const companyData = companyDoc.data();
 
       await db.collection('companies').doc(companyId).update({
-        plan: 'enterprise',
+        plan: 'smart',
         planAsignadoAt: new Date(),
         planAsignadoPor: 'admin_manual',
         planAnterior: companyData.plan || 'ninguno'
       });
 
-      console.log('✅ Plan Enterprise asignado exitosamente a Embarques Ivan');
+      console.log('✅ Plan Smart Logistics asignado exitosamente a Embarques Ivan');
       console.log(`📋 Company ID: ${companyId}`);
       console.log(`📋 Plan anterior: ${companyData.plan || 'ninguno'}`);
-      console.log('📋 Plan nuevo: enterprise (120,000 RD$ / $2,052 USD)');
+      console.log('📋 Plan nuevo: smart (120,000 RD$ / $2,050 USD)');
     }
 
     console.log('\n🎉 Proceso completado exitosamente');

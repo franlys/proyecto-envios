@@ -33,13 +33,13 @@ export const createGasto = async (req, res) => {
     const rutaData = rutaDoc.data();
 
     // ← NUEVO: Verificar permisos
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
-    if (userData.rol !== 'super_admin' && rutaData.companyId !== userData.companyId) {
-      return res.status(403).json({ 
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && rutaData.companyId !== userData.companyId) {
+      return res.status(403).json({
         success: false,
-        error: 'No tienes acceso a esta ruta' 
+        error: 'No tienes acceso a esta ruta'
       });
     }
 
@@ -52,15 +52,16 @@ export const createGasto = async (req, res) => {
     }
 
     // Crear el gasto
+    // ✅ ESTANDARIZACIÓN: Usar repartidorId en lugar de empleadoId
     const nuevoGasto = {
       rutaId,
-      empleadoId: rutaData.empleadoId,
+      repartidorId: rutaData.repartidorId,
       companyId: rutaData.companyId,
       tipo,
       descripcion: descripcion || '',
       monto: parseFloat(monto),
       fecha: new Date(),
-      createdBy: req.user.uid,
+      createdBy: req.userData.uid,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -100,13 +101,13 @@ export const getGastosByRuta = async (req, res) => {
     const rutaData = rutaDoc.data();
 
     // ← NUEVO: Verificar permisos
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
-    if (userData.rol !== 'super_admin' && rutaData.companyId !== userData.companyId) {
-      return res.status(403).json({ 
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && rutaData.companyId !== userData.companyId) {
+      return res.status(403).json({
         success: false,
-        error: 'No tienes acceso a esta ruta' 
+        error: 'No tienes acceso a esta ruta'
       });
     }
 
@@ -152,38 +153,41 @@ export const getGastosByRuta = async (req, res) => {
   }
 };
 
-// GET - Obtener gastos por empleado
+// GET - Obtener gastos por repartidor
+// ✅ ESTANDARIZACIÓN: Cambiar parámetro de empleadoId a repartidorId
 export const getGastosByEmpleado = async (req, res) => {
   try {
-    const { empleadoId } = req.params;
+    const { empleadoId } = req.params; // Mantener nombre del parámetro para compatibilidad con rutas
+    const repartidorId = empleadoId; // Usar repartidorId internamente
     const { fechaDesde, fechaHasta } = req.query;
 
     // ← NUEVO: Obtener datos del usuario
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
-    // Verificar que el empleado existe
-    const empleadoDoc = await db.collection('usuarios').doc(empleadoId).get();
-    if (!empleadoDoc.exists) {
-      return res.status(404).json({ 
+    // Verificar que el repartidor existe
+    const repartidorDoc = await db.collection('usuarios').doc(repartidorId).get();
+    if (!repartidorDoc.exists) {
+      return res.status(404).json({
         success: false,
-        error: 'Empleado no encontrado' 
+        error: 'Repartidor no encontrado'
       });
     }
 
-    const empleadoData = empleadoDoc.data();
+    const repartidorData = repartidorDoc.data();
 
     // ← NUEVO: Verificar permisos
-    if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-      return res.status(403).json({ 
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && repartidorData.companyId !== userData.companyId) {
+      return res.status(403).json({
         success: false,
-        error: 'No tienes acceso a este empleado' 
+        error: 'No tienes acceso a este repartidor'
       });
     }
 
     // Construir query
+    // ✅ ESTANDARIZACIÓN: Buscar por repartidorId en lugar de empleadoId
     let query = db.collection('gastos')
-      .where('empleadoId', '==', empleadoId);
+      .where('repartidorId', '==', repartidorId);
 
     // ← NUEVO: Filtrar por compañía si NO es super_admin
     if (userData.rol !== 'super_admin' && userData.companyId) {
@@ -235,8 +239,8 @@ export const getGastosByEmpleado = async (req, res) => {
     res.json({
       success: true,  // ✅ CORREGIDO
       empleado: {
-        id: empleadoId,
-        nombre: empleadoData.nombre
+        id: repartidorId,
+        nombre: repartidorData.nombre
       },
       data: gastos,   // ✅ CORREGIDO
       resumen: {
@@ -276,13 +280,13 @@ export const updateGasto = async (req, res) => {
     const gastoData = gastoDoc.data();
 
     // ← NUEVO: Verificar permisos
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
-    if (userData.rol !== 'super_admin' && gastoData.companyId !== userData.companyId) {
-      return res.status(403).json({ 
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && gastoData.companyId !== userData.companyId) {
+      return res.status(403).json({
         success: false,
-        error: 'No tienes acceso a este gasto' 
+        error: 'No tienes acceso a este gasto'
       });
     }
 
@@ -300,7 +304,7 @@ export const updateGasto = async (req, res) => {
     // Construir actualización
     const actualizacion = {
       updatedAt: new Date(),
-      updatedBy: req.user.uid
+      updatedBy: req.userData.uid
     };
 
     if (tipo) actualizacion.tipo = tipo;
@@ -349,13 +353,13 @@ export const deleteGasto = async (req, res) => {
     const gastoData = gastoDoc.data();
 
     // ← NUEVO: Verificar permisos
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
-    if (userData.rol !== 'super_admin' && gastoData.companyId !== userData.companyId) {
-      return res.status(403).json({ 
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && gastoData.companyId !== userData.companyId) {
+      return res.status(403).json({
         success: false,
-        error: 'No tienes acceso a este gasto' 
+        error: 'No tienes acceso a este gasto'
       });
     }
 

@@ -34,6 +34,8 @@ import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financ
 
 // Importar middleware de validación de plan
 import { checkPlanActivo } from './middleware/checkPlanActivo.js';
+// Importar middleware de autenticación
+import { verifyToken } from './middleware/auth.js';
 
 const app = express();
 
@@ -127,22 +129,23 @@ app.use('/api/finanzas', finanzasRoutes); // ✅ Finanzas tiene su propia valida
 
 // ⚠️ RUTAS OPERATIVAS - Requieren Plan Activo (mínimo Plan Operativo)
 // Estas rutas están protegidas por el middleware checkPlanActivo
-app.use('/api/companies', checkPlanActivo, companiesRoutes);
-app.use('/api/empleados', checkPlanActivo, empleadosRoutes);
-app.use('/api/reportes', checkPlanActivo, reportesRoutes);
-app.use('/api/embarques', checkPlanActivo, embarquesRoutes);
-app.use('/api/rutas', checkPlanActivo, rutasRoutes);
-app.use('/api/tickets', checkPlanActivo, ticketsRoutes);
-app.use('/api/recolecciones', checkPlanActivo, recoleccionesRoutes);
-app.use('/api/contenedores', checkPlanActivo, contenedoresRoutes);
-app.use('/api/almacen-usa', checkPlanActivo, almacenUSARoutes);
-app.use('/api/almacen-rd', checkPlanActivo, almacenRDRoutes);
-app.use('/api/secretarias', checkPlanActivo, secretariasRoutes);
-app.use('/api/cargadores', checkPlanActivo, cargadoresRoutes);
-app.use('/api/repartidores', checkPlanActivo, repartidoresRoutes);
-app.use('/api/facturacion', checkPlanActivo, facturacionRoutes);
-app.use('/api/sectores', checkPlanActivo, sectoresRoutes);
-app.use('/api/gastos-ruta', checkPlanActivo, gastosRutaRoutes);
+// IMPORTANTE: verifyToken debe ejecutarse ANTES de checkPlanActivo
+app.use('/api/companies', verifyToken, checkPlanActivo, companiesRoutes);
+app.use('/api/empleados', verifyToken, checkPlanActivo, empleadosRoutes);
+app.use('/api/reportes', verifyToken, checkPlanActivo, reportesRoutes);
+app.use('/api/embarques', verifyToken, checkPlanActivo, embarquesRoutes);
+app.use('/api/rutas', verifyToken, checkPlanActivo, rutasRoutes);
+app.use('/api/tickets', verifyToken, checkPlanActivo, ticketsRoutes);
+app.use('/api/recolecciones', verifyToken, checkPlanActivo, recoleccionesRoutes);
+app.use('/api/contenedores', verifyToken, checkPlanActivo, contenedoresRoutes);
+app.use('/api/almacen-usa', verifyToken, checkPlanActivo, almacenUSARoutes);
+app.use('/api/almacen-rd', verifyToken, checkPlanActivo, almacenRDRoutes);
+app.use('/api/secretarias', verifyToken, checkPlanActivo, secretariasRoutes);
+app.use('/api/cargadores', verifyToken, checkPlanActivo, cargadoresRoutes);
+app.use('/api/repartidores', verifyToken, checkPlanActivo, repartidoresRoutes);
+app.use('/api/facturacion', verifyToken, checkPlanActivo, facturacionRoutes);
+app.use('/api/sectores', verifyToken, checkPlanActivo, sectoresRoutes);
+app.use('/api/gastos-ruta', verifyToken, checkPlanActivo, gastosRutaRoutes);
 
 // =====================================================
 // RUTA RAÍZ

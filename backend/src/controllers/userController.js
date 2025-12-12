@@ -4,7 +4,7 @@ import { auth, db } from '../config/firebase.js';
 export const getAllUsers = async (req, res) => {
   try {
     // ← NUEVO: Obtener datos del usuario
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     let query = db.collection('usuarios');
@@ -45,7 +45,7 @@ export const getUsersByRole = async (req, res) => {
     const { rol } = req.params;
     
     // ← NUEVO: Obtener datos del usuario
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
 
     let query = db.collection('usuarios')
@@ -97,7 +97,7 @@ export const getUserById = async (req, res) => {
     }
 
     // ← NUEVO: Verificar permisos
-    const currentUserDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const currentUserDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const currentUserData = currentUserDoc.data();
     const targetUserData = userDoc.data();
 
@@ -137,7 +137,7 @@ export const updateUser = async (req, res) => {
     }
 
     // ← NUEVO: Verificar permisos
-    const currentUserDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const currentUserDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const currentUserData = currentUserDoc.data();
     const targetUserData = targetUserDoc.data();
 
@@ -185,7 +185,7 @@ export const deactivateUser = async (req, res) => {
     }
 
     // ← NUEVO: Verificar permisos
-    const currentUserDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const currentUserDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const currentUserData = currentUserDoc.data();
     const targetUserData = targetUserDoc.data();
 
@@ -232,7 +232,7 @@ export const activateUser = async (req, res) => {
     }
 
     // ← NUEVO: Verificar permisos
-    const currentUserDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const currentUserDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const currentUserData = currentUserDoc.data();
     const targetUserData = targetUserDoc.data();
 

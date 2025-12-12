@@ -34,16 +34,16 @@ export const empleadoController = {
       }
 
       // Obtener datos del usuario actual
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
 
       console.log('👤 Usuario que crea:', userData.email, '- Rol:', userData.rol);
 
-      // Validar que tenga companyId si NO es super_admin
-      if (userData.rol !== 'super_admin' && !userData.companyId) {
-        return res.status(403).json({ 
+      // Validar que tenga companyId si NO es super_admin o propietario
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && !userData.companyId) {
+        return res.status(403).json({
           success: false,
-          error: 'Usuario sin compañía asignada' 
+          error: 'Usuario sin compañía asignada'
         });
       }
 
@@ -52,13 +52,16 @@ export const empleadoController = {
       if (userData.rol === 'super_admin') {
         // ✅ AÑADIDO 'cargador'
         validRoles = ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
+      } else if (userData.rol === 'propietario' || userData.rol === 'admin_general') {
+        // ✅ Propietario y admin_general pueden crear todos los roles excepto super_admin
+        validRoles = ['admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
       } else if (userData.rol === 'admin') {
         // ✅ AÑADIDO 'cargador'
         validRoles = ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
       } else {
-        return res.status(403).json({ 
+        return res.status(403).json({
           success: false,
-          error: 'No tienes permisos para crear empleados' 
+          error: 'No tienes permisos para crear empleados'
         });
       }
 
@@ -102,7 +105,7 @@ export const empleadoController = {
         companyId: assignedCompanyId,
         activo: true,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        createdBy: req.user.uid,
+        createdBy: req.userData.uid,
         createdByName: userData.nombre || userData.email
       };
 
@@ -149,7 +152,7 @@ export const empleadoController = {
       const { rol, activo } = req.query;
 
       // ✅ NOTA: req.user es establecido por el middleware verifyToken
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
 
       console.log('🔍 userData.rol:', userData.rol);
@@ -157,17 +160,21 @@ export const empleadoController = {
 
       let query = db.collection('usuarios');
 
-      if (userData.rol !== 'super_admin') {
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario') {
         if (!userData.companyId) {
-          return res.status(403).json({ 
+          return res.status(403).json({
             success: false,
-            error: 'Usuario sin compañía asignada' 
+            error: 'Usuario sin compañía asignada'
           });
         }
         query = query.where('companyId', '==', userData.companyId);
         console.log('🔍 Filtrando por companyId:', userData.companyId);
       } else {
-        console.log('✅ Usuario super_admin, mostrando todos los empleados');
+        console.log('✅ Usuario super_admin o propietario, mostrando empleados correspondientes');
+        if (userData.rol === 'propietario' && userData.companyId) {
+          query = query.where('companyId', '==', userData.companyId);
+          console.log('🔍 Propietario - Filtrando por companyId:', userData.companyId);
+        }
       }
 
       if (rol) {
@@ -232,14 +239,14 @@ export const empleadoController = {
         });
       }
 
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
       const empleadoData = doc.data();
 
-      if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-        return res.status(403).json({ 
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && empleadoData.companyId !== userData.companyId) {
+        return res.status(403).json({
           success: false,
-          error: 'No tienes acceso a este empleado' 
+          error: 'No tienes acceso a este empleado'
         });
       }
 
@@ -289,14 +296,14 @@ export const empleadoController = {
         });
       }
 
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
       const empleadoData = doc.data();
 
-      if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-        return res.status(403).json({ 
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && empleadoData.companyId !== userData.companyId) {
+        return res.status(403).json({
           success: false,
-          error: 'No tienes acceso a este empleado' 
+          error: 'No tienes acceso a este empleado'
         });
       }
 
@@ -305,15 +312,15 @@ export const empleadoController = {
       if (nombre) updateData.nombre = nombre;
       if (telefono !== undefined) updateData.telefono = telefono;
       if (rol) {
-        // ✅ AÑADIDO 'cargador'
-        const validRoles = userData.rol === 'super_admin' 
+        // ✅ AÑADIDO 'cargador' y propietario
+        const validRoles = (userData.rol === 'super_admin' || userData.rol === 'propietario')
           ? ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador']
           : ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
-        
+
         if (!validRoles.includes(rol)) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             success: false,
-            error: 'Rol inválido' 
+            error: 'Rol inválido'
           });
         }
         updateData.rol = rol;
@@ -321,7 +328,7 @@ export const empleadoController = {
       if (activo !== undefined) updateData.activo = activo;
 
       updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-      updateData.updatedBy = req.user.uid;
+      updateData.updatedBy = req.userData.uid;
 
       await empleadoRef.update(updateData);
       console.log('✅ Empleado actualizado en Firestore');
@@ -369,14 +376,14 @@ export const empleadoController = {
         });
       }
 
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
       const empleadoData = doc.data();
 
-      if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-        return res.status(403).json({ 
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && empleadoData.companyId !== userData.companyId) {
+        return res.status(403).json({
           success: false,
-          error: 'No tienes acceso a este empleado' 
+          error: 'No tienes acceso a este empleado'
         });
       }
 
@@ -386,7 +393,7 @@ export const empleadoController = {
       await empleadoRef.update({
         activo: newStatus,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedBy: req.user.uid
+        updatedBy: req.userData.uid
       });
 
       console.log(`✅ Empleado ${newStatus ? 'activado' : 'desactivado'}`);
@@ -423,18 +430,18 @@ export const empleadoController = {
         });
       }
 
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
       const empleadoData = doc.data();
 
-      if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-        return res.status(403).json({ 
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && empleadoData.companyId !== userData.companyId) {
+        return res.status(403).json({
           success: false,
-          error: 'No tienes acceso a este empleado' 
+          error: 'No tienes acceso a este empleado'
         });
       }
 
-      if (id === req.user.uid) {
+      if (id === req.userData.uid) {
         return res.status(400).json({ 
           success: false,
           error: 'No puedes eliminarte a ti mismo' 
@@ -485,13 +492,13 @@ export const empleadoController = {
         });
       }
 
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
 
-      if (userData.rol !== 'super_admin' && userData.rol !== 'admin') {
-        return res.status(403).json({ 
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && userData.rol !== 'admin') {
+        return res.status(403).json({
           success: false,
-          error: 'No tienes permisos para cambiar contraseñas' 
+          error: 'No tienes permisos para cambiar contraseñas'
         });
       }
 
@@ -507,10 +514,10 @@ export const empleadoController = {
       const empleadoData = empleadoDoc.data();
 
       // ✅ AQUÍ ESTABA EL ERROR: 40Loss -> 403
-      if (userData.rol !== 'super_admin' && empleadoData.companyId !== userData.companyId) {
-        return res.status(403).json({ 
+      if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && empleadoData.companyId !== userData.companyId) {
+        return res.status(403).json({
           success: false,
-          error: 'No tienes acceso a este empleado' 
+          error: 'No tienes acceso a este empleado'
         });
       }
 
@@ -530,7 +537,7 @@ export const empleadoController = {
 
       await db.collection('usuarios').doc(id).update({
         passwordChangedAt: admin.firestore.FieldValue.serverTimestamp(),
-        passwordChangedBy: req.user.uid,
+        passwordChangedBy: req.userData.uid,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
@@ -554,7 +561,7 @@ export const empleadoController = {
   // Obtener repartidores activos
   async getRepartidores(req, res) {
     try {
-      const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+      const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
       const userData = userDoc.data();
 
       let query = db.collection('usuarios')

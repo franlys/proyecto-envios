@@ -19,7 +19,10 @@ import {
   CheckCircle,
   Clock,
   Calendar,
-  Receipt
+  Receipt,
+  Ticket, // ✅ NUEVO ICONO
+  Container, // ✅ NUEVO ICONO
+  ChevronDown // ✅ NUEVO ICONO
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
@@ -117,10 +120,17 @@ const FinanzasEmpresa = () => {
   const { userData } = useAuth();
   const [dateRange, setDateRange] = useState('30');
   const [loading, setLoading] = useState(true);
+
+  // ✅ NUEVO: Estado para filtro por contenedor (embarque)
+  const [activeContainer, setActiveContainer] = useState('todos');
+  const [contenedores, setContenedores] = useState([]);
+  const [loadingContenedores, setLoadingContenedores] = useState(false);
+
+  // Estados Suscripción
   const [activeTab, setActiveTab] = useState('overview'); // overview, suscripcion, facturas
   const [tasaDolar, setTasaDolar] = useState(58.50);
 
-  // Datos financieros operativos
+  // Datos financieros operativos (con valores por defecto para evitar undefined)
   const [data, setData] = useState({
     ingresos: { total: 0, change: 0, changeType: 'up' },
     gastos: { total: 0, change: 0, changeType: 'down', desglose: { repartidoresRD: 0, repartidoresUSD: 0, recolectoresUSD: 0, otrosUSD: 0 } },
@@ -196,7 +206,19 @@ const FinanzasEmpresa = () => {
 
       } catch (error) {
         console.error('Error fetching company finance data:', error);
-        toast.error('Error al cargar finanzas de la empresa');
+        // Mostrar mensaje de error usando la propiedad userMessage del interceptor
+        const errorMessage = error.userMessage || error.message || 'Error al cargar finanzas de la empresa';
+        toast.error(errorMessage);
+
+        // Asegurar que data tenga valores por defecto incluso en caso de error
+        // Esto previene que el componente se rompa si la API falla
+        setData({
+          ingresos: { total: 0, change: 0, changeType: 'neutral' },
+          gastos: { total: 0, change: 0, changeType: 'neutral', desglose: { repartidoresRD: 0, repartidoresUSD: 0, recolectoresUSD: 0, otrosUSD: 0, detalleOtros: { gasolina: 0, comida: 0, peaje: 0, otros: 0 } } },
+          utilidad: { total: 0, change: 0, changeType: 'neutral' },
+          facturasActivas: { total: 0, change: 0, changeType: 'neutral' },
+          tasaDolar: 58.50
+        });
       } finally {
         setLoading(false);
       }
@@ -273,6 +295,28 @@ const FinanzasEmpresa = () => {
           </div>
         </div>
 
+        {/* ✅ NUEVO: Filtro por Contenedor (Dropdown simple) */}
+        <div className="mt-6 flex items-center gap-4">
+          <div className="relative inline-block text-left">
+            <select
+              value={activeContainer}
+              onChange={(e) => setActiveContainer(e.target.value)}
+              disabled={loadingContenedores}
+              className="appearance-none bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-2 pl-4 pr-10 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium transition-all cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
+            >
+              <option value="todos">Todos los Contenedores</option>
+              {contenedores.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+              <ChevronDown className="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 mt-6">
           {[
@@ -283,11 +327,10 @@ const FinanzasEmpresa = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${activeTab === tab.id
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -299,281 +342,462 @@ const FinanzasEmpresa = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
         {/* TAB 1: RESUMEN FINANCIERO */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Date Range Selector */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Finanzas Operativas</h2>
-              <div className="flex gap-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
-                {[
-                  { value: '7', label: '7 días' },
-                  { value: '30', label: '30 días' },
-                  { value: '90', label: '90 días' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setDateRange(option.value)}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                      dateRange === option.value
+        {activeTab === 'overview' && (() => {
+          // GUARD CLAUSE: Si data es null o undefined, no renderizar nada para evitar crashes
+          if (!data) return <div className="p-4 text-center text-slate-500">Cargando datos...</div>;
+
+          // HELPER: Crear objeto seguro con valores por defecto para TODAS las propiedades
+          // Esto soluciona el error "Cannot read properties of undefined (reading 'total')"
+          const safeData = {
+            ingresos: data.ingresos || { total: 0, change: 0, changeType: 'neutral' },
+            gastos: data.gastos || {
+              total: 0,
+              change: 0,
+              changeType: 'neutral',
+              desglose: {
+                repartidoresRD: 0,
+                repartidoresUSD: 0,
+                recolectoresUSD: 0,
+                otrosUSD: 0
+              }
+            },
+            utilidad: data.utilidad || { total: 0, change: 0, changeType: 'neutral' },
+            facturasActivas: data.facturasActivas || { total: 0, change: 0, changeType: 'neutral' },
+            tasaDolar: data.tasaDolar || tasaDolar
+          };
+
+          // Asegurar que desglose existe específicamente
+          if (safeData.gastos && !safeData.gastos.desglose) {
+            safeData.gastos.desglose = {
+              repartidoresRD: 0,
+              repartidoresUSD: 0,
+              recolectoresUSD: 0,
+              otrosUSD: 0,
+              detalleOtros: { gasolina: 0, comida: 0, peaje: 0, otros: 0 }
+            };
+          }
+
+          // Asegurar que desglose existe
+          if (!safeData.gastos.desglose) {
+            safeData.gastos.desglose = {
+              repartidoresRD: 0,
+              repartidoresUSD: 0,
+              recolectoresUSD: 0,
+              otrosUSD: 0
+            };
+          }
+
+          return (
+            <div className="space-y-6">
+              {/* Date Range Selector */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Finanzas Operativas</h2>
+                <div className="flex gap-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
+                  {[
+                    { value: '7', label: '7 días' },
+                    { value: '30', label: '30 días' },
+                    { value: '90', label: '90 días' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setDateRange(option.value)}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${dateRange === option.value
                         ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* KPICards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <KPICard
+                  title="Ingresos Totales"
+                  value={safeData.ingresos.total}
+                  prefix="$"
+                  change={safeData.ingresos.change}
+                  changeType={safeData.ingresos.changeType}
+                  icon={TrendingUp}
+                  delay={0}
+                />
+                <KPICard
+                  title="Gastos Totales"
+                  value={safeData.gastos.total}
+                  prefix="$"
+                  change={safeData.gastos.change}
+                  changeType={safeData.gastos.changeType}
+                  icon={TrendingDown}
+                  delay={0.1}
+                />
+                <KPICard
+                  title="Utilidad Neta"
+                  value={safeData.utilidad.total}
+                  prefix="$"
+                  change={safeData.utilidad.change}
+                  changeType={safeData.utilidad.changeType}
+                  icon={DollarSign}
+                  delay={0.2}
+                />
+                <KPICard
+                  title="Facturas Activas"
+                  value={safeData.facturasActivas.total}
+                  change={safeData.facturasActivas.change}
+                  changeType={safeData.facturasActivas.changeType}
+                  icon={Package}
+                  delay={0.3}
+                />
+              </div>
+
+              {/* Desglose de Gastos con Gráfica de Pastel */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
+              >
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Desglose de Gastos</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  Todos los valores convertidos a USD. Repartidores cobran en RD$, Recolectores en USD.
+                </p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  {/* Gráfica de Pastel */}
+                  <div className="flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Repartidores', value: safeData.gastos.desglose.repartidoresUSD || 0, color: '#4f46e5' },
+                            { name: 'Recolectores', value: safeData.gastos.desglose.recolectoresUSD || 0, color: '#10b981' },
+                            { name: 'Gasolina', value: safeData.gastos.desglose.detalleOtros?.gasolina || 0, color: '#8b5cf6' },
+                            { name: 'Comida', value: safeData.gastos.desglose.detalleOtros?.comida || 0, color: '#f97316' },
+                            { name: 'Peaje', value: safeData.gastos.desglose.detalleOtros?.peaje || 0, color: '#06b6d4' },
+                            { name: 'Otros', value: safeData.gastos.desglose.detalleOtros?.otros || 0, color: '#f59e0b' }
+                          ].filter(item => item.value > 0)} // Solo mostrar si > 0
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {[
+                            { color: '#4f46e5' }, // Indigo (Repartidores)
+                            { color: '#10b981' }, // Emerald (Recolectores)
+                            { color: '#8b5cf6' }, // Violet (Gasolina)
+                            { color: '#f97316' }, // Orange (Comida)
+                            { color: '#06b6d4' }, // Cyan (Peaje)
+                            { color: '#f59e0b' }  // Amber (Otros)
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                          formatter={(value) => `$${(value || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Estadísticas Detalladas */}
+                  <div className="space-y-4">
+                    {/* Repartidores */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Repartidores</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            ${(safeData.gastos.desglose.repartidoresUSD || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500">
+                            RD$ {(safeData.gastos.desglose.repartidoresRD || 0).toLocaleString('es-DO')}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((safeData.gastos.desglose.repartidoresUSD || 0) / (safeData.gastos.total || 1)) * 100}%` }}
+                            transition={{ duration: 0.8, delay: 0.6 }}
+                            className="h-full bg-indigo-500"
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+                          {Math.round(((safeData.gastos.desglose.repartidoresUSD || 0) / (safeData.gastos.total || 1)) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Recolectores */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Recolectores</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            ${(safeData.gastos.desglose.recolectoresUSD || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-xs text-emerald-600 dark:text-emerald-400">USD</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((safeData.gastos.desglose.recolectoresUSD || 0) / (safeData.gastos.total || 1)) * 100}%` }}
+                            transition={{ duration: 0.8, delay: 0.7 }}
+                            className="h-full bg-emerald-500"
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+                          {Math.round(((safeData.gastos.desglose.recolectoresUSD || 0) / (safeData.gastos.total || 1)) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Gasolina */}
+                    {(safeData.gastos.desglose.detalleOtros?.gasolina > 0) && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Gasolina</span>
+                          </div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            ${(safeData.gastos.desglose.detalleOtros.gasolina).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(safeData.gastos.desglose.detalleOtros.gasolina / (safeData.gastos.total || 1)) * 100}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="h-full bg-violet-500"
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+                            {Math.round((safeData.gastos.desglose.detalleOtros.gasolina / (safeData.gastos.total || 1)) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comida */}
+                    {(safeData.gastos.desglose.detalleOtros?.comida > 0) && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Comida</span>
+                          </div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            ${(safeData.gastos.desglose.detalleOtros.comida).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(safeData.gastos.desglose.detalleOtros.comida / (safeData.gastos.total || 1)) * 100}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="h-full bg-orange-500"
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+                            {Math.round((safeData.gastos.desglose.detalleOtros.comida / (safeData.gastos.total || 1)) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Peaje */}
+                    {(safeData.gastos.desglose.detalleOtros?.peaje > 0) && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Ticket className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Peaje</span>
+                          </div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            ${(safeData.gastos.desglose.detalleOtros.peaje).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(safeData.gastos.desglose.detalleOtros.peaje / (safeData.gastos.total || 1)) * 100}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="h-full bg-cyan-500"
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+                            {Math.round((safeData.gastos.desglose.detalleOtros.peaje / (safeData.gastos.total || 1)) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Otros (Misc) */}
+                    {(safeData.gastos.desglose.detalleOtros?.otros > 0) && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Misceláneos</span>
+                          </div>
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            ${(safeData.gastos.desglose.detalleOtros.otros).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(safeData.gastos.desglose.detalleOtros.otros / (safeData.gastos.total || 1)) * 100}%` }}
+                              transition={{ duration: 0.8 }}
+                              className="h-full bg-amber-500"
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+                            {Math.round((safeData.gastos.desglose.detalleOtros.otros / (safeData.gastos.total || 1)) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Gráficas de Tendencias Mensuales */}
+              {metricasMensuales.length > 0 && (
+                <>
+                  {/* Gráfica de Ingresos vs Gastos */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.5 }}
+                    className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
                   >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                      Tendencia Mensual: Ingresos vs Gastos
+                    </h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={metricasMensuales}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="mes"
+                          stroke="#64748b"
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis
+                          stroke="#64748b"
+                          style={{ fontSize: '12px' }}
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                          formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="ingresos"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          name="Ingresos"
+                          dot={{ fill: '#10b981', r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="gastos"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          name="Gastos"
+                          dot={{ fill: '#ef4444', r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </motion.div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <KPICard
-                title="Ingresos Totales"
-                value={data.ingresos.total}
-                prefix="$"
-                change={data.ingresos.change}
-                changeType={data.ingresos.changeType}
-                icon={TrendingUp}
-                delay={0}
-              />
-              <KPICard
-                title="Gastos Totales"
-                value={data.gastos.total}
-                prefix="$"
-                change={data.gastos.change}
-                changeType={data.gastos.changeType}
-                icon={TrendingDown}
-                delay={0.1}
-              />
-              <KPICard
-                title="Utilidad Neta"
-                value={data.utilidad.total}
-                prefix="$"
-                change={data.utilidad.change}
-                changeType={data.utilidad.changeType}
-                icon={DollarSign}
-                delay={0.2}
-              />
-              <KPICard
-                title="Facturas Activas"
-                value={data.facturasActivas.total}
-                change={data.facturasActivas.change}
-                changeType={data.facturasActivas.changeType}
-                icon={Package}
-                delay={0.3}
-              />
-            </div>
+                  {/* Gráfica de Utilidad Mensual */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.6 }}
+                    className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
+                  >
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
+                      Utilidad Neta Mensual
+                    </h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={metricasMensuales}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="mes"
+                          stroke="#64748b"
+                          style={{ fontSize: '12px' }}
+                        />
+                        <YAxis
+                          stroke="#64748b"
+                          style={{ fontSize: '12px' }}
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff'
+                          }}
+                          formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+                        />
+                        <Legend />
+                        <Bar
+                          dataKey="utilidad"
+                          fill="#6366f1"
+                          name="Utilidad Neta"
+                          radius={[8, 8, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                </>
+              )}
 
-            {/* Desglose de Gastos con Gráfica de Pastel */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
-            >
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Desglose de Gastos</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                Todos los valores convertidos a USD. Repartidores cobran en RD$, Recolectores en USD.
-              </p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* Gráfica de Pastel */}
-                <div className="flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Repartidores', value: data.gastos.desglose.repartidoresUSD, color: '#6366f1' },
-                          { name: 'Recolectores', value: data.gastos.desglose.recolectoresUSD, color: '#10b981' },
-                          { name: 'Otros', value: data.gastos.desglose.otrosUSD, color: '#f59e0b' }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {[
-                          { color: '#6366f1' },
-                          { color: '#10b981' },
-                          { color: '#f59e0b' }
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: '#fff'
-                        }}
-                        formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Estadísticas Detalladas */}
-                <div className="space-y-4">
-                {/* Repartidores */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Repartidores</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        ${data.gastos.desglose.repartidoresUSD.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-500">
-                        RD$ {data.gastos.desglose.repartidoresRD.toLocaleString('es-DO')}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(data.gastos.desglose.repartidoresUSD / (data.gastos.total || 1)) * 100}%` }}
-                        transition={{ duration: 0.8, delay: 0.6 }}
-                        className="h-full bg-indigo-500"
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
-                      {Math.round((data.gastos.desglose.repartidoresUSD / (data.gastos.total || 1)) * 100)}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Recolectores */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Recolectores</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        ${data.gastos.desglose.recolectoresUSD.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                      </div>
-                      <div className="text-xs text-emerald-600 dark:text-emerald-400">USD</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(data.gastos.desglose.recolectoresUSD / (data.gastos.total || 1)) * 100}%` }}
-                        transition={{ duration: 0.8, delay: 0.7 }}
-                        className="h-full bg-emerald-500"
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
-                      {Math.round((data.gastos.desglose.recolectoresUSD / (data.gastos.total || 1)) * 100)}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Otros */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Otros Gastos</span>
-                    </div>
-                    <div className="font-semibold text-slate-900 dark:text-white">
-                      ${data.gastos.desglose.otrosUSD.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(data.gastos.desglose.otrosUSD / (data.gastos.total || 1)) * 100}%` }}
-                        transition={{ duration: 0.8, delay: 0.8 }}
-                        className="h-full bg-amber-500"
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
-                      {Math.round((data.gastos.desglose.otrosUSD / (data.gastos.total || 1)) * 100)}%
-                    </span>
-                  </div>
-                </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Gráficas de Tendencias Mensuales */}
-            {metricasMensuales.length > 0 && (
-              <>
-                {/* Gráfica de Ingresos vs Gastos */}
+              {/* ✅ NUEVO: Gráfica de Entregas Mensuales */}
+              {metricasMensuales.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.5 }}
-                  className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
+                  transition={{ duration: 0.4, delay: 0.7 }}
+                  className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mt-6"
                 >
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
-                    Tendencia Mensual: Ingresos vs Gastos
-                  </h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={metricasMensuales}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis
-                        dataKey="mes"
-                        stroke="#64748b"
-                        style={{ fontSize: '12px' }}
-                      />
-                      <YAxis
-                        stroke="#64748b"
-                        style={{ fontSize: '12px' }}
-                        tickFormatter={(value) => `$${value.toLocaleString()}`}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: '#fff'
-                        }}
-                        formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="ingresos"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        name="Ingresos"
-                        dot={{ fill: '#10b981', r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="gastos"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        name="Gastos"
-                        dot={{ fill: '#ef4444', r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </motion.div>
-
-                {/* Gráfica de Utilidad Mensual */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.6 }}
-                  className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
-                >
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">
-                    Utilidad Neta Mensual
+                    Entregas Mensuales
                   </h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={metricasMensuales}>
@@ -586,7 +810,6 @@ const FinanzasEmpresa = () => {
                       <YAxis
                         stroke="#64748b"
                         style={{ fontSize: '12px' }}
-                        tickFormatter={(value) => `$${value.toLocaleString()}`}
                       />
                       <Tooltip
                         contentStyle={{
@@ -595,22 +818,21 @@ const FinanzasEmpresa = () => {
                           borderRadius: '8px',
                           color: '#fff'
                         }}
-                        formatter={(value) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
                       />
                       <Legend />
                       <Bar
-                        dataKey="utilidad"
-                        fill="#6366f1"
-                        name="Utilidad Neta"
+                        dataKey="entregas"
+                        fill="#10b981"
+                        name="Total Entregas"
                         radius={[8, 8, 0, 0]}
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 </motion.div>
-              </>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )
+        })()}
 
         {/* TAB 2: SUSCRIPCIÓN SAAS */}
         {activeTab === 'suscripcion' && (

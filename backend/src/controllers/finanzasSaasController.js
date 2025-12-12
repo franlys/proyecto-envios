@@ -28,31 +28,31 @@ export const getOverview = async (req, res) => {
         // 2. Calcular MRR (Monthly Recurring Revenue)
         let mrrTotal = 0;
         const empresasPorPlan = {
-            enterprise: { count: 0, mrr: 0 },
-            professional: { count: 0, mrr: 0 },
-            basic: { count: 0, mrr: 0 }
+            smart: { count: 0, mrr: 0 },
+            automatizado: { count: 0, mrr: 0 },
+            operativo: { count: 0, mrr: 0 }
         };
 
         // Precios de los planes (deben venir de configuración o DB)
         const preciosPlanes = {
-            enterprise: 1000,
-            professional: 400,
-            basic: 300
+            smart: 120000,
+            automatizado: 75000,
+            operativo: 50000
         };
 
         empresasSnapshot.forEach(doc => {
             const empresa = doc.data();
-            const plan = empresa.plan?.toLowerCase() || 'basic';
-            const precio = preciosPlanes[plan] || preciosPlanes.basic;
+            const plan = empresa.plan?.toLowerCase() || 'operativo';
+            const precio = preciosPlanes[plan] || preciosPlanes.operativo;
 
             mrrTotal += precio;
             if (empresasPorPlan[plan]) {
                 empresasPorPlan[plan].count++;
                 empresasPorPlan[plan].mrr += precio;
-            } else if (empresasPorPlan['basic']) {
-                // Fallback a basic si el plan no coincide
-                empresasPorPlan['basic'].count++;
-                empresasPorPlan['basic'].mrr += precio;
+            } else if (empresasPorPlan['operativo']) {
+                // Fallback a operativo si el plan no coincide
+                empresasPorPlan['operativo'].count++;
+                empresasPorPlan['operativo'].mrr += precio;
             }
         });
 
@@ -134,20 +134,20 @@ export const getEmpresasSuscritas = async (req, res) => {
 
         const empresas = [];
         const preciosPlanes = {
-            enterprise: 1000,
-            professional: 400,
-            basic: 300
+            smart: 120000,
+            automatizado: 75000,
+            operativo: 50000
         };
 
         for (const doc of empresasSnapshot.docs) {
             const empresa = doc.data();
-            const plan = empresa.plan?.toLowerCase() || 'basic';
+            const plan = empresa.plan?.toLowerCase() || 'operativo';
 
             empresas.push({
                 id: doc.id,
                 nombre: empresa.name || empresa.nombre || 'Sin Nombre',
-                plan: empresa.plan || 'Basic',
-                mrr: preciosPlanes[plan] || preciosPlanes.basic,
+                plan: empresa.plan || 'Operativo',
+                mrr: preciosPlanes[plan] || preciosPlanes.operativo,
                 fechaSuscripcion: empresa.createdAt?.toDate() || new Date(),
                 estado: empresa.active ? 'activo' : 'inactivo',
                 contacto: empresa.contactEmail || empresa.email || ''
@@ -427,7 +427,24 @@ export const generarFacturasMasivas = async (req, res) => {
             duplicadas: []
         };
 
-        // 2. Generar factura para cada empresa
+        const mesAnioKey = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
+
+        // ✅ OPTIMIZACIÓN: Verificar duplicados en batch
+        const facturasExistentes = new Set();
+        const facturasExistentesSnapshot = await db.collection('saas_invoices')
+            .where('mesAnio', '==', mesAnioKey)
+            .get();
+
+        facturasExistentesSnapshot.forEach(doc => {
+            facturasExistentes.add(doc.data().companyId);
+        });
+
+        // ✅ OPTIMIZACIÓN: Usar batch write en lugar de N writes individuales
+        const batch = db.batch();
+        let batchCount = 0;
+        const MAX_BATCH = 500; // Firestore limit
+
+        // 2. Preparar facturas para batch write
         for (const doc of empresasSnapshot.docs) {
             const companyId = doc.id;
             const companyData = doc.data();
@@ -443,19 +460,11 @@ export const generarFacturasMasivas = async (req, res) => {
                 continue;
             }
 
-            // Verificar si ya existe factura
-            const mesAnioKey = `${anioActual}-${String(mesActual).padStart(2, '0')}`;
-            const facturaExistente = await db.collection('saas_invoices')
-                .where('companyId', '==', companyId)
-                .where('mesAnio', '==', mesAnioKey)
-                .limit(1)
-                .get();
-
-            if (!facturaExistente.empty) {
+            // Verificar duplicados usando Set (O(1) lookup)
+            if (facturasExistentes.has(companyId)) {
                 resultados.duplicadas.push({
                     companyId,
-                    companyName: companyData.name,
-                    facturaId: facturaExistente.docs[0].id
+                    companyName: companyData.name
                 });
                 continue;
             }
@@ -463,6 +472,7 @@ export const generarFacturasMasivas = async (req, res) => {
             // Crear factura
             try {
                 const numeroFactura = `SAAS-${anioActual}-${String(mesActual).padStart(2, '0')}-${companyId.substring(0, 8).toUpperCase()}`;
+                const facturaRef = db.collection('saas_invoices').doc(); // Generar ID
 
                 const facturaSaas = {
                     companyId,
@@ -492,7 +502,8 @@ export const generarFacturasMasivas = async (req, res) => {
                     createdBy: req.userData.email
                 };
 
-                const facturaRef = await db.collection('saas_invoices').add(facturaSaas);
+                batch.set(facturaRef, facturaSaas);
+                batchCount++;
 
                 resultados.exitosas.push({
                     companyId,
@@ -502,6 +513,12 @@ export const generarFacturasMasivas = async (req, res) => {
                     monto: plan.precio
                 });
 
+                // Firestore batch limit is 500 operations
+                if (batchCount >= MAX_BATCH) {
+                    await batch.commit();
+                    batchCount = 0;
+                }
+
             } catch (error) {
                 resultados.fallidas.push({
                     companyId,
@@ -509,6 +526,11 @@ export const generarFacturasMasivas = async (req, res) => {
                     error: error.message
                 });
             }
+        }
+
+        // ✅ Commit remaining operations
+        if (batchCount > 0) {
+            await batch.commit();
         }
 
         console.log(`✅ Generación masiva completada: ${resultados.exitosas.length} exitosas, ${resultados.fallidas.length} fallidas, ${resultados.duplicadas.length} duplicadas`);

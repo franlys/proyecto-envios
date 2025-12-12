@@ -145,7 +145,7 @@ export const getContenedorById = async (req, res) => {
     
     const contenedor = await obtenerContenedorPorIdModelo(id);
     
-    if (userData.rol !== 'super_admin' && contenedor.companyId !== userData.companyId) {
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && contenedor.companyId !== userData.companyId) {
       return res.status(403).json({
         success: false,
         error: 'No tienes permiso para acceder a este contenedor'

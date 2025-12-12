@@ -15,7 +15,7 @@ const Companies = () => {
     adminPassword: '',
     telefono: '',
     direccion: '',
-    plan: 'basic',
+    plan: 'operativo',
     emailConfig: {
       service: 'gmail',
       user: '',
@@ -188,7 +188,7 @@ const Companies = () => {
       adminPassword: '',
       telefono: company.telefono || '',
       direccion: company.direccion || '',
-      plan: company.plan || 'basic',
+      plan: company.plan || 'operativo',
       emailConfig: company.emailConfig || {
         service: 'gmail',
         user: '',
@@ -220,7 +220,7 @@ const Companies = () => {
       adminPassword: '',
       telefono: '',
       direccion: '',
-      plan: 'basic',
+      plan: 'operativo',
       emailConfig: {
         service: 'gmail',
         user: '',
@@ -241,20 +241,20 @@ const Companies = () => {
 
   const getPlanBadge = (plan) => {
     const badges = {
-      basic: 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200',
-      premium: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200',
-      enterprise: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+      operativo: 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200',
+      automatizado: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200',
+      smart: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
     };
-    return badges[plan] || badges.basic;
+    return badges[plan] || badges.operativo;
   };
 
   const getPlanLabel = (plan) => {
     const labels = {
-      basic: 'Básico',
-      premium: 'Premium',
-      enterprise: 'Enterprise'
+      operativo: 'Plan Operativo',
+      automatizado: 'Plan Automatizado',
+      smart: 'Plan Smart Logistics'
     };
-    return labels[plan] || 'Básico';
+    return labels[plan] || 'Plan Operativo';
   };
 
   if (userData?.rol !== 'super_admin') {
@@ -495,9 +495,9 @@ const Companies = () => {
                     onChange={(e) => setFormData({...formData, plan: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="basic">Básico</option>
-                    <option value="premium">Premium</option>
-                    <option value="enterprise">Enterprise</option>
+                    <option value="operativo">Plan Operativo (RD$ 50,000/mes)</option>
+                    <option value="automatizado">Plan Automatizado (RD$ 75,000/mes)</option>
+                    <option value="smart">Plan Smart Logistics (RD$ 120,000/mes)</option>
                   </select>
                 </div>
 

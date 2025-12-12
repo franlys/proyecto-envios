@@ -135,15 +135,16 @@ const determinarSectorPorDireccion = (direccion) => {
       return res.status(404).json({ error: 'Embarque no encontrado' });
     }
 
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
     const embarqueData = embarqueDoc.data();
 
-    if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && embarqueData.companyId !== userData.companyId) {
       return res.status(403).json({ error: 'No tienes acceso a este embarque' });
     }
 
-    const facturasSnapshot = await db.collection('facturas')
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    const facturasSnapshot = await db.collection('recolecciones')
       .where('embarqueId', '==', id)
       .get();
 
@@ -177,11 +178,11 @@ export const updateEmbarque = async (req, res) => {
       return res.status(404).json({ error: 'Embarque no encontrado' });
     }
 
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
     const embarqueData = embarqueDoc.data();
 
-    if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && embarqueData.companyId !== userData.companyId) {
       return res.status(403).json({ error: 'No tienes acceso a este embarque' });
     }
 
@@ -257,15 +258,16 @@ export const deleteEmbarque = async (req, res) => {
       return res.status(404).json({ error: 'Embarque no encontrado' });
     }
 
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
     const embarqueData = embarqueDoc.data();
 
-    if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && embarqueData.companyId !== userData.companyId) {
       return res.status(403).json({ error: 'No tienes acceso a este embarque' });
     }
 
-    const facturasSnapshot = await db.collection('facturas')
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    const facturasSnapshot = await db.collection('recolecciones')
       .where('embarqueId', '==', id)
       .get();
 
@@ -299,11 +301,11 @@ export const importFacturas = async (req, res) => {
       return res.status(404).json({ error: 'Embarque no encontrado' });
     }
 
-    const userDoc = await db.collection('usuarios').doc(req.user.uid).get();
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
     const embarqueData = embarqueDoc.data();
 
-    if (userData.rol !== 'super_admin' && embarqueData.companyId !== userData.companyId) {
+    if (userData.rol !== 'super_admin' && userData.rol !== 'propietario' && embarqueData.companyId !== userData.companyId) {
       return res.status(403).json({ error: 'No tienes acceso a este embarque' });
     }
 
@@ -311,7 +313,8 @@ export const importFacturas = async (req, res) => {
     let count = 0;
 
     for (const factura of facturas) {
-      const facturaRef = db.collection('facturas').doc();
+      // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+      const facturaRef = db.collection('recolecciones').doc();
 
       // Obtener dirección
       const direccion = factura.direccion || '';

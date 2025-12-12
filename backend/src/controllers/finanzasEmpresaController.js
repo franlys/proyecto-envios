@@ -16,7 +16,7 @@ import {
  */
 export const getOverview = async (req, res) => {
   try {
-    const { dateRange = '30' } = req.query;
+    const { dateRange = '30', contenedorId } = req.query;
     const companyId = req.userData?.companyId; // Del middleware de autenticación
 
     console.log('📊 [Finanzas Empresa] Obteniendo overview para company:', companyId);
@@ -36,50 +36,80 @@ export const getOverview = async (req, res) => {
     // Obtener tasa de cambio actual
     const tasaDolar = await obtenerTasaDolar();
 
-    // 1. Calcular ingresos por entregas (facturas entregadas)
-    // Nota: No filtramos por fecha en la query porque updatedAt puede ser Timestamp o string
-    // Filtraremos en memoria después
-    // ✅ CORRECCIÓN: Buscar ambas variantes del estado
-    const facturasSnapshot = await db.collection('facturas')
+    // 1. Calcular ingresos (Ingresos recaudados de verdad)
+    // Lógica V2: Incluir TODO lo que se haya cobrado ('pagado') O lo que se haya entregado (contra entrega)
+
+    // Query A: Entregados (captura contra entrega)
+    let queryEntregados = db.collection('recolecciones')
       .where('companyId', '==', companyId)
-      .where('estado', 'in', ['entregado', 'entregada'])
-      .get();
+      .where('estado', 'in', ['entregado', 'entregada', 'Entregado', 'Entregada']);
+
+    // Query B: Pagados (captura pagos USA/Pre-pagos aunque no estén entregados)
+    let queryPagados = db.collection('recolecciones')
+      .where('companyId', '==', companyId)
+      .where('pago.estadoPago', '==', 'pagado');
+
+    // ✅ Filtro Opcional por Contenedor (Embarque)
+    if (contenedorId && contenedorId !== 'todos') {
+      console.log('📦 Filtrando por embarqueId:', contenedorId);
+      // Usamos el campo 'embarqueId' que es la referencia real en BD
+      queryEntregados = queryEntregados.where('embarqueId', '==', contenedorId);
+      queryPagados = queryPagados.where('embarqueId', '==', contenedorId);
+    }
+
+    const [entregadasSnap, pagadasSnap] = await Promise.all([
+      queryEntregados.get(),
+      queryPagados.get()
+    ]);
+
+    // Usar un Map para unificar y evitar duplicados (si algo está pagado Y entregado)
+    const recoleccionesUnificadas = new Map();
+
+    const procesarDoc = (doc) => {
+      const data = doc.data();
+      // Usar el ID del documento como clave única
+      if (!recoleccionesUnificadas.has(doc.id)) {
+        recoleccionesUnificadas.set(doc.id, data);
+      }
+    };
+
+    entregadasSnap.forEach(procesarDoc);
+    pagadasSnap.forEach(procesarDoc);
 
     let ingresosTotal = 0;
-    let totalCobrosFacturas = 0; // ✅ NUEVO: Cobros adicionales en facturas
 
-    facturasSnapshot.forEach(doc => {
-      const factura = doc.data();
+    // Iterar sobre los valores únicos
+    for (const recoleccion of recoleccionesUnificadas.values()) {
+      // Filtrar por fecha en memoria (usando createdAt o updatedAt según lógica de negocio)
+      // Para ingresos: idealmente es fecha de pago, pero usaremos updatedAt/createdAt como proxy
+      let fechaReferencia;
 
-      // Filtrar por fecha en memoria
-      let facturaDate;
-      if (factura.updatedAt) {
-        if (typeof factura.updatedAt === 'string') {
-          facturaDate = new Date(factura.updatedAt);
-        } else if (factura.updatedAt.toDate) {
-          // Es un Firestore Timestamp
-          facturaDate = factura.updatedAt.toDate();
-        }
+      if (recoleccion.pago?.fechaPago) {
+        // Si tiene fecha de pago explícita, usarla (ideal)
+        fechaReferencia = typeof recoleccion.pago.fechaPago === 'string'
+          ? new Date(recoleccion.pago.fechaPago)
+          : recoleccion.pago.fechaPago.toDate ? recoleccion.pago.fechaPago.toDate() : null;
       }
 
-      // Solo contar si está dentro del rango de fechas
-      if (facturaDate && facturaDate >= startDate) {
-        // ✅ Ingreso base: monto del envío
-        ingresosTotal += factura.monto || 0;
-
-        // ✅ NUEVO: Agregar cobros adicionales si existen
-        // (pago contra entrega, monto pendiente cobrado, etc.)
-        if (factura.pago && factura.pago.montoPagado > 0) {
-          totalCobrosFacturas += factura.pago.montoPagado || 0;
-        }
+      if (!fechaReferencia && recoleccion.updatedAt) {
+        fechaReferencia = typeof recoleccion.updatedAt === 'string'
+          ? new Date(recoleccion.updatedAt)
+          : recoleccion.updatedAt.toDate ? recoleccion.updatedAt.toDate() : null;
       }
-    });
 
-    // ✅ NUEVO: Ingresos totales incluyen el monto del envío + cobros
-    const ingresosTotales = ingresosTotal + totalCobrosFacturas;
+      // Solo contar si está dentro del rango e incluye facturación válida
+      if (fechaReferencia && fechaReferencia >= startDate) {
+        // ✅ CORRECCIÓN: Usar recoleccion.facturacion.total
+        ingresosTotal += recoleccion.facturacion?.total || 0;
+      }
+    }
+
+    // ✅ CORRECCIÓN: Ingresos = Total facturado (NO sumar pagos, eso es flujo de caja)
+    const ingresosTotales = ingresosTotal;
 
     // 2. Calcular gastos (con conversión de monedas)
-    const gastosDesglosados = await calcularGastos(companyId, startDate, tasaDolar);
+    // Pasamos contenedorId para tratar de filtrar gastos asociados (si la lógica de negocio lo soporta)
+    const gastosDesglosados = await calcularGastos(companyId, startDate, tasaDolar, contenedorId);
 
     const gastosTotal =
       gastosDesglosados.repartidoresUSD +
@@ -89,10 +119,11 @@ export const getOverview = async (req, res) => {
     // 3. Calcular utilidad (usando ingresos totales que incluyen cobros)
     const utilidad = ingresosTotales - gastosTotal;
 
-    // 4. Contar facturas activas
-    const facturasActivasSnapshot = await db.collection('facturas')
+    // 4. Contar recolecciones activas
+    // ✅ Query directa a 'recolecciones'
+    const recoleccionesActivasSnapshot = await db.collection('recolecciones')
       .where('companyId', '==', companyId)
-      .where('estado', 'in', ['sin_confirmar', 'en_ruta', 'en_almacen'])
+      .where('estado', 'in', ['pendiente', 'asignada', 'en_ruta', 'en_almacen']) // Estados activos reales
       .get();
 
     // 5. Calcular cambios vs mes anterior (mock - implementar lógica real)
@@ -100,19 +131,17 @@ export const getOverview = async (req, res) => {
       ingresos: 12.5,
       gastos: 8.3,
       utilidad: 18.7,
-      facturas: 5.2
+      recolecciones: 5.2
     };
 
-    console.log(`✅ [Finanzas Empresa] Ingresos: $${ingresosTotales} (Envíos: $${ingresosTotal} + Cobros: $${totalCobrosFacturas}), Gastos: $${gastosTotal}, Utilidad: $${utilidad}`);
+    console.log(`✅ [Finanzas Empresa] Ingresos: $${ingresosTotales}, Gastos: $${gastosTotal}, Utilidad: $${utilidad}`);
 
     res.json({
       success: true,
       data: {
         tasaDolar: tasaDolar,
         ingresos: {
-          total: ingresosTotales, // ✅ Ahora incluye envíos + cobros
-          envios: ingresosTotal, // ✅ NUEVO: Desglose de ingresos por envíos
-          cobros: totalCobrosFacturas, // ✅ NUEVO: Desglose de cobros en facturas
+          total: ingresosTotales,
           change: cambios.ingresos,
           changeType: 'up'
         },
@@ -127,9 +156,9 @@ export const getOverview = async (req, res) => {
           change: cambios.utilidad,
           changeType: utilidad > 0 ? 'up' : 'down'
         },
-        facturasActivas: {
-          total: facturasActivasSnapshot.size,
-          change: cambios.facturas,
+        recoleccionesActivas: {
+          total: recoleccionesActivasSnapshot.size,
+          change: cambios.recolecciones,
           changeType: 'up'
         }
       }
@@ -150,7 +179,7 @@ export const getOverview = async (req, res) => {
  * Repartidores: RD$ -> USD
  * Recolectores: USD
  */
-async function calcularGastos(companyId, startDate, tasaDolar) {
+async function calcularGastos(companyId, startDate, tasaDolar, contenedorId = null) {
   try {
     console.log('💰 [Finanzas Empresa] Calculando gastos...');
 
@@ -196,34 +225,74 @@ async function calcularGastos(companyId, startDate, tasaDolar) {
       console.log('⚠️ [Finanzas Empresa] Colección pagos_recolectores no existe aún');
     }
 
-    // 3. Otros gastos operacionales
-    // Usamos la colección 'gastos' que ya existe
-    let otrosGastosUSD = 0;
+    // 3. Gastos de rutas (combustible, peajes, etc.)
+    // ✅ CORRECCIÓN: Los gastos están en el array 'gastos' de cada ruta
+    let gastosRutasRD = 0;
+    const gastosPorTipo = {
+      'Combustible': 0,
+      'Comida': 0,
+      'Peaje': 0,
+      'Otros': 0
+    };
 
     try {
-      const otrosGastosSnapshot = await db.collection('gastos')
+      const rutasSnapshot = await db.collection('rutas')
         .where('companyId', '==', companyId)
-        .where('fecha', '>=', startDate)
         .get();
 
-      otrosGastosSnapshot.forEach(doc => {
-        const gasto = doc.data();
-        // Convertir según la moneda del gasto
-        if (gasto.moneda === 'RD$' || gasto.moneda === 'DOP') {
-          otrosGastosUSD += (gasto.monto || 0) / tasaDolar;
-        } else {
-          otrosGastosUSD += gasto.monto || 0;
-        }
+      rutasSnapshot.forEach(rutaDoc => {
+        const ruta = rutaDoc.data();
+        const gastosArray = ruta.gastos || [];
+
+        gastosArray.forEach(gasto => {
+          // Filtrar por fecha
+          let fechaGasto = null;
+          if (gasto.fecha) {
+            if (typeof gasto.fecha === 'string') {
+              fechaGasto = new Date(gasto.fecha);
+            } else if (gasto.fecha.toDate) {
+              fechaGasto = gasto.fecha.toDate();
+            }
+          }
+
+          if (!fechaGasto || fechaGasto < startDate) return;
+
+          // Clasificar gastos por tipo
+          const tipoNormalizado = (gasto.tipo || 'Otros').toLowerCase(); // Normalizar a minúsculas para agrupación
+
+          let categoria = 'Otros';
+          if (tipoNormalizado.includes('combustible') || tipoNormalizado.includes('gasolina')) {
+            categoria = 'Combustible';
+          } else if (tipoNormalizado.includes('comida') || tipoNormalizado.includes('alimento')) {
+            categoria = 'Comida';
+          } else if (tipoNormalizado.includes('peaje')) {
+            categoria = 'Peaje';
+          }
+
+          gastosPorTipo[categoria] = (gastosPorTipo[categoria] || 0) + (gasto.monto || 0);
+
+          // Los gastos de ruta normalmente son en RD$ (combustible, peajes, comida)
+          gastosRutasRD += gasto.monto || 0;
+        });
       });
     } catch (error) {
-      console.log('⚠️ [Finanzas Empresa] Error al obtener gastos operacionales:', error.message);
+      console.log('⚠️ [Finanzas Empresa] Error al obtener gastos de rutas:', error.message);
     }
+
+    const gastosRutasUSD = gastosRutasRD / tasaDolar;
 
     return {
       repartidoresRD: gastosRepartidoresRD,
       repartidoresUSD: gastosRepartidoresUSD,
       recolectoresUSD: gastosRecolectoresUSD,
-      otrosUSD: otrosGastosUSD
+      // ✅ NUEVO: Devolver objeto detallado en lugar de un solo valor para 'otros'
+      otrosUSD: gastosRutasUSD,
+      detalleOtros: {
+        gasolina: (gastosPorTipo['Combustible'] || 0) / tasaDolar,
+        comida: (gastosPorTipo['Comida'] || 0) / tasaDolar,
+        peaje: (gastosPorTipo['Peaje'] || 0) / tasaDolar, // Normalizar a 'Peaje' aunque en DB sea 'Peajes'
+        otros: (gastosPorTipo['Otros'] || 0) / tasaDolar
+      }
     };
 
   } catch (error) {
@@ -243,7 +312,7 @@ async function calcularGastos(companyId, startDate, tasaDolar) {
  */
 export const getMetricasMensuales = async (req, res) => {
   try {
-    const { meses = 6 } = req.query;
+    const { meses = 6, contenedorId } = req.query;
     const companyId = req.userData?.companyId;
 
     if (!companyId) {
@@ -265,43 +334,48 @@ export const getMetricasMensuales = async (req, res) => {
       const finMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
 
       // Calcular ingresos del mes
-      // ✅ CORRECCIÓN: Buscar ambas variantes del estado
-      const facturasSnapshot = await db.collection('facturas')
+      // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+      let queryRecolecciones = db.collection('recolecciones')
         .where('companyId', '==', companyId)
-        .where('estado', 'in', ['entregado', 'entregada'])
-        .get();
+        .where('estado', 'in', ['entregado', 'entregada']);
+
+      if (contenedorId && contenedorId !== 'todos') {
+        // Usamos 'embarqueId'
+        queryRecolecciones = queryRecolecciones.where('embarqueId', '==', contenedorId);
+      }
+
+      const recoleccionesSnapshot = await queryRecolecciones.get();
 
       let ingresos = 0;
-      let cobros = 0; // ✅ NUEVO: Cobros en facturas
+      let entregasCount = 0;
 
-      facturasSnapshot.forEach(doc => {
-        const factura = doc.data();
+      recoleccionesSnapshot.forEach(doc => {
+        const recoleccion = doc.data();
         // Filtrar por fecha en memoria
-        let facturaDate;
-        if (factura.updatedAt) {
-          if (typeof factura.updatedAt === 'string') {
-            facturaDate = new Date(factura.updatedAt);
-          } else if (factura.updatedAt.toDate) {
-            facturaDate = factura.updatedAt.toDate();
+        let recoleccionDate;
+        if (recoleccion.updatedAt) {
+          if (typeof recoleccion.updatedAt === 'string') {
+            recoleccionDate = new Date(recoleccion.updatedAt);
+          } else if (recoleccion.updatedAt.toDate) {
+            recoleccionDate = recoleccion.updatedAt.toDate();
           }
         }
 
         // Solo contar si está dentro del rango del mes
-        if (facturaDate && facturaDate >= inicioMes && facturaDate <= finMes) {
-          ingresos += factura.monto || 0;
-
-          // ✅ NUEVO: Agregar cobros adicionales
-          if (factura.pago && factura.pago.montoPagado > 0) {
-            cobros += factura.pago.montoPagado || 0;
-          }
+        if (recoleccionDate && recoleccionDate >= inicioMes && recoleccionDate <= finMes) {
+          // ✅ CORRECCIÓN: Usar facturacion.total en lugar de monto
+          // Los ingresos son el TOTAL de la factura, NO sumar montoPagado (eso es flujo de caja)
+          ingresos += recoleccion.facturacion?.total || 0;
+          entregasCount++;
         }
       });
 
-      // ✅ Ingresos totales incluyen envíos + cobros
-      const ingresosTotales = ingresos + cobros;
+      // ✅ Ingresos totales (sin doble conteo)
+      const ingresosTotales = ingresos;
 
       // Calcular gastos del mes
-      const gastosDesglosados = await calcularGastos(companyId, inicioMes, tasaDolar);
+      // Calcular gastos del mes
+      const gastosDesglosados = await calcularGastos(companyId, inicioMes, tasaDolar, contenedorId);
       const gastos = gastosDesglosados.repartidoresUSD + gastosDesglosados.recolectoresUSD + gastosDesglosados.otrosUSD;
 
       metricas.push({
@@ -309,7 +383,8 @@ export const getMetricasMensuales = async (req, res) => {
         fecha: fecha.toISOString(),
         ingresos: ingresosTotales, // ✅ Usa ingresos totales (envíos + cobros)
         gastos: gastos,
-        utilidad: ingresosTotales - gastos // ✅ Utilidad correcta con cobros incluidos
+        utilidad: ingresosTotales - gastos, // ✅ Utilidad correcta con cobros incluidos
+        entregas: entregasCount // ✅ NUEVO: Cantidad de entregas
       });
     }
 
@@ -384,33 +459,33 @@ export const getSuscripcion = async (req, res) => {
 
     // Precios de planes
     const preciosPlanes = {
-      enterprise: 1000,
-      professional: 400,
-      basic: 300
+      smart: 120000,
+      automatizado: 75000,
+      operativo: 50000
     };
 
     // Límites por plan
     const limitesPorPlan = {
-      enterprise: {
+      smart: {
         recolecciones: -1, // Ilimitado
         usuarios: -1, // Ilimitado
         almacenamiento: 'Ilimitado'
       },
-      professional: {
+      automatizado: {
         recolecciones: 500,
         usuarios: 15,
         almacenamiento: '100 GB'
       },
-      basic: {
+      operativo: {
         recolecciones: 100,
         usuarios: 5,
         almacenamiento: '10 GB'
       }
     };
 
-    const plan = companyData.plan?.toLowerCase() || 'basic';
-    const precio = preciosPlanes[plan] || preciosPlanes.basic;
-    const limites = limitesPorPlan[plan] || limitesPorPlan.basic;
+    const plan = companyData.plan?.toLowerCase() || 'operativo';
+    const precio = preciosPlanes[plan] || preciosPlanes.operativo;
+    const limites = limitesPorPlan[plan] || limitesPorPlan.operativo;
 
     // Calcular próximo pago (asumiendo pago mensual el día 1)
     const now = new Date();
@@ -461,38 +536,38 @@ async function calcularUsoActual(companyId) {
     const now = new Date();
     const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Obtener todas las facturas y filtrar en memoria
-    const recoleccionesSnapshot = await db.collection('facturas')
+    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
+    const recoleccionesSnapshot = await db.collection('recolecciones')
       .where('companyId', '==', companyId)
       .get();
 
     // Contar solo las del mes actual
     let recoleccionesMes = 0;
     recoleccionesSnapshot.forEach(doc => {
-      const factura = doc.data();
-      let facturaDate;
+      const recoleccion = doc.data();
+      let recoleccionDate;
 
-      if (factura.createdAt) {
-        if (typeof factura.createdAt === 'string') {
-          facturaDate = new Date(factura.createdAt);
-        } else if (factura.createdAt.toDate) {
-          facturaDate = factura.createdAt.toDate();
+      if (recoleccion.createdAt) {
+        if (typeof recoleccion.createdAt === 'string') {
+          recoleccionDate = new Date(recoleccion.createdAt);
+        } else if (recoleccion.createdAt.toDate) {
+          recoleccionDate = recoleccion.createdAt.toDate();
         }
       }
 
-      if (facturaDate && facturaDate >= inicioMes) {
+      if (recoleccionDate && recoleccionDate >= inicioMes) {
         recoleccionesMes++;
       }
     });
 
     // Contar usuarios activos
-    const usuariosSnapshot = await db.collection('users')
+    const usuariosSnapshot = await db.collection('usuarios')
       .where('companyId', '==', companyId)
       .where('active', '==', true)
       .get();
 
     // Contar camiones (empleados con rol 'repartidor')
-    const camionesSnapshot = await db.collection('users')
+    const camionesSnapshot = await db.collection('usuarios')
       .where('companyId', '==', companyId)
       .where('rol', '==', 'repartidor')
       .where('active', '==', true)

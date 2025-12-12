@@ -1,13 +1,25 @@
 // backend/src/routes/dashboard.js
 import express from 'express';
-import { 
-  getStatsSuperAdmin, 
-  getStatsAdminGeneral, 
-  getStatsPublic 
+import {
+  getStatsSuperAdmin,
+  getStatsAdminGeneral,
+  getStatsPublic
 } from '../controllers/dashboardController.js';
-import { verifyToken } from '../middleware/auth.js';
+import { getDashboardPropietario } from '../controllers/dashboardPropietarioController.js';
+import { verifyToken, checkRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+/**
+ * @route   GET /api/dashboard/propietario
+ * @desc    Dashboard ejecutivo con todas las métricas para propietario
+ * @access  Private (propietario, super_admin)
+ */
+router.get('/propietario',
+  verifyToken,
+  checkRole('propietario', 'super_admin'),
+  getDashboardPropietario
+);
 
 /**
  * @route   GET /api/dashboard/stats-super-admin
