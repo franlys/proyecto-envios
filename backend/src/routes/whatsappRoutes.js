@@ -1,7 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import { handleWebhook } from '../controllers/whatsappWebhookController.js';
-import { handleWebhook } from '../controllers/whatsappWebhookController.js';
+
 
 const router = express.Router();
 
