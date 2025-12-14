@@ -56,25 +56,38 @@ export const handleWebhook = async (req, res) => {
                     } else {
                         console.warn(`⚠️ Webhook received for unknown instance: ${instanceName}`);
 
-                        // 🟥 SELF-HEALING: Intentar extraer ID del nombre de la instancia
-                        // Formato esperado: company_{cleanName}_{id}
-                        // Ejemplo: company_embarques_ivan_embarques_ivan
-                        const parts = instanceName.split('_');
-                        const potentialId = parts[parts.length - 1];
+                        // 🟥 SELF-HEALING: Smart Suffix Search
+                        // El ID puede contener guiones bajos, por lo que 'split' simple puede fallar.
+                        // Ejemplo: company_embarques_ivan_embarques_ivan -> ID real: embarques_ivan
+                        // Estrategia: Probar sufijos incrementalmente desde el final.
 
-                        if (potentialId) {
-                            console.log(`🔄 Attempting Self-Healing for ID: ${potentialId}`);
+                        const parts = instanceName.split('_');
+                        // Ignoramos el prefijo 'company' si existe, para no probar todo el string
+                        const searchParts = parts[0] === 'company' ? parts.slice(1) : parts;
+
+                        // Probamos combinaciones desde el final hacia atrás (hasta 4 niveles de profundidad)
+                        let recoveredCompanyId = null;
+
+                        for (let i = 1; i <= Math.min(4, searchParts.length); i++) {
+                            const potentialId = searchParts.slice(-i).join('_');
+                            console.log(`🔄 Self-Healing Attempt ${i}: Checking ID '${potentialId}'...`);
+
                             const docRef = companiesRef.doc(potentialId);
                             const doc = await docRef.get();
 
                             if (doc.exists) {
-                                console.log(`✅ Company Found by ID! Updating whatsappInstanceName...`);
+                                console.log(`✅ Company Found! ID matches: ${potentialId}`);
                                 await docRef.update({ whatsappInstanceName: instanceName });
-                                companyId = potentialId; // Recuperado!
+                                recoveredCompanyId = potentialId;
                                 console.log(`🎉 Self-Healing Successful for: ${doc.data().name}`);
-                            } else {
-                                console.error(`❌ Self-Healing failed: Document ${potentialId} not found.`);
+                                break; // Encontrado, salir del loop
                             }
+                        }
+
+                        if (recoveredCompanyId) {
+                            companyId = recoveredCompanyId;
+                        } else {
+                            console.error(`❌ Self-Healing failed: Could not find company for instance ${instanceName}`);
                         }
                     }
                 } catch (err) {
