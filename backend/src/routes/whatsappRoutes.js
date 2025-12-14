@@ -6,10 +6,12 @@ import { handleWebhook } from '../controllers/whatsappWebhookController.js';
 const router = express.Router();
 
 // Configuración de Evolution API
-// ⚠️ PROBLEMA EN RAILWAY: El motor de navegador no arranca (Chromium Crash).
-// const EVOLUTION_URL = 'https://evolution-api-production-0fa7.up.railway.app';
-// ✅ SOLUCIÓN: Usamos Docker Local (que sí funciona) para desbloquearte.
-const EVOLUTION_URL = process.env.EVOLUTION_API_URL || 'http://localhost:8080';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const DEFAULT_URL = IS_PRODUCTION
+    ? 'https://evolution-api-production-0fa7.up.railway.app'
+    : 'http://localhost:8080';
+
+const EVOLUTION_URL = process.env.EVOLUTION_API_URL || DEFAULT_URL;
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || '429683C4C977415CAAFCCE10F7D57E11';
 
 // Cliente Axios pre-configurado
