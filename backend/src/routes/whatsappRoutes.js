@@ -104,6 +104,7 @@ router.delete('/instance/:instanceName', async (req, res) => {
 });
 
 // 5. WEBHOOK para recibir mensajes (Chatbot)
-router.post('/webhook', handleWebhook);
+// Evolution API puede enviar a /webhook o /webhook/messages-upsert
+router.post('/webhook*', handleWebhook);
 
 export default router;
