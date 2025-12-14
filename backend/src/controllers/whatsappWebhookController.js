@@ -6,14 +6,23 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://proyecto-envios.vercel
 
 export const handleWebhook = async (req, res) => {
     try {
-        // Evolution API sends different types of events. We care about 'messages.upsert'
-        const { type, data, instance } = req.body;
+        console.log('⚡️ WEBHOOK RECEIVED ⚡️');
+        console.log('Payload:', JSON.stringify(req.body, null, 2));
 
-        // Acknowledge receipt immediately to avoid timeouts
+        // Evolution API v1.x uses 'type', v2.x might use 'event'.
+        // Based on previous logs, we injected "events": ["MESSAGES_UPSERT"]
+        // Let's handle both structures to be safe.
+        const { type, event, instance, data } = req.body;
+        const eventType = type || event; // Normalize event type
+
+        console.log(`🔍 Event Type: ${eventType}, Instance: ${instance}`);
+
+        // Acknowledge receipt immediately
         res.status(200).send('OK');
 
-        if (type === 'messages.upsert') {
+        if (eventType === 'messages.upsert' || eventType === 'MESSAGES_UPSERT') {
             const messageData = data;
+
 
             // Basic checks
             if (!messageData.key.fromMe && messageData.message) {
