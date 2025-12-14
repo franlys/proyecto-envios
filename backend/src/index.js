@@ -19,6 +19,9 @@ import embarquesRoutes from './routes/embarques.js';
 import rutasRoutes from './routes/rutas.js';
 import ticketsRoutes from './routes/tickets.js';
 import recoleccionesRoutes from './routes/recolecciones.js';
+import whatsappRoutes from './routes/whatsappRoutes.js';
+
+import { initCronJobs } from './services/cronService.js'; // ✅ CRON JOBS
 import contenedoresRoutes from './routes/contenedores.js';
 import almacenUSARoutes from './routes/almacenUSA.js';
 import almacenRDRoutes from './routes/almacenRD.js';
@@ -33,7 +36,7 @@ import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión d
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
 import nominaRoutes from './routes/nomina.js'; // ✅ NUEVO - Módulo de Nómina y Pagos
-import whatsappRoutes from './routes/whatsappRoutes.js'; // ✅ NUEVO - WhatsApp Cloud API
+
 
 // Importar middleware de validación de plan
 import { checkPlanActivo } from './middleware/checkPlanActivo.js';
