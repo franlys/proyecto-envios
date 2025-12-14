@@ -31,65 +31,52 @@ export const handleWebhook = async (req, res) => {
                 if (!text) return; // Non-text message
 
                 const cleanText = text.trim().toLowerCase();
-                const instanceName = instance; // Evolution instance name usually contains the company ID logic?
+                const instanceName = instance;
 
-                // We need to resolve CompanyId from InstanceName.
-                // Assuming instanceName format: "company_[companyId]" or similar.
-                // Or we lookup in Firestore which company has this instance name.
-                // For efficiency, let's look up by instance name query.
+                // 🔹 REFACTOR: Lookup CompanyId FIRST
+                let companyId = null;
+                try {
+                    const companiesRef = db.collection('companies');
+                    // Find company where 'whatsappInstanceName' matches the webhook instance
+                    const snapshot = await companiesRef.where('whatsappInstanceName', '==', instanceName).limit(1).get();
 
-                // Quick Fix: Extract from name if formatted correctly: "company_EMPRESA_ID"
-                // If not, we might need a lookup.
+                    if (!snapshot.empty) {
+                        companyId = snapshot.docs[0].id;
+                        const companyData = snapshot.docs[0].data();
+                        console.log(`🏢 Webhook matches Company: ${companyData.name} (${companyId})`);
+                    } else {
+                        console.warn(`⚠️ Webhook received for unknown instance: ${instanceName}`);
+                    }
+                } catch (err) {
+                    console.error('Error looking up company from instance:', err);
+                }
 
-                // Let's implement a simple keyword menu for now.
+                if (!companyId) {
+                    console.warn('⚠️ No companyId found for instance, cannot reply.');
+                    return;
+                }
+
                 console.log(`📩 Mensaje de ${pushName} (${remoteJid}): ${cleanText}`);
 
                 // 1. "Agendar" / "Nueva" / "Envío"
                 if (cleanText.includes('agendar') || cleanText.includes('nuevo') || cleanText.includes('envio')) {
-                    // Try to extract companyId from instance Name
-                    // Format: company_NAME_ID or just NAME if unique.
-                    // We can check our `companies` collection where `instanceName` == instance.
-
-                    // ... Lookup logic ...
-                    const companiesRef = db.collection('companies');
-                    const snapshot = await companiesRef.where('whatsappInstanceName', '==', instance).limit(1).get();
-
-                    let companyId = null;
-                    if (!snapshot.empty) {
-                        companyId = snapshot.docs[0].id;
-                    } else {
-                        // Fallback: If instance name *is* the companyId prefixed?
-                        // Let's try to assume a default or ask admin to fix map.
-                        // For now, let's rely on finding it.
-                    }
-
-                    if (companyId) {
-                        const link = `${FRONTEND_URL}/agendar/${companyId}`;
-                        await whatsappService.sendMessage(companyId, remoteJid,
-                            `📦 *Agendar Recolección*\n\nHola ${pushName}, para solicitar una recolección sin esperas, usa este enlace directo:\n\n👉 ${link}\n\n¡Es rápido y seguro!`);
-                    }
+                    const link = `${FRONTEND_URL}/agendar/${companyId}`;
+                    await whatsappService.sendMessage(companyId, remoteJid,
+                        `📦 *Agendar Recolección*\n\nHola ${pushName}, para solicitar una recolección sin esperas, usa este enlace directo:\n\n👉 ${link}\n\n¡Es rápido y seguro!`);
                 }
 
                 // 2. "Estatus" / "Rastreo" / "Donde viene"
                 else if (cleanText.includes('estatus') || cleanText.includes('donde') || cleanText.includes('rastreo')) {
-                    // Logic to ask for tracking number or parse it if present (RC-...)
-                    const match = text.match(/RC-\d{6}-\d{4}/i);
-                    if (match) {
-                        const tracking = match[0].toUpperCase();
-                        // Lookup
-                        // ... (To be implemented: Service to find status by tracking)
-                        // For now generic response:
-                        // await whatsappService.sendMessage(instance, remoteJid, `🔍 Buscando guía ${tracking}...`);
-                    } else {
-                        // Ask for it
-                        // whatsappService.sendMessage(...)
-                    }
+                    await whatsappService.sendMessage(companyId, remoteJid,
+                        `🔍 Para rastrear tu envío, por favor envíame el número de guía (ej: RC-123456-0001).`);
                 }
 
-                // 3. "Hola" / "Menu"
-                else if (cleanText === 'hola' || cleanText === 'buenos dias' || cleanText === 'buenas') {
-                    // Welcome
-                    // whatsappService.sendMessage(...)
+                // 3. "Hola" / "Menu" / "Buenos dias"
+                else if (cleanText === 'hola' || cleanText.includes('buenos') || cleanText === 'menu' || cleanText === 'ayuda') {
+                    const link = `${FRONTEND_URL}/agendar/${companyId}`;
+                    const menu = `👋 *¡Hola ${pushName}!* Bienvenido.\n\nSoy tu asistente virtual. Aquí tienes algunas opciones rápidas:\n\n📦 *Solicitar Recolección* (Escribe "Agendar", "Nuevo" o "Envío")\n👉 ${link}\n\n🚚 *Rastrear Paquete* (Escribe "Estatus" o "Rastreo")\n\n❓ *Ayuda / Soporte* (Escribe "Soporte")\n\n¿En qué puedo ayudarte hoy?`;
+
+                    await whatsappService.sendMessage(companyId, remoteJid, menu);
                 }
             }
         }

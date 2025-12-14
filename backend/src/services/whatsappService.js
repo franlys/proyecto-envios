@@ -28,6 +28,7 @@ class WhatsappService {
         try {
             if (!companyId || !phone || !text) {
                 console.warn('⚠️ WhatsappService: Faltan datos necesarios (companyId, phone, o text)');
+                console.warn(`Details: companyId=${companyId}, phone=${phone}, text=${typeof text}`);
                 return false;
             }
 
