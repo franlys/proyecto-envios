@@ -31,6 +31,7 @@ import PanelAlmacenUSA from './pages/PanelAlmacenUSA';
 import PanelAlmacenRD from './pages/PanelAlmacenRD';
 import FacturasPendientesPago from './pages/FacturasPendientesPago';
 import PublicTracking from './pages/PublicTracking'; // ✅ NUEVO - Tracking Público
+import PublicBooking from './pages/PublicBooking'; // ✅ NUEVO - Agendamiento Público
 import ImpresionFacturasRuta from './components/ImpresionFacturasRuta'; // ✅ NUEVO - Impresión de facturas
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -288,6 +289,7 @@ function App() {
           {/* ============================================ */}
           <Route path="/tracking" element={<PublicTracking />} />
           <Route path="/tracking/:codigo" element={<PublicTracking />} />
+          <Route path="/agendar/:companyId" element={<PublicBooking />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 

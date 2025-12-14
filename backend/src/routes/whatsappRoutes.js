@@ -1,5 +1,7 @@
 import express from 'express';
 import axios from 'axios';
+import { handleWebhook } from '../controllers/whatsappWebhookController.js';
+import { handleWebhook } from '../controllers/whatsappWebhookController.js';
 
 const router = express.Router();
 
@@ -81,5 +83,8 @@ router.delete('/instance/:instanceName', async (req, res) => {
         handleAxiosError(res, error);
     }
 });
+
+// 5. WEBHOOK para recibir mensajes (Chatbot)
+router.post('/webhook', handleWebhook);
 
 export default router;

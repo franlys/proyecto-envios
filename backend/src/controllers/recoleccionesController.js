@@ -1052,10 +1052,164 @@ export const getEstadisticas = async (req, res) => {
 };
 
 // ========================================
+// CREAR RECOLECCIÓN PÚBLICA (SIN AUTH)
+// ========================================
+export const createPublicRecoleccion = async (req, res) => {
+  try {
+    console.log('📦 Creando nueva recolección PÚBLICA...');
+    console.log('📥 Body recibido:', JSON.stringify(req.body, null, 2));
+
+    const {
+      companyId,
+      remitenteNombre,
+      remitenteTelefono,
+      remitenteEmail,
+      remitenteDireccion,
+      destinatarioNombre,
+      destinatarioTelefono,
+      destinatarioEmail,
+      destinatarioDireccion,
+      destinatarioZona,
+      destinatarioSector,
+      items,
+      subtotal,
+      itbis,
+      total,
+      notas,
+      tipoServicio,
+      fotos
+    } = req.body;
+
+    if (!companyId) {
+      return res.status(400).json({ success: false, message: 'Falta companyId' });
+    }
+
+    let itemsArray = items;
+    if (typeof items === 'string') {
+      try { itemsArray = JSON.parse(items); } catch (e) { itemsArray = []; }
+    }
+    if (!Array.isArray(itemsArray) || itemsArray.length === 0) {
+      return res.status(400).json({ success: false, message: 'Items inválidos o vacíos' });
+    }
+
+    // Get Company Settings for NCF and Email
+    let companyConfig = null;
+    try {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      } else {
+        return res.status(404).json({ success: false, message: 'Compañía inválida' });
+      }
+    } catch (e) { return res.status(500).json({ success: false, message: 'Error DB' }); }
+
+    // Generate Tracking
+    const fecha = new Date();
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+
+    const contadorRef = db.collection('contadores').doc(companyId);
+    const contadorDoc = await contadorRef.get();
+    let siguienteNumero = 1;
+    if (contadorDoc.exists) {
+      siguienteNumero = (contadorDoc.data().recolecciones || 0) + 1;
+    }
+    await contadorRef.set({ recolecciones: siguienteNumero }, { merge: true });
+
+    const codigoTracking = `RC-${year}${month}${day}-${String(siguienteNumero).padStart(4, '0')}`;
+
+    const recoleccionData = {
+      codigoTracking,
+      companyId,
+      sucursalId: null,
+      userId: 'PUBLIC_WEB',
+      remitente: {
+        nombre: remitenteNombre || '',
+        telefono: remitenteTelefono || '',
+        email: remitenteEmail || '',
+        direccion: remitenteDireccion || ''
+      },
+      destinatario: {
+        nombre: destinatarioNombre || '',
+        telefono: destinatarioTelefono || '',
+        email: destinatarioEmail || '',
+        direccion: destinatarioDireccion || '',
+        zona: destinatarioZona || '',
+        sector: destinatarioSector || ''
+      },
+      items: itemsArray.map(item => ({
+        cantidad: parseInt(item.cantidad) || 1,
+        descripcion: item.descripcion || item.producto || '',
+        precio: parseFloat(item.precio) || 0
+      })),
+      facturacion: {
+        subtotal: parseFloat(subtotal) || 0,
+        itbis: parseFloat(itbis) || 0,
+        total: parseFloat(total) || 0,
+        moneda: 'USD',
+        ncf: null,
+        ncfTipo: null
+      },
+      pago: {
+        estado: 'pendiente',
+        metodoPago: null,
+        montoPagado: 0,
+        montoPendiente: parseFloat(total) || 0,
+        fechaPago: null,
+        referenciaPago: '',
+        notasPago: '',
+        historialPagos: []
+      },
+      estado: 'pendiente',
+      estadoItems: 'completo',
+      estadoGeneral: 'sin_confirmar',
+      contenedorId: null,
+      numeroContenedor: null,
+      rutaId: null,
+      repartidorId: null,
+      fechaAsignacionRuta: null,
+      notas: notas || 'Creado desde Web Pública',
+      tipoServicio: tipoServicio || 'standard',
+      fotos: Array.isArray(fotos) ? fotos : [],
+      historial: [{
+        accion: 'creacion_publica',
+        descripcion: 'Recolección creada desde Web',
+        usuario: 'PUBLIC',
+        fecha: new Date().toISOString()
+      }],
+      fechaCreacion: FieldValue.serverTimestamp(),
+      fechaActualizacion: FieldValue.serverTimestamp(),
+      creadoPor: 'PUBLIC'
+    };
+
+    const docRef = await db.collection('recolecciones').add(recoleccionData);
+
+    // 🟢 NOTIFICACIÓN WHATSAPP
+    if (remitenteTelefono) {
+      const mensajeWhatsapp = `📦 *Solicitud Recibida (Web)*\n\nHola *${remitenteNombre}*, hemos recibido tu solicitud #${codigoTracking}.\n\n📍 Destino: ${destinatarioNombre}\n💰 Total Estimado: $${parseFloat(total).toFixed(2)}\n\nNos pondremos en contacto pronto!`;
+      whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+        .catch(e => console.error('Error WA Public:', e));
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Solicitud enviada exitosamente',
+      data: { id: docRef.id, codigoTracking }
+    });
+
+  } catch (error) {
+    console.error('❌ Error createPublicRecoleccion:', error);
+    res.status(500).json({ success: false, message: 'Error interno', error: error.message });
+  }
+};
+
+// ========================================
 // EXPORTAR TODAS LAS FUNCIONES
 // ========================================
 export default {
   createRecoleccion,
+  createPublicRecoleccion,
   getRecolecciones,
   getRecoleccionById,
   buscarPorCodigoTracking,

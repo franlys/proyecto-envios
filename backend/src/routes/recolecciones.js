@@ -5,6 +5,7 @@ import express from 'express';
 import { verifyToken, checkRole } from '../middleware/auth.js';
 import {
   createRecoleccion,
+  createPublicRecoleccion,
   getRecolecciones,
   getRecoleccionById,
   buscarPorCodigoTracking,
@@ -27,11 +28,18 @@ const router = express.Router();
  * Endpoint de prueba
  */
 router.get('/test', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Recolecciones routes working',
     timestamp: new Date().toISOString()
   });
 });
+
+/**
+ * POST /api/recolecciones/public
+ * Crear recolección desde la Web (Sin Auth)
+ * Requiere: companyId en body
+ */
+router.post('/public', createPublicRecoleccion);
 
 // ========================================
 // RUTAS PROTEGIDAS (requieren autenticación)
@@ -43,7 +51,7 @@ router.get('/test', (req, res) => {
  * Requiere: autenticación
  * Roles permitidos: recolector, admin_general, super_admin, almacen_eeuu
  */
-router.post('/', 
+router.post('/',
   verifyToken,  // ✅ CRÍTICO: Middleware de autenticación
   createRecoleccion
 );
@@ -54,7 +62,7 @@ router.post('/',
  * Requiere: autenticación
  * Query params: estado, contenedorId, limit, offset
  */
-router.get('/', 
+router.get('/',
   verifyToken,
   getRecolecciones
 );
@@ -75,7 +83,7 @@ router.get('/estadisticas',
  * Buscar recolección por código de tracking
  * Requiere: autenticación
  */
-router.get('/tracking/:codigoTracking', 
+router.get('/tracking/:codigoTracking',
   verifyToken,
   buscarPorCodigoTracking
 );
@@ -85,7 +93,7 @@ router.get('/tracking/:codigoTracking',
  * Obtener recolección por ID
  * Requiere: autenticación
  */
-router.get('/:id', 
+router.get('/:id',
   verifyToken,
   getRecoleccionById
 );
@@ -143,7 +151,7 @@ router.post('/:id/upload-fotos',
   async (req, res) => {
     try {
       const { id } = req.params;
-      
+
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({
           success: false,
@@ -162,7 +170,7 @@ router.post('/:id/upload-fotos',
       // Actualizar recolección con las fotos
       const { db } = await import('../config/firebase.js');
       const { FieldValue } = await import('firebase-admin/firestore');
-      
+
       await db.collection('recolecciones').doc(id).update({
         fotos: FieldValue.arrayUnion(...fotos),
         fechaActualizacion: FieldValue.serverTimestamp()
@@ -195,13 +203,13 @@ router.delete('/:id/fotos/:filename',
   async (req, res) => {
     try {
       const { id, filename } = req.params;
-      
+
       const { db } = await import('../config/firebase.js');
       const { FieldValue } = await import('firebase-admin/firestore');
-      
+
       // Obtener la recolección
       const doc = await db.collection('recolecciones').doc(id).get();
-      
+
       if (!doc.exists) {
         return res.status(404).json({
           success: false,
@@ -211,10 +219,10 @@ router.delete('/:id/fotos/:filename',
 
       const data = doc.data();
       const fotos = data.fotos || [];
-      
+
       // Encontrar la foto a eliminar
       const fotoToRemove = fotos.find(f => f.filename === filename);
-      
+
       if (!fotoToRemove) {
         return res.status(404).json({
           success: false,
