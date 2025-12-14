@@ -13,6 +13,7 @@
 import { db, storage } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore'; // ✅ Importación requerida para reasignarFactura
 import { sendInvoiceStatusUpdate, sendEmail, sendWhatsApp } from '../services/notificationService.js';
+import { getNextNCF } from '../utils/ncfUtils.js';
 
 // Helper para obtener ID de compañía de forma segura (NECESARIO)
 const getUserDataSafe = async (uid) => {
@@ -33,8 +34,12 @@ export const actualizarFacturacion = async (req, res) => {
       metodoPago,
       estadoPago,
       montoPagado,
-      notas
+      notas,
+      ncfSolicitado, // 'B01', 'B02', 'B14', 'B15' o null
+      ncfTipo // Alternativo
     } = req.body;
+
+    const ncfRequested = ncfSolicitado || ncfTipo;
 
     console.log(`💰 Actualizando facturación de recolección ${recoleccionId}`);
 
@@ -60,6 +65,27 @@ export const actualizarFacturacion = async (req, res) => {
       });
     }
 
+    // ======================================================================
+    // 🏦 GENERACIÓN AUTOMÁTICA DE NCF (Si se solicita y no tiene)
+    // ======================================================================
+    let ncfAsignado = recoleccionData.facturacion?.ncf || null;
+    let ncfTipoAsignado = recoleccionData.facturacion?.ncfTipo || null;
+
+    if (ncfRequested && !ncfAsignado && recoleccionData.companyId) {
+      try {
+        console.log(`🏦 Solicitando NCF automático tipo ${ncfRequested} en actualización`);
+        ncfAsignado = await getNextNCF(recoleccionData.companyId, ncfRequested);
+        ncfTipoAsignado = ncfRequested;
+      } catch (ncfError) {
+        console.error('❌ Error generando NCF en update:', ncfError);
+        return res.status(400).json({
+          success: false,
+          message: 'Error generando NCF en actualización.',
+          details: ncfError.message
+        });
+      }
+    }
+
     // Lógica para calcular el total (se mantiene del snippet anterior)
     let totalFactura = recoleccionData.totalFactura || 0;
 
@@ -70,7 +96,9 @@ export const actualizarFacturacion = async (req, res) => {
       montoPagado: montoPagado !== undefined ? montoPagado : recoleccionData.facturacion?.montoPagado || 0,
       notas: notas || recoleccionData.facturacion?.notas,
       totalFactura: totalFactura,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      ncf: ncfAsignado, // ✅ Preservar o asignar nuevo
+      ncfTipo: ncfTipoAsignado
     };
 
     const isTotalPaid = facturacionData.montoPagado >= facturacionData.totalFactura;

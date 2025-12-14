@@ -11,8 +11,10 @@ import {
   toggleCompany,
   resetUserPassword,
   deleteCompany,
-  uploadCompanyLogo
+  uploadCompanyLogo,
+  updateCompanyNCFConfig
 } from '../controllers/companyController.js';
+import { getReporte606 } from '../controllers/reporteFiscalController.js';
 
 // Configurar multer para almacenar archivos en memoria
 const upload = multer({
@@ -98,19 +100,19 @@ router.get('/my-limits', async (req, res) => {
     }
 
     const companyData = companyDoc.data();
-    
+
     // Contar usuarios de la compañía
     const usuariosSnapshot = await db.collection('usuarios')
       .where('companyId', '==', req.userData.companyId)
       .where('activo', '==', true)
       .get();
-    
+
     // Contar rutas activas
     const rutasSnapshot = await db.collection('rutas')
       .where('companyId', '==', req.userData.companyId)
       .where('estado', '==', 'activa')
       .get();
-    
+
     // ✅ CORRECCIÓN: Contar recolecciones del mes (no facturas)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -174,7 +176,7 @@ router.get('/my-limits', async (req, res) => {
       success: true,
       data: result
     });
-    
+
   } catch (error) {
     console.error('❌ Error en my-limits:', error);
     res.status(500).json({
@@ -226,5 +228,11 @@ router.post('/reset-password', resetUserPassword);
  * Subir logo de compañía (solo super_admin)
  */
 router.post('/:id/upload-logo', upload.single('logo'), uploadCompanyLogo);
+
+// Actualizar configuración fiscal (NCF)
+router.put('/:id/ncf-config', updateCompanyNCFConfig);
+
+// Generar Reporte 606
+router.get('/:id/reporte-606', getReporte606);
 
 export default router;

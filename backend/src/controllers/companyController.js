@@ -13,14 +13,14 @@ export const createCompany = async (req, res) => {
     }
 
     if (!nombre || !adminEmail || !adminPassword) {
-      return res.status(400).json({ 
-        error: 'Nombre, email de administrador y contraseña son requeridos' 
+      return res.status(400).json({
+        error: 'Nombre, email de administrador y contraseña son requeridos'
       });
     }
 
     if (adminPassword.length < 6) {
-      return res.status(400).json({ 
-        error: 'La contraseña debe tener al menos 6 caracteres' 
+      return res.status(400).json({
+        error: 'La contraseña debe tener al menos 6 caracteres'
       });
     }
 
@@ -33,8 +33,8 @@ export const createCompany = async (req, res) => {
     // Verificar que no exista
     const existingCompany = await db.collection('companies').doc(companyId).get();
     if (existingCompany.exists) {
-      return res.status(400).json({ 
-        error: 'Ya existe una compañía con ese nombre' 
+      return res.status(400).json({
+        error: 'Ya existe una compañía con ese nombre'
       });
     }
 
@@ -118,13 +118,13 @@ export const createCompany = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creando compañía:', error);
-    
+
     if (error.code === 'auth/email-already-exists') {
-      return res.status(400).json({ 
-        error: 'El email del administrador ya está registrado' 
+      return res.status(400).json({
+        error: 'El email del administrador ya está registrado'
       });
     }
-    
+
     res.status(500).json({ error: error.message });
   }
 };
@@ -178,7 +178,7 @@ export const getCompanyById = async (req, res) => {
     }
 
     const companyDoc = await db.collection('companies').doc(id).get();
-    
+
     if (!companyDoc.exists) {
       return res.status(404).json({ error: 'Compañía no encontrada' });
     }
@@ -234,6 +234,11 @@ export const updateCompany = async (req, res) => {
       };
     }
 
+    // ✅ NUEVO: Configuración de Secuencias NCF (Módulo Contable)
+    if (req.body.ncfSequences !== undefined) {
+      updates.ncfSequences = req.body.ncfSequences;
+    }
+
     updates.updatedAt = new Date().toISOString();
 
     await db.collection('companies').doc(id).update(updates);
@@ -249,7 +254,7 @@ export const updateCompany = async (req, res) => {
 export const toggleCompany = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validar que el usuario sea super_admin
     const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
@@ -262,13 +267,13 @@ export const toggleCompany = async (req, res) => {
     }
 
     const currentStatus = companyDoc.data().activo;
-    
+
     await db.collection('companies').doc(id).update({
       activo: !currentStatus,
       updatedAt: new Date().toISOString()
     });
 
-    res.json({ 
+    res.json({
       message: `Compañía ${!currentStatus ? 'activada' : 'desactivada'} exitosamente`,
       activo: !currentStatus
     });
@@ -290,14 +295,14 @@ export const resetUserPassword = async (req, res) => {
     }
 
     if (!userId || !newPassword) {
-      return res.status(400).json({ 
-        error: 'ID de usuario y nueva contraseña son requeridos' 
+      return res.status(400).json({
+        error: 'ID de usuario y nueva contraseña son requeridos'
       });
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({ 
-        error: 'La contraseña debe tener al menos 6 caracteres' 
+      return res.status(400).json({
+        error: 'La contraseña debe tener al menos 6 caracteres'
       });
     }
 
@@ -318,7 +323,7 @@ export const resetUserPassword = async (req, res) => {
       passwordResetBy: req.userData.uid
     });
 
-    res.json({ 
+    res.json({
       message: 'Contraseña actualizada exitosamente',
       userId,
       email: targetUserDoc.data().email
@@ -337,7 +342,7 @@ export const deleteCompany = async (req, res) => {
     // Validar que el usuario sea super_admin
     const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
     const userData = userDoc.data();
-    
+
     if (!userData || userData.rol !== 'super_admin') {
       return res.status(403).json({ error: 'No tienes permisos para eliminar compañías' });
     }
@@ -413,7 +418,7 @@ export const deleteCompany = async (req, res) => {
       historial: historialSnapshot.size
     };
 
-    res.json({ 
+    res.json({
       message: 'Compañía y todos sus datos eliminados permanentemente',
       companyName: companyData.nombre,
       stats
@@ -519,5 +524,55 @@ export const uploadCompanyLogo = async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+};
+
+// Actualizar Configuración Fiscal (NCF/RNC)
+export const updateCompanyNCFConfig = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rnc, ncfSequences, ncfExpiry } = req.body;
+
+    // Verificar permisos: Propietario de la compañía o Super Admin
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
+    if (!userDoc.exists) return res.status(403).json({ error: 'Usuario no encontrado' });
+
+    const userData = userDoc.data();
+    const isSuperAdmin = userData.rol === 'super_admin';
+    const isOwner = userData.rol === 'propietario' && userData.companyId === id;
+
+    if (!isSuperAdmin && !isOwner) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar la configuración fiscal de esta compañía' });
+    }
+
+    // 🔒 RESTRICCIÓN SAAS: Verificar que la compañía tenga plan SMART
+    // Los Super Admins pueden bypassear para configuración inicial o soporte
+    if (!isSuperAdmin) {
+      const companyDoc = await db.collection('companies').doc(id).get();
+      if (!companyDoc.exists) return res.status(404).json({ error: 'Compañía no encontrada' });
+
+      const companyData = companyDoc.data();
+      if (companyData.plan !== 'smart') {
+        return res.status(403).json({
+          error: 'Funcionalidad restringida',
+          message: 'La configuración de NCF solo está disponible en el plan SMART.'
+        });
+      }
+    }
+
+    const updates = {};
+    if (rnc !== undefined) updates.rnc = rnc;
+    if (ncfSequences !== undefined) updates.ncfSequences = ncfSequences;
+    if (ncfExpiry !== undefined) updates.ncfExpiry = ncfExpiry;
+
+    updates.updatedAt = new Date().toISOString();
+
+    await db.collection('companies').doc(id).update(updates);
+
+    res.json({ success: true, message: 'Configuración fiscal actualizada exitosamente' });
+
+  } catch (error) {
+    console.error('Error actualizando configuración fiscal:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };

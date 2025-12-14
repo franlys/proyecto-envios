@@ -1,20 +1,22 @@
 // admin_web/src/components/Sidebar.jsx
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Truck, 
-  Phone, 
-  FileX, 
-  Users, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Package,
+  Truck,
+  Phone,
+  FileX,
+  Users,
+  BarChart3,
   Building2,
   HelpCircle,
   MessageSquare,
   ChevronLeft,
   ChevronRight,
-  PackagePlus // ✅ NUEVO: Icono para Nueva Recolección
+  PackagePlus, // ✅ NUEVO: Icono para Nueva Recolección
+  Calendar, // 🆕 Icono Citas
+  Map // 🆕 Icono Pool
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,7 +31,21 @@ const Sidebar = () => {
       name: 'Dashboard',
       path: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor']
+      roles: ['super_admin', 'admin', 'secretaria', 'secretaria_usa', 'almacen', 'repartidor']
+    },
+    {
+      name: 'Call Center USA', // 🆕 Nuevo Módulo de Citas
+      path: '/call-center',
+      icon: Calendar,
+      roles: ['super_admin', 'admin', 'secretaria', 'secretaria_usa', 'propietario'],
+      badge: 'Citas'
+    },
+    {
+      name: 'Bolsa de Cargas', // 🆕 Pool de Recolección
+      path: '/pool',
+      icon: Map,
+      roles: ['super_admin', 'admin', 'recolector', 'propietario'],
+      badge: 'Live'
     },
     {
       name: 'Compañías',
@@ -98,7 +114,7 @@ const Sidebar = () => {
     }
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
+  const filteredMenuItems = menuItems.filter(item =>
     item.roles.includes(userData?.rol)
   );
 
@@ -139,11 +155,10 @@ const Sidebar = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  active
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${active
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
                 title={collapsed ? item.name : ''}
               >
                 <Icon size={20} className="flex-shrink-0" />
@@ -176,11 +191,10 @@ const Sidebar = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  active
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${active
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
                 title={collapsed ? item.name : ''}
               >
                 <Icon size={20} className="flex-shrink-0" />

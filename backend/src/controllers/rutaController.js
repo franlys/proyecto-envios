@@ -110,6 +110,45 @@ export const createRutaAvanzada = async (req, res) => {
     const userData = await getUserDataSafe(req.userData.uid);
     if (!userData?.companyId) return res.status(403).json({ error: 'Usuario sin compañía asignada' });
 
+    // =========================================================
+    // 🛡️ ENFORCEMENT DE LÍMITES SAAS (Rutas Activas)
+    // =========================================================
+    const companyDoc = await db.collection('companies').doc(userData.companyId).get();
+    if (!companyDoc.exists) return res.status(404).json({ error: 'Compañía no encontrada' });
+    const companyData = companyDoc.data();
+    const plan = companyData.plan || 'operativo';
+
+    // Límites de Rutas Simultáneas
+    const PLAN_LIMITS = {
+      operativo: 10,
+      automatizado: 25,
+      smart: Infinity
+    };
+
+    const limit = PLAN_LIMITS[plan] || 10; // Default a operativo si plan desconocido
+
+    if (limit !== Infinity) {
+      // Contar rutas activas (no completadas ni canceladas)
+      // Nota: Firestore count() es más eficiente pero requiere admin SDK v11+ o query simple. 
+      // Usaremos get().size por compatibilidad segura si no estamos seguros de la versión,
+      // pero idealmente count().
+      const activeRoutesSnap = await db.collection('rutas')
+        .where('companyId', '==', userData.companyId)
+        .where('estado', 'in', ['asignada', 'en_curso', 'pendiente']) // Estados activos
+        .get();
+
+      const activeCount = activeRoutesSnap.size;
+
+      if (activeCount >= limit) {
+        return res.status(403).json({
+          success: false,
+          error: 'Límite de rutas alcanzado',
+          message: `Tu plan '${plan.toUpperCase()}' solo permite ${limit} rutas activas simultáneamente. Tienes ${activeCount} rutas en curso. Por favor finaliza rutas antiguas o actualiza al plan Smart.`
+        });
+      }
+    }
+    // =========================================================
+
     // Obtener facturas
     const facturasSnapshot = await db.collection('recolecciones')
       .where('__name__', 'in', facturasIds)

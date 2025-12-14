@@ -27,10 +27,12 @@ import cargadoresRoutes from './routes/cargadores.js';
 import repartidoresRoutes from './routes/repartidores.js';
 import facturacionRoutes from './routes/facturacion.js';
 import dashboardRoutes from './routes/dashboard.js';
+import solicitudesRoutes from './routes/solicitudes.js'; // 🆕 Nuevo Módulo
 import sectoresRoutes from './routes/sectores.js'; // ✅ NUEVO - Sistema de Sectores
 import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión de Gastos de Ruta
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
+import nominaRoutes from './routes/nomina.js'; // ✅ NUEVO - Módulo de Nómina y Pagos
 
 // Importar middleware de validación de plan
 import { checkPlanActivo } from './middleware/checkPlanActivo.js';
@@ -124,8 +126,10 @@ app.get('/api/health', (req, res) => {
 // Rutas públicas (sin validación de plan)
 app.use('/api/auth', authRoutes);
 app.use('/api/tracking', trackingRoutes); // ✅ Tracking Público
-app.use('/api/dashboard', dashboardRoutes); // Dashboard tiene su propia lógica de permisos
+app.use('/api/facturacion', facturacionRoutes);
 app.use('/api/finanzas', finanzasRoutes); // ✅ Finanzas tiene su propia validación
+app.use('/api/solicitudes', solicitudesRoutes); // 🆕 Endpoint para despacho
+app.use('/api/dashboard', dashboardRoutes); // Dashboard tiene su propia lógica de permisos
 
 // ⚠️ RUTAS OPERATIVAS - Requieren Plan Activo (mínimo Plan Operativo)
 // Estas rutas están protegidas por el middleware checkPlanActivo
@@ -146,6 +150,7 @@ app.use('/api/repartidores', verifyToken, checkPlanActivo, repartidoresRoutes);
 app.use('/api/facturacion', verifyToken, checkPlanActivo, facturacionRoutes);
 app.use('/api/sectores', verifyToken, checkPlanActivo, sectoresRoutes);
 app.use('/api/gastos-ruta', verifyToken, checkPlanActivo, gastosRutaRoutes);
+app.use('/api/nomina', verifyToken, checkPlanActivo, nominaRoutes); // ✅ NUEVO - Ruta de Nómina
 
 // =====================================================
 // RUTA RAÍZ

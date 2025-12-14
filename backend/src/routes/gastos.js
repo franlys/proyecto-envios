@@ -36,6 +36,7 @@ router.post('/', checkRole('empleado', 'propietario'), async (req, res) => {
 
     // ✅ ESTANDARIZACIÓN: Usar repartidorId en lugar de empleadoId
     const nuevoGasto = {
+      companyId: req.userData.companyId, // ✅ VINCULAR A LA EMPRESA
       rutaId,
       repartidorId: rutaData.repartidorId,
       tipo,
@@ -44,7 +45,11 @@ router.post('/', checkRole('empleado', 'propietario'), async (req, res) => {
       fecha: new Date(),
       createdBy: req.userData.uid,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      // ✅ CAMPOS FISCALES (Opcionales)
+      ncf: req.body.ncf || null,
+      rnc: req.body.rnc || null,
+      imgUrl: req.body.imgUrl || null
     };
 
     const gastoRef = await db.collection('gastos').add(nuevoGasto);
@@ -62,6 +67,40 @@ router.post('/', checkRole('empleado', 'propietario'), async (req, res) => {
   } catch (error) {
     console.error('Error al crear gasto:', error);
     res.status(500).json({ error: 'Error al crear el gasto' });
+  }
+});
+
+// GET - Obtener todos los gastos de la empresa
+router.get('/', checkRole('admin_general', 'propietario', 'auditor'), async (req, res) => {
+  try {
+    const { companyId } = req.userData;
+    const { ncfOnly } = req.query;
+
+    let query = db.collection('gastos').where('companyId', '==', companyId);
+
+    // Nota: Para filtrar por NCF, lo hacemos en memoria o requeriríamos index compuesto
+    // query = query.orderBy('fecha', 'desc').limit(200);
+    // index issues might occur if we combine == companyId and orderBy fecha without index.
+    // For safety in this environment, we rely on default sorting or simple Fetch.
+
+    const snapshot = await query.get();
+
+    let gastos = [];
+    snapshot.forEach(doc => {
+      const g = { id: doc.id, ...doc.data() };
+      // Client-side like filter for NCF if requested
+      if (ncfOnly === 'true' && !g.ncf) return;
+      gastos.push(g);
+    });
+
+    // Sort in memory to avoid index requirement
+    gastos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    res.json({ success: true, data: gastos });
+
+  } catch (error) {
+    console.error('Error fetching company expenses:', error);
+    res.status(500).json({ error: 'Error cargando gastos' });
   }
 });
 

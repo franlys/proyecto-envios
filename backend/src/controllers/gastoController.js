@@ -8,25 +8,25 @@ export const createGasto = async (req, res) => {
 
     // Validaciones
     if (!rutaId || !tipo || !monto) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'Faltan datos requeridos' 
+        error: 'Faltan datos requeridos'
       });
     }
 
     if (monto <= 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'El monto debe ser mayor a 0' 
+        error: 'El monto debe ser mayor a 0'
       });
     }
 
     // Verificar que la ruta existe
     const rutaDoc = await db.collection('rutas').doc(rutaId).get();
     if (!rutaDoc.exists) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Ruta no encontrada' 
+        error: 'Ruta no encontrada'
       });
     }
 
@@ -45,10 +45,32 @@ export const createGasto = async (req, res) => {
 
     // Verificar que la ruta no esté completada
     if (rutaData.estado === 'completada') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'No se pueden agregar gastos a una ruta completada' 
+        error: 'No se pueden agregar gastos a una ruta completada'
       });
+    }
+
+    // ✅ VALIDACIÓN FISCAL ESTRICTA (Anti-Basura)
+    // Si el usuario envía un NCF, se requiere evidencia y RNC válido
+    const { ncf, rnc, imgUrl } = req.body;
+
+    if (ncf) {
+      // 1. Validar FOTO (Evidencia)
+      if (!imgUrl) {
+        return res.status(400).json({
+          success: false,
+          error: 'Para registrar gastos con NCF, la FOTO de la factura es obligatoria.'
+        });
+      }
+
+      // 2. Validar RNC (Longitud 9 u 11)
+      if (!rnc || (rnc.length !== 9 && rnc.length !== 11)) {
+        return res.status(400).json({
+          success: false,
+          error: 'El RNC debe tener 9 u 11 dígitos para ser válido.'
+        });
+      }
     }
 
     // Crear el gasto
@@ -60,6 +82,10 @@ export const createGasto = async (req, res) => {
       tipo,
       descripcion: descripcion || '',
       monto: parseFloat(monto),
+      // Campos Fiscales (Opcionales)
+      ncf: ncf || null,
+      rnc: rnc || null,
+      imgUrl: imgUrl || null,
       fecha: new Date(),
       createdBy: req.userData.uid,
       createdAt: new Date(),
@@ -77,9 +103,9 @@ export const createGasto = async (req, res) => {
 
   } catch (error) {
     console.error('Error al crear gasto:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Error al crear el gasto' 
+      error: 'Error al crear el gasto'
     });
   }
 };
@@ -92,9 +118,9 @@ export const getGastosByRuta = async (req, res) => {
     // Verificar que la ruta existe
     const rutaDoc = await db.collection('rutas').doc(rutaId).get();
     if (!rutaDoc.exists) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Ruta no encontrada' 
+        error: 'Ruta no encontrada'
       });
     }
 
@@ -146,9 +172,9 @@ export const getGastosByRuta = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener gastos de ruta:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Error al obtener gastos' 
+      error: 'Error al obtener gastos'
     });
   }
 };
@@ -212,7 +238,7 @@ export const getGastosByEmpleado = async (req, res) => {
 
     for (const doc of gastosSnapshot.docs) {
       const gastoData = doc.data();
-      
+
       // Obtener información de la ruta
       let rutaNombre = 'Sin ruta';
       if (gastoData.rutaId) {
@@ -247,17 +273,17 @@ export const getGastosByEmpleado = async (req, res) => {
         totalGastos,
         cantidadGastos: gastos.length,
         gastosPorTipo,
-        promedioGasto: gastos.length > 0 
-          ? Math.round(totalGastos / gastos.length * 100) / 100 
+        promedioGasto: gastos.length > 0
+          ? Math.round(totalGastos / gastos.length * 100) / 100
           : 0
       }
     });
 
   } catch (error) {
     console.error('Error al obtener gastos de empleado:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Error al obtener gastos' 
+      error: 'Error al obtener gastos'
     });
   }
 };
@@ -271,9 +297,9 @@ export const updateGasto = async (req, res) => {
     // Verificar que el gasto existe
     const gastoDoc = await db.collection('gastos').doc(id).get();
     if (!gastoDoc.exists) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Gasto no encontrado' 
+        error: 'Gasto no encontrado'
       });
     }
 
@@ -294,9 +320,9 @@ export const updateGasto = async (req, res) => {
     if (gastoData.rutaId) {
       const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
       if (rutaDoc.exists && rutaDoc.data().estado === 'completada') {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'No se pueden modificar gastos de rutas completadas' 
+          error: 'No se pueden modificar gastos de rutas completadas'
         });
       }
     }
@@ -311,9 +337,9 @@ export const updateGasto = async (req, res) => {
     if (descripcion !== undefined) actualizacion.descripcion = descripcion;
     if (monto) {
       if (parseFloat(monto) <= 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'El monto debe ser mayor a 0' 
+          error: 'El monto debe ser mayor a 0'
         });
       }
       actualizacion.monto = parseFloat(monto);
@@ -329,9 +355,9 @@ export const updateGasto = async (req, res) => {
 
   } catch (error) {
     console.error('Error al actualizar gasto:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Error al actualizar el gasto' 
+      error: 'Error al actualizar el gasto'
     });
   }
 };
@@ -344,9 +370,9 @@ export const deleteGasto = async (req, res) => {
     // Verificar que el gasto existe
     const gastoDoc = await db.collection('gastos').doc(id).get();
     if (!gastoDoc.exists) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Gasto no encontrado' 
+        error: 'Gasto no encontrado'
       });
     }
 
@@ -367,9 +393,9 @@ export const deleteGasto = async (req, res) => {
     if (gastoData.rutaId) {
       const rutaDoc = await db.collection('rutas').doc(gastoData.rutaId).get();
       if (rutaDoc.exists && rutaDoc.data().estado === 'completada') {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'No se pueden eliminar gastos de rutas completadas' 
+          error: 'No se pueden eliminar gastos de rutas completadas'
         });
       }
     }
@@ -384,9 +410,9 @@ export const deleteGasto = async (req, res) => {
 
   } catch (error) {
     console.error('Error al eliminar gasto:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Error al eliminar el gasto' 
+      error: 'Error al eliminar el gasto'
     });
   }
 };

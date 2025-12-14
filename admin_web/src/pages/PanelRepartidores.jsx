@@ -107,6 +107,10 @@ const PanelRepartidores = () => {
   const [tipoGasto, setTipoGasto] = useState('combustible');
   const [montoGasto, setMontoGasto] = useState('');
   const [descripcionGasto, setDescripcionGasto] = useState('');
+  const [conNCF, setConNCF] = useState(false);
+  const [numeroNCF, setNumeroNCF] = useState('');
+  const [rncGasto, setRncGasto] = useState('');
+  const [fotosGasto, setFotosGasto] = useState([]);
 
   // ==============================================================================
   // 🔄 EFECTOS Y CARGA DE DATOS
@@ -525,12 +529,43 @@ const PanelRepartidores = () => {
       return;
     }
 
+    // ✅ VALIDACIONES FISCALES
+    if (conNCF) {
+      if (!numeroNCF || numeroNCF.length < 11) {
+        toast.error('Ingrese un NCF válido (11 caracteres)');
+        return;
+      }
+      if (!rncGasto || (rncGasto.length !== 9 && rncGasto.length !== 11)) {
+        toast.error('Ingrese un RNC válido (9 u 11 dígitos)');
+        return;
+      }
+      if (fotosGasto.length === 0) {
+        toast.error('La foto es OBLIGATORIA para gastos con NCF');
+        return;
+      }
+    }
+
     try {
       setProcesando(true);
+
+      // ✅ SUBIR FOTO SI EXISTE
+      let fotoUrl = null;
+      if (fotosGasto.length > 0) {
+        const urls = await subirArchivosAFirebase(fotosGasto, 'gastos_fiscales');
+        if (urls.length > 0) {
+          // Manejar formato de retorno de subirArchivosAFirebase
+          fotoUrl = urls[0].original || urls[0];
+        }
+      }
+
       const response = await api.post(`/gastos-ruta/${rutaSeleccionada.id}`, {
         tipo: tipoGasto,
         monto: parseFloat(montoGasto),
-        descripcion: descripcionGasto
+        descripcion: descripcionGasto,
+        // ✅ CAMPOS FISCALES
+        ncf: conNCF ? numeroNCF : null,
+        rnc: conNCF ? rncGasto : null,
+        imgUrl: fotoUrl
       });
 
       if (response.data.success) {
@@ -540,7 +575,7 @@ const PanelRepartidores = () => {
         cargarGastos(rutaSeleccionada.id);
       }
     } catch (e) {
-      toast.error('Error al registrar gasto');
+      toast.error(e.response?.data?.error || 'Error al registrar gasto');
       console.error(e);
     } finally {
       setProcesando(false);
@@ -592,6 +627,10 @@ const PanelRepartidores = () => {
     setMontoGasto('');
     setDescripcionGasto('');
     setTipoGasto('combustible');
+    setConNCF(false);
+    setNumeroNCF('');
+    setRncGasto('');
+    setFotosGasto([]);
   };
 
   // ==============================================================================
@@ -639,769 +678,824 @@ const PanelRepartidores = () => {
         {/* Content Container */}
         <div className="p-3 sm:p-4">
 
-        {/* VISTA: LISTA DE RUTAS */}
-        {vistaActual === 'lista' && (
-          <div className="space-y-3 xxs:space-y-4">
-            <h2 className="text-base xxs:text-lg xs:text-xl font-semibold text-slate-800 dark:text-slate-200">Mis Rutas Asignadas</h2>
-            {loadingRutas ? (
-              <div className="flex justify-center p-8"><Loader className="animate-spin text-indigo-600" /></div>
-            ) : rutasRealtime?.length > 0 ? (
-              rutasRealtime.map(ruta => (
-                <div key={ruta.id} className="bg-white dark:bg-slate-800 p-3 xxs:p-4 rounded-lg shadow-md border-l-4 border-indigo-600">
-                  <div className="flex justify-between items-start mb-2 gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-base xxs:text-lg dark:text-white truncate">{ruta.nombre}</h3>
-                      <p className="text-xs xxs:text-sm text-slate-500 dark:text-slate-400">
-                        {new Date(ruta.fecha_programada).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap flex-shrink-0 ${ruta.estado === 'en_curso' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                      {ruta.estado.toUpperCase().replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center mt-3 xxs:mt-4 gap-2">
-                    <div className="text-xs xxs:text-sm text-slate-600 dark:text-slate-300">
-                      <p>{ruta.facturas?.length || 0} entregas</p>
-                    </div>
-                    <button
-                      onClick={() => cargarDetalleRuta(ruta.id)}
-                      className="px-3 xxs:px-4 py-2 text-xs xxs:text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition flex items-center gap-1 xxs:gap-2 whitespace-nowrap"
-                    >
-                      Ver Ruta <ArrowLeft className="rotate-180" size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-lg">
-                <Truck className="mx-auto h-12 w-12 text-slate-400 mb-2" />
-                <p className="text-slate-500 dark:text-slate-400">No tienes rutas activas asignadas</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* VISTA: DETALLE DE RUTA */}
-        {vistaActual === 'ruta' && rutaSeleccionada && (
-          <div className="space-y-3 sm:space-y-4">
-            <button onClick={volverALista} className="flex items-center text-slate-600 dark:text-slate-400 mb-2 text-sm sm:text-base">
-              <ArrowLeft size={18} className="mr-1 sm:mr-2" /> Volver
-            </button>
-
-            <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg sm:text-xl font-bold dark:text-white truncate">{rutaSeleccionada.nombre}</h2>
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    {rutaSeleccionada.facturas?.filter(f => f.estado === 'entregada').length} / {rutaSeleccionada.facturas?.length} completadas
-                  </p>
-                </div>
-                {rutaSeleccionada.estado === 'cargada' ? (
-                  <button
-                    onClick={handleIniciarEntregas}
-                    disabled={procesando}
-                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-2 text-sm sm:text-base"
-                  >
-                    <Truck size={16} /> Iniciar Entregas
-                  </button>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        const printUrl = `${window.location.origin}/rutas/${rutaSeleccionada.id}/imprimir`;
-                        window.open(printUrl, '_blank');
-                      }}
-                      className="p-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
-                      title="Imprimir"
-                    >
-                      <Printer size={18} />
-                    </button>
-                    <button
-                      onClick={() => setShowModalGasto(true)}
-                      className="p-2 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
-                      title="Gasto"
-                    >
-                      <DollarSign size={18} />
-                    </button>
-                    <button
-                      onClick={() => setShowModalFinalizar(true)}
-                      className="px-2 sm:px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
-                    >
-                      Finalizar
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Resumen de Gastos */}
-              {totalGastos > 0 && (
-                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-700">
-                  <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Gastos: <span className="text-rose-600">RD$ {totalGastos.toFixed(2)}</span>
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2 sm:space-y-3">
-              {rutaSeleccionada.facturas?.map((factura, index) => (
-                <div
-                  key={factura.id}
-                  onClick={() => {
-                    setFacturaActual(factura);
-                    setVistaActual('factura');
-                  }}
-                  className={`p-3 sm:p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20' :
-                    factura.estado === 'no_entregada' ? 'bg-rose-50 border-rose-500 dark:bg-rose-900/20' :
-                      'bg-white border-slate-300 dark:bg-slate-800 dark:border-slate-600'
-                    }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                      <span className="bg-slate-200 dark:bg-slate-700 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">
-                        {index + 1}
-                      </span>
+          {/* VISTA: LISTA DE RUTAS */}
+          {vistaActual === 'lista' && (
+            <div className="space-y-3 xxs:space-y-4">
+              <h2 className="text-base xxs:text-lg xs:text-xl font-semibold text-slate-800 dark:text-slate-200">Mis Rutas Asignadas</h2>
+              {loadingRutas ? (
+                <div className="flex justify-center p-8"><Loader className="animate-spin text-indigo-600" /></div>
+              ) : rutasRealtime?.length > 0 ? (
+                rutasRealtime.map(ruta => (
+                  <div key={ruta.id} className="bg-white dark:bg-slate-800 p-3 xxs:p-4 rounded-lg shadow-md border-l-4 border-indigo-600">
+                    <div className="flex justify-between items-start mb-2 gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">{factura.destinatario?.nombre}</p>
-                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">
-                          {factura.destinatario?.direccion}
+                        <h3 className="font-bold text-base xxs:text-lg dark:text-white truncate">{ruta.nombre}</h3>
+                        <p className="text-xs xxs:text-sm text-slate-500 dark:text-slate-400">
+                          {new Date(ruta.fecha_programada).toLocaleDateString()}
                         </p>
                       </div>
+                      <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap flex-shrink-0 ${ruta.estado === 'en_curso' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                        {ruta.estado.toUpperCase().replace('_', ' ')}
+                      </span>
                     </div>
-                    <div className="flex-shrink-0 ml-2">
-                      {factura.estado === 'entregada' && <CheckCircle className="text-emerald-600" size={18} />}
-                      {factura.estado === 'no_entregada' && <XCircle className="text-rose-600" size={18} />}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* VISTA: DETALLE DE FACTURA (ENTREGA) */}
-        {vistaActual === 'factura' && facturaActual && (
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <button onClick={volverARuta} className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-700">
-                <ArrowLeft size={20} />
-              </button>
-              <h2 className="text-lg sm:text-xl font-bold dark:text-white">Entrega</h2>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
-              <div>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Cliente</p>
-                <p className="font-bold text-base sm:text-lg text-slate-900 dark:text-white break-words">{facturaActual.destinatario?.nombre}</p>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2 mt-1">
-                  <MapPin size={14} className="mt-0.5 flex-shrink-0" />
-                  <span className="break-words">{facturaActual.destinatario?.direccion}</span>
-                </p>
-                <div className="flex gap-2 flex-wrap mt-2">
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium shadow-sm text-xs sm:text-sm"
-                  >
-                    <Navigation size={14} />
-                    Maps
-                  </a>
-                  <a
-                    href={`https://waze.com/ul?q=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}&navigate=yes`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition font-medium shadow-sm text-xs sm:text-sm"
-                  >
-                    <Navigation size={14} />
-                    Waze
-                  </a>
-                </div>
-              </div>
-              <div className="pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l sm:pl-4">
-                <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Pago Contraentrega:</p>
-                <p className="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Estado: <span className={`font-bold ${facturaActual.pago?.estado === 'pagada' ? 'text-emerald-600' : 'text-amber-600'}`}>{facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Pendiente'}</span></p>
-              </div>
-            </div>
-
-            {/* Items Checklist */}
-            <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-slate-900 dark:text-white flex items-center gap-2">
-              <Package size={18} /> Items a Entregar
-            </h3>
-            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-              {facturaActual.items?.map((item, index) => {
-                // Determinar el estado del item
-                const isDanado = item.danado || item.estadoItem === 'danado';
-                const isEntregado = item.entregado || item.estadoItem === 'entregado';
-                const isNoEntregado = item.estadoItem === 'no_entregado';
-
-                // Clases de fondo según estado
-                let bgClasses = 'bg-slate-50 border-slate-200 dark:bg-slate-700 dark:border-slate-600';
-                if (isEntregado) {
-                  bgClasses = 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800';
-                } else if (isDanado) {
-                  bgClasses = 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800';
-                } else if (isNoEntregado) {
-                  bgClasses = 'bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-800';
-                }
-
-                // 🔍 DEBUG: Log completo del ciclo de render
-                if (import.meta.env.DEV) {
-                  console.log(`🎨 RENDER Item ${index}:`, {
-                    descripcion: item.descripcion || item.producto,
-                    'item.entregado': item.entregado,
-                    'item.estadoItem': item.estadoItem,
-                    'item.danado': item.danado,
-                    'item._optimistic': item._optimistic,
-                    '---COMPUTED---': '---',
-                    'isDanado': isDanado,
-                    'isEntregado': isEntregado,
-                    'isNoEntregado': isNoEntregado,
-                    '---RENDER---': '---',
-                    'bgClasses': bgClasses,
-                    'willShowEntregadoBadge': isEntregado,
-                    'willShowButtons': !isEntregado && !isDanado && !isNoEntregado
-                  });
-                }
-
-                return (
-                  <div
-                    key={index}
-                    className={`p-2.5 sm:p-3 border rounded-lg flex justify-between items-center gap-2 ${bgClasses} ${item._optimistic ? 'opacity-70' : ''}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base text-slate-900 dark:text-white break-words">
-                        {item.producto || item.descripcion || 'Item sin nombre'}
-                      </p>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Cant: {item.cantidad}</p>
-                      {isDanado && item.descripcionDano && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠️ {item.descripcionDano}</p>
-                      )}
-                    </div>
-                    <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
-                      {isEntregado ? (
-                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
-                          <CheckCircle size={16} className="fill-current" />
-                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">Entregado</span>
-                        </div>
-                      ) : isDanado ? (
-                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
-                          <AlertTriangle size={16} className="fill-current" />
-                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">Dañado</span>
-                        </div>
-                      ) : isNoEntregado ? (
-                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-full">
-                          <XCircle size={16} className="fill-current" />
-                          <span className="font-medium text-xs sm:text-sm whitespace-nowrap">No Entregado</span>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEntregarItem(index)}
-                            className="p-1.5 sm:p-2 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition"
-                            title="Entregar"
-                          >
-                            <CheckCircle size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setItemDanado({ ...item, index });
-                              setShowModalDano(true);
-                            }}
-                            className="p-1.5 sm:p-2 bg-rose-100 text-rose-700 rounded-full hover:bg-rose-200 transition"
-                            title="Daño"
-                          >
-                            <AlertTriangle size={18} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Evidencia Fotográfica Section */}
-            <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-sm mb-4 sm:mb-6">
-              <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-slate-900 dark:text-white flex items-center gap-2">
-                <Camera size={18} /> Evidencia
-              </h3>
-
-              <div className="flex gap-2 mb-3 sm:mb-4">
-                <label className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    multiple
-                    onChange={(e) => setFotosEvidencia(prev => [...prev, ...Array.from(e.target.files)])}
-                    className="hidden"
-                    id="camera-input"
-                  />
-                  <div className="w-full px-2 py-2 sm:px-3 sm:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm sm:text-base">
-                    <Camera size={18} />
-                    <span>Cámara</span>
-                  </div>
-                </label>
-
-                <label className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => setFotosEvidencia(prev => [...prev, ...Array.from(e.target.files)])}
-                    className="hidden"
-                    id="gallery-input"
-                  />
-                  <div className="w-full px-2 py-2 sm:px-3 sm:py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm sm:text-base">
-                    <Image size={18} />
-                    <span>Galería</span>
-                  </div>
-                </label>
-              </div>
-
-              {fotosEvidencia.length > 0 && (
-                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                  <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    📸 {fotosEvidencia.length} foto(s)
-                  </p>
-                  <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
-                    {fotosEvidencia.map((file, idx) => (
-                      <div key={idx} className="relative aspect-square">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview ${idx + 1}`}
-                          className="w-full h-full object-cover rounded border border-slate-300 dark:border-slate-600"
-                        />
-                        <button
-                          onClick={() => setFotosEvidencia(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-1 hover:bg-rose-700"
-                        >
-                          <X size={12} />
-                        </button>
+                    <div className="flex justify-between items-center mt-3 xxs:mt-4 gap-2">
+                      <div className="text-xs xxs:text-sm text-slate-600 dark:text-slate-300">
+                        <p>{ruta.facturas?.length || 0} entregas</p>
                       </div>
-                    ))}
+                      <button
+                        onClick={() => cargarDetalleRuta(ruta.id)}
+                        className="px-3 xxs:px-4 py-2 text-xs xxs:text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition flex items-center gap-1 xxs:gap-2 whitespace-nowrap"
+                      >
+                        Ver Ruta <ArrowLeft className="rotate-180" size={14} />
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="flex justify-end gap-2 mt-3">
-                    <button
-                      onClick={() => setFotosEvidencia([])}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 text-slate-600 dark:text-slate-400 text-sm"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleSubirFotos}
-                      disabled={subiendoFotos}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 font-medium text-sm"
-                    >
-                      {subiendoFotos ? <Loader className="animate-spin" size={14} /> : <Camera size={14} />}
-                      {subiendoFotos ? 'Subiendo...' : 'Subir'}
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center p-8 bg-white dark:bg-slate-800 rounded-lg">
+                  <Truck className="mx-auto h-12 w-12 text-slate-400 mb-2" />
+                  <p className="text-slate-500 dark:text-slate-400">No tienes rutas activas asignadas</p>
                 </div>
               )}
             </div>
+          )}
 
-            {/* Botones de Acción Principal */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <button
-                onClick={() => setShowModalNoEntrega(true)}
-                className="p-3 sm:p-4 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition flex flex-col items-center gap-1.5 sm:gap-2"
-              >
-                <XCircle size={20} />
-                <span className="font-bold text-xs sm:text-sm">No Entregado</span>
+          {/* VISTA: DETALLE DE RUTA */}
+          {vistaActual === 'ruta' && rutaSeleccionada && (
+            <div className="space-y-3 sm:space-y-4">
+              <button onClick={volverALista} className="flex items-center text-slate-600 dark:text-slate-400 mb-2 text-sm sm:text-base">
+                <ArrowLeft size={18} className="mr-1 sm:mr-2" /> Volver
               </button>
 
-              <button
-                onClick={() => setShowModalPago(true)}
-                disabled={facturaActual.pago?.estado === 'pagada' || facturaActual.pago?.total <= 0}
-                className="p-3 sm:p-4 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition flex flex-col items-center gap-1.5 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <DollarSign size={20} />
-                <span className="font-bold text-xs sm:text-sm text-center">
-                  {facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Confirmar Pago'}
-                </span>
-              </button>
+              <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold dark:text-white truncate">{rutaSeleccionada.nombre}</h2>
+                    <p className="text-xs sm:text-sm text-slate-500">
+                      {rutaSeleccionada.facturas?.filter(f => f.estado === 'entregada').length} / {rutaSeleccionada.facturas?.length} completadas
+                    </p>
+                  </div>
+                  {rutaSeleccionada.estado === 'cargada' ? (
+                    <button
+                      onClick={handleIniciarEntregas}
+                      disabled={procesando}
+                      className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center justify-center gap-2 text-sm sm:text-base"
+                    >
+                      <Truck size={16} /> Iniciar Entregas
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const printUrl = `${window.location.origin}/rutas/${rutaSeleccionada.id}/imprimir`;
+                          window.open(printUrl, '_blank');
+                        }}
+                        className="p-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
+                        title="Imprimir"
+                      >
+                        <Printer size={18} />
+                      </button>
+                      <button
+                        onClick={() => setShowModalGasto(true)}
+                        className="p-2 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
+                        title="Gasto"
+                      >
+                        <DollarSign size={18} />
+                      </button>
+                      <button
+                        onClick={() => setShowModalFinalizar(true)}
+                        className="px-2 sm:px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap"
+                      >
+                        Finalizar
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-              <button
-                onClick={() => setShowModalEntregar(true)}
-                disabled={facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'}
-                className={`col-span-2 p-3 sm:p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${
-                  facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'
+                {/* Resumen de Gastos */}
+                {totalGastos > 0 && (
+                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Gastos: <span className="text-rose-600">RD$ {totalGastos.toFixed(2)}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 sm:space-y-3">
+                {rutaSeleccionada.facturas?.map((factura, index) => (
+                  <div
+                    key={factura.id}
+                    onClick={() => {
+                      setFacturaActual(factura);
+                      setVistaActual('factura');
+                    }}
+                    className={`p-3 sm:p-4 rounded-lg shadow-sm border-l-4 cursor-pointer transition-all ${factura.estado === 'entregada' ? 'bg-emerald-50 border-emerald-500 dark:bg-emerald-900/20' :
+                      factura.estado === 'no_entregada' ? 'bg-rose-50 border-rose-500 dark:bg-rose-900/20' :
+                        'bg-white border-slate-300 dark:bg-slate-800 dark:border-slate-600'
+                      }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <span className="bg-slate-200 dark:bg-slate-700 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">{factura.destinatario?.nombre}</p>
+                          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">
+                            {factura.destinatario?.direccion}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 ml-2">
+                        {factura.estado === 'entregada' && <CheckCircle className="text-emerald-600" size={18} />}
+                        {factura.estado === 'no_entregada' && <XCircle className="text-rose-600" size={18} />}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* VISTA: DETALLE DE FACTURA (ENTREGA) */}
+          {vistaActual === 'factura' && facturaActual && (
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <button onClick={volverARuta} className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-700">
+                  <ArrowLeft size={20} />
+                </button>
+                <h2 className="text-lg sm:text-xl font-bold dark:text-white">Entrega</h2>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                <div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Cliente</p>
+                  <p className="font-bold text-base sm:text-lg text-slate-900 dark:text-white break-words">{facturaActual.destinatario?.nombre}</p>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2 mt-1">
+                    <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                    <span className="break-words">{facturaActual.destinatario?.direccion}</span>
+                  </p>
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium shadow-sm text-xs sm:text-sm"
+                    >
+                      <Navigation size={14} />
+                      Maps
+                    </a>
+                    <a
+                      href={`https://waze.com/ul?q=${encodeURIComponent(facturaActual.destinatario?.direccion || '')}&navigate=yes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition font-medium shadow-sm text-xs sm:text-sm"
+                    >
+                      <Navigation size={14} />
+                      Waze
+                    </a>
+                  </div>
+                </div>
+                <div className="pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l sm:pl-4">
+                  <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Pago Contraentrega:</p>
+                  <p className="text-xl sm:text-2xl font-bold text-emerald-700 dark:text-emerald-400">${facturaActual.pago?.total?.toFixed(2) || '0.00'}</p>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Estado: <span className={`font-bold ${facturaActual.pago?.estado === 'pagada' ? 'text-emerald-600' : 'text-amber-600'}`}>{facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Pendiente'}</span></p>
+                </div>
+              </div>
+
+              {/* Items Checklist */}
+              <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-slate-900 dark:text-white flex items-center gap-2">
+                <Package size={18} /> Items a Entregar
+              </h3>
+              <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                {facturaActual.items?.map((item, index) => {
+                  // Determinar el estado del item
+                  const isDanado = item.danado || item.estadoItem === 'danado';
+                  const isEntregado = item.entregado || item.estadoItem === 'entregado';
+                  const isNoEntregado = item.estadoItem === 'no_entregado';
+
+                  // Clases de fondo según estado
+                  let bgClasses = 'bg-slate-50 border-slate-200 dark:bg-slate-700 dark:border-slate-600';
+                  if (isEntregado) {
+                    bgClasses = 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800';
+                  } else if (isDanado) {
+                    bgClasses = 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800';
+                  } else if (isNoEntregado) {
+                    bgClasses = 'bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-800';
+                  }
+
+                  // 🔍 DEBUG: Log completo del ciclo de render
+                  if (import.meta.env.DEV) {
+                    console.log(`🎨 RENDER Item ${index}:`, {
+                      descripcion: item.descripcion || item.producto,
+                      'item.entregado': item.entregado,
+                      'item.estadoItem': item.estadoItem,
+                      'item.danado': item.danado,
+                      'item._optimistic': item._optimistic,
+                      '---COMPUTED---': '---',
+                      'isDanado': isDanado,
+                      'isEntregado': isEntregado,
+                      'isNoEntregado': isNoEntregado,
+                      '---RENDER---': '---',
+                      'bgClasses': bgClasses,
+                      'willShowEntregadoBadge': isEntregado,
+                      'willShowButtons': !isEntregado && !isDanado && !isNoEntregado
+                    });
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className={`p-2.5 sm:p-3 border rounded-lg flex justify-between items-center gap-2 ${bgClasses} ${item._optimistic ? 'opacity-70' : ''}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base text-slate-900 dark:text-white break-words">
+                          {item.producto || item.descripcion || 'Item sin nombre'}
+                        </p>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Cant: {item.cantidad}</p>
+                        {isDanado && item.descripcionDano && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠️ {item.descripcionDano}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
+                        {isEntregado ? (
+                          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
+                            <CheckCircle size={16} className="fill-current" />
+                            <span className="font-medium text-xs sm:text-sm whitespace-nowrap">Entregado</span>
+                          </div>
+                        ) : isDanado ? (
+                          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full">
+                            <AlertTriangle size={16} className="fill-current" />
+                            <span className="font-medium text-xs sm:text-sm whitespace-nowrap">Dañado</span>
+                          </div>
+                        ) : isNoEntregado ? (
+                          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-full">
+                            <XCircle size={16} className="fill-current" />
+                            <span className="font-medium text-xs sm:text-sm whitespace-nowrap">No Entregado</span>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleEntregarItem(index)}
+                              className="p-1.5 sm:p-2 bg-emerald-100 text-emerald-700 rounded-full hover:bg-emerald-200 transition"
+                              title="Entregar"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setItemDanado({ ...item, index });
+                                setShowModalDano(true);
+                              }}
+                              className="p-1.5 sm:p-2 bg-rose-100 text-rose-700 rounded-full hover:bg-rose-200 transition"
+                              title="Daño"
+                            >
+                              <AlertTriangle size={18} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Evidencia Fotográfica Section */}
+              <div className="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-lg shadow-sm mb-4 sm:mb-6">
+                <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3 text-slate-900 dark:text-white flex items-center gap-2">
+                  <Camera size={18} /> Evidencia
+                </h3>
+
+                <div className="flex gap-2 mb-3 sm:mb-4">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      multiple
+                      onChange={(e) => setFotosEvidencia(prev => [...prev, ...Array.from(e.target.files)])}
+                      className="hidden"
+                      id="camera-input"
+                    />
+                    <div className="w-full px-2 py-2 sm:px-3 sm:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm sm:text-base">
+                      <Camera size={18} />
+                      <span>Cámara</span>
+                    </div>
+                  </label>
+
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setFotosEvidencia(prev => [...prev, ...Array.from(e.target.files)])}
+                      className="hidden"
+                      id="gallery-input"
+                    />
+                    <div className="w-full px-2 py-2 sm:px-3 sm:py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 font-medium text-sm sm:text-base">
+                      <Image size={18} />
+                      <span>Galería</span>
+                    </div>
+                  </label>
+                </div>
+
+                {fotosEvidencia.length > 0 && (
+                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      📸 {fotosEvidencia.length} foto(s)
+                    </p>
+                    <div className="grid grid-cols-2 xs:grid-cols-3 gap-2">
+                      {fotosEvidencia.map((file, idx) => (
+                        <div key={idx} className="relative aspect-square">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover rounded border border-slate-300 dark:border-slate-600"
+                          />
+                          <button
+                            onClick={() => setFotosEvidencia(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-1 hover:bg-rose-700"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-3">
+                      <button
+                        onClick={() => setFotosEvidencia([])}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 text-slate-600 dark:text-slate-400 text-sm"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleSubirFotos}
+                        disabled={subiendoFotos}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5 sm:gap-2 font-medium text-sm"
+                      >
+                        {subiendoFotos ? <Loader className="animate-spin" size={14} /> : <Camera size={14} />}
+                        {subiendoFotos ? 'Subiendo...' : 'Subir'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botones de Acción Principal */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <button
+                  onClick={() => setShowModalNoEntrega(true)}
+                  className="p-3 sm:p-4 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition flex flex-col items-center gap-1.5 sm:gap-2"
+                >
+                  <XCircle size={20} />
+                  <span className="font-bold text-xs sm:text-sm">No Entregado</span>
+                </button>
+
+                <button
+                  onClick={() => setShowModalPago(true)}
+                  disabled={facturaActual.pago?.estado === 'pagada' || facturaActual.pago?.total <= 0}
+                  className="p-3 sm:p-4 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition flex flex-col items-center gap-1.5 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <DollarSign size={20} />
+                  <span className="font-bold text-xs sm:text-sm text-center">
+                    {facturaActual.pago?.estado === 'pagada' ? 'Pagado' : 'Confirmar Pago'}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setShowModalEntregar(true)}
+                  disabled={facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'}
+                  className={`col-span-2 p-3 sm:p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'
                     ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                     : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                }`}
-              >
-                <CheckCircle size={20} />
-                <span className="font-bold text-sm sm:text-base">
-                  {facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada' ? 'Ya Entregada' : 'Finalizar Entrega'}
-                </span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Modal Reportar Daño */}
-        {showModalDano && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-rose-600 flex items-center gap-2"><AlertTriangle /> Reportar Daño</h3>
-              <p className="mb-4 font-medium text-slate-800 dark:text-white">
-                Item: {itemDanado?.producto || itemDanado?.descripcion || 'Item sin nombre'}
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción del Daño</label>
-                  <textarea
-                    value={descripcionDano}
-                    onChange={(e) => setDescripcionDano(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    rows="3"
-                    placeholder="Describa el daño..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fotos del Daño</label>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => setFotosDano(Array.from(e.target.files))}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalDano(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
-                <button
-                  onClick={handleReportarDano}
-                  disabled={procesando}
-                  className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+                    }`}
                 >
-                  {procesando ? <Loader className="animate-spin" size={16} /> : <AlertTriangle size={16} />}
-                  Reportar
+                  <CheckCircle size={20} />
+                  <span className="font-bold text-sm sm:text-base">
+                    {facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada' ? 'Ya Entregada' : 'Finalizar Entrega'}
+                  </span>
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Modal No Entrega */}
-        {showModalNoEntrega && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h3 className="text-xl font-bold mb-4 text-rose-600 flex items-center gap-2"><XCircle /> Reportar No Entrega</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Motivo</label>
-                  <select
-                    value={motivoNoEntrega}
-                    onChange={(e) => setMotivoNoEntrega(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  >
-                    <option value="">Seleccione un motivo...</option>
-                    <option value="cliente_ausente">Cliente Ausente</option>
-                    <option value="direccion_incorrecta">Dirección Incorrecta</option>
-                    <option value="rechazado">Rechazado por Cliente</option>
-                    <option value="zona_peligrosa">Zona Peligrosa / Inaccesible</option>
-                    <option value="otro">Otro</option>
-                  </select>
-                </div>
-                {motivoNoEntrega === 'otro' && (
+          {/* Modal Reportar Daño */}
+          {showModalDano && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
+              <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4 text-rose-600 flex items-center gap-2"><AlertTriangle /> Reportar Daño</h3>
+                <p className="mb-4 font-medium text-slate-800 dark:text-white">
+                  Item: {itemDanado?.producto || itemDanado?.descripcion || 'Item sin nombre'}
+                </p>
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Especificar Motivo</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción del Daño</label>
                     <textarea
-                      value={otroMotivoNoEntrega}
-                      onChange={(e) => setOtroMotivoNoEntrega(e.target.value)}
+                      value={descripcionDano}
+                      onChange={(e) => setDescripcionDano(e.target.value)}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      rows="3"
+                      placeholder="Describa el daño..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fotos del Daño</label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => setFotosDano(Array.from(e.target.files))}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button onClick={() => setShowModalDano(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
+                  <button
+                    onClick={handleReportarDano}
+                    disabled={procesando}
+                    className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {procesando ? <Loader className="animate-spin" size={16} /> : <AlertTriangle size={16} />}
+                    Reportar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal No Entrega */}
+          {showModalNoEntrega && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
+              <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+                <h3 className="text-xl font-bold mb-4 text-rose-600 flex items-center gap-2"><XCircle /> Reportar No Entrega</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Motivo</label>
+                    <select
+                      value={motivoNoEntrega}
+                      onChange={(e) => setMotivoNoEntrega(e.target.value)}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    >
+                      <option value="">Seleccione un motivo...</option>
+                      <option value="cliente_ausente">Cliente Ausente</option>
+                      <option value="direccion_incorrecta">Dirección Incorrecta</option>
+                      <option value="rechazado">Rechazado por Cliente</option>
+                      <option value="zona_peligrosa">Zona Peligrosa / Inaccesible</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  {motivoNoEntrega === 'otro' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Especificar Motivo</label>
+                      <textarea
+                        value={otroMotivoNoEntrega}
+                        onChange={(e) => setOtroMotivoNoEntrega(e.target.value)}
+                        className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                        rows="2"
+                        placeholder="Especifique el motivo..."
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción</label>
+                    <textarea
+                      value={descripcionNoEntrega}
+                      onChange={(e) => setDescripcionNoEntrega(e.target.value)}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      rows="3"
+                      placeholder="Detalles adicionales..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fotos (Fachada/Prueba)</label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => setFotosNoEntrega(Array.from(e.target.files))}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={intentarNuevamente}
+                      onChange={(e) => setIntentarNuevamente(e.target.checked)}
+                      id="reintento"
+                    />
+                    <label htmlFor="reintento" className="text-sm text-slate-700 dark:text-slate-300">Se puede reintentar hoy</label>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button onClick={() => setShowModalNoEntrega(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
+                  <button
+                    onClick={handleReportarNoEntrega}
+                    disabled={procesando}
+                    className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {procesando ? <Loader className="animate-spin" size={16} /> : <XCircle size={16} />}
+                    Reportar Fallo
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Pago */}
+          {showModalPago && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
+              <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4 text-emerald-600 flex items-center gap-2"><DollarSign /> Confirmar Pago</h3>
+                <p className="mb-4 text-slate-800 dark:text-white">
+                  Monto a cobrar: <span className="font-bold text-lg">RD$ {(facturaActual.pago?.total || 0).toFixed(2)}</span>
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Método de Pago</label>
+                    <select
+                      value={metodoPago}
+                      onChange={(e) => setMetodoPago(e.target.value)}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    >
+                      <option value="">Seleccione un método...</option>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="transferencia">Transferencia</option>
+                      <option value="tarjeta">Tarjeta</option>
+                    </select>
+                  </div>
+                  {metodoPago === 'efectivo' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Monto Recibido (Efectivo)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={montoRecibido}
+                        onChange={(e) => setMontoRecibido(parseFloat(e.target.value))}
+                        className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                        placeholder="0.00"
+                      />
+                      {montoRecibido > 0 && (
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          Cambio: RD$ {(montoRecibido - (facturaActual.pago?.total || 0)).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Comentario (Opcional)</label>
+                    <textarea
+                      value={comentarioPago}
+                      onChange={(e) => setComentarioPago(e.target.value)}
                       className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                       rows="2"
-                      placeholder="Especifique el motivo..."
+                      placeholder="Notas sobre el pago..."
                     />
                   </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Descripción</label>
-                  <textarea
-                    value={descripcionNoEntrega}
-                    onChange={(e) => setDescripcionNoEntrega(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    rows="3"
-                    placeholder="Detalles adicionales..."
-                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fotos (Fachada/Prueba)</label>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => setFotosNoEntrega(Array.from(e.target.files))}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  />
+                <div className="flex justify-end gap-2 mt-4">
+                  <button onClick={() => setShowModalPago(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
+                  <button
+                    onClick={handleConfirmarPago}
+                    disabled={procesando || !metodoPago || (metodoPago === 'efectivo' && montoRecibido < (facturaActual.pago?.total || 0))}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                    Confirmar
+                  </button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={intentarNuevamente}
-                    onChange={(e) => setIntentarNuevamente(e.target.checked)}
-                    id="reintento"
-                  />
-                  <label htmlFor="reintento" className="text-sm text-slate-700 dark:text-slate-300">Se puede reintentar hoy</label>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalNoEntrega(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
-                <button
-                  onClick={handleReportarNoEntrega}
-                  disabled={procesando}
-                  className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {procesando ? <Loader className="animate-spin" size={16} /> : <XCircle size={16} />}
-                  Reportar Fallo
-                </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Modal Pago */}
-        {showModalPago && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-emerald-600 flex items-center gap-2"><DollarSign /> Confirmar Pago</h3>
-              <p className="mb-4 text-slate-800 dark:text-white">
-                Monto a cobrar: <span className="font-bold text-lg">RD$ {(facturaActual.pago?.total || 0).toFixed(2)}</span>
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Método de Pago</label>
+          {/* Modal Finalizar Entrega */}
+          {showModalEntregar && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
+              <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4 text-emerald-600 flex items-center gap-2"><CheckCircle /> Finalizar Entrega</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Recibido por (Nombre)</label>
+                    <input
+                      type="text"
+                      value={nombreReceptor}
+                      onChange={(e) => setNombreReceptor(e.target.value)}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      placeholder="Nombre de quien recibe"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notas de Entrega</label>
+                    <textarea
+                      value={notasEntrega}
+                      onChange={(e) => setNotasEntrega(e.target.value)}
+                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      rows="2"
+                      placeholder="Comentarios opcionales..."
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button onClick={() => setShowModalEntregar(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
+                  <button
+                    onClick={handleMarcarEntregada}
+                    disabled={procesando}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                    Confirmar Entrega
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Finalizar Ruta */}
+          {showModalFinalizar && (
+            <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md my-4 sm:my-0 flex flex-col max-h-[95vh] sm:max-h-[85vh]">
+                {/* Header */}
+                <div className="p-3 sm:p-4 border-b dark:border-slate-700 flex-shrink-0">
+                  <h3 className="text-lg sm:text-xl font-bold text-purple-600 flex items-center gap-2">
+                    <Truck size={20} /> Finalizar Ruta
+                  </h3>
+                </div>
+
+                {/* Content - scrollable */}
+                <div className="p-3 sm:p-4 overflow-y-auto flex-1">
+                  <p className="mb-3 text-sm sm:text-base text-slate-600 dark:text-slate-400">
+                    ¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.
+                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Notas Finales
+                    </label>
+                    <textarea
+                      value={notasFinalizacion}
+                      onChange={(e) => setNotasFinalizacion(e.target.value)}
+                      className="w-full p-2 text-sm border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                      rows="3"
+                      placeholder="Observaciones sobre la ruta..."
+                    />
+                  </div>
+                </div>
+
+                {/* Footer - fixed buttons */}
+                <div className="p-3 sm:p-4 border-t dark:border-slate-700 flex justify-end gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => setShowModalFinalizar(false)}
+                    className="px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleFinalizarRuta}
+                    disabled={procesando}
+                    className="px-3 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {procesando ? <Loader className="animate-spin" size={14} /> : <CheckCircle size={14} />}
+                    Finalizar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Agregar Gasto */}
+          {showModalGasto && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
+              <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4 text-amber-600 flex items-center gap-2">
+                  <DollarSign /> Agregar Gasto
+                </h3>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Tipo de Gasto
+                  </label>
                   <select
-                    value={metodoPago}
-                    onChange={(e) => setMetodoPago(e.target.value)}
+                    value={tipoGasto}
+                    onChange={(e) => setTipoGasto(e.target.value)}
                     className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                   >
-                    <option value="">Seleccione un método...</option>
-                    <option value="efectivo">Efectivo</option>
-                    <option value="transferencia">Transferencia</option>
-                    <option value="tarjeta">Tarjeta</option>
+                    <option value="combustible">⛽ Combustible</option>
+                    <option value="peaje">🛣️ Peaje</option>
+                    <option value="comida">🍽️ Comida</option>
+                    <option value="estacionamiento">🅿️ Estacionamiento</option>
+                    <option value="mantenimiento">🔧 Mantenimiento</option>
+                    <option value="otro">📝 Otro</option>
                   </select>
                 </div>
-                {metodoPago === 'efectivo' && (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Monto Recibido (Efectivo)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={montoRecibido}
-                      onChange={(e) => setMontoRecibido(parseFloat(e.target.value))}
-                      className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                      placeholder="0.00"
-                    />
-                    {montoRecibido > 0 && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        Cambio: RD$ {(montoRecibido - (facturaActual.pago?.total || 0)).toFixed(2)}
-                      </p>
-                    )}
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Comentario (Opcional)</label>
-                  <textarea
-                    value={comentarioPago}
-                    onChange={(e) => setComentarioPago(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    rows="2"
-                    placeholder="Notas sobre el pago..."
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalPago(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
-                <button
-                  onClick={handleConfirmarPago}
-                  disabled={procesando || !metodoPago || (metodoPago === 'efectivo' && montoRecibido < (facturaActual.pago?.total || 0))}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                  Confirmar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Modal Finalizar Entrega */}
-        {showModalEntregar && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-emerald-600 flex items-center gap-2"><CheckCircle /> Finalizar Entrega</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Recibido por (Nombre)</label>
-                  <input
-                    type="text"
-                    value={nombreReceptor}
-                    onChange={(e) => setNombreReceptor(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    placeholder="Nombre de quien recibe"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Notas de Entrega</label>
-                  <textarea
-                    value={notasEntrega}
-                    onChange={(e) => setNotasEntrega(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    rows="2"
-                    placeholder="Comentarios opcionales..."
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setShowModalEntregar(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400">Cancelar</button>
-                <button
-                  onClick={handleMarcarEntregada}
-                  disabled={procesando}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {procesando ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}
-                  Confirmar Entrega
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal Finalizar Ruta */}
-        {showModalFinalizar && (
-          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-800 rounded-lg w-full max-w-md my-4 sm:my-0 flex flex-col max-h-[95vh] sm:max-h-[85vh]">
-              {/* Header */}
-              <div className="p-3 sm:p-4 border-b dark:border-slate-700 flex-shrink-0">
-                <h3 className="text-lg sm:text-xl font-bold text-purple-600 flex items-center gap-2">
-                  <Truck size={20} /> Finalizar Ruta
-                </h3>
-              </div>
-
-              {/* Content - scrollable */}
-              <div className="p-3 sm:p-4 overflow-y-auto flex-1">
-                <p className="mb-3 text-sm sm:text-base text-slate-600 dark:text-slate-400">
-                  ¿Está seguro de que desea finalizar la ruta? Esto cerrará todas las facturas pendientes como no entregadas.
-                </p>
-                <div>
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Notas Finales
+                    Monto (RD$)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={montoGasto}
+                    onChange={(e) => setMontoGasto(e.target.value)}
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Descripción (opcional)
                   </label>
                   <textarea
-                    value={notasFinalizacion}
-                    onChange={(e) => setNotasFinalizacion(e.target.value)}
-                    className="w-full p-2 text-sm border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    value={descripcionGasto}
+                    onChange={(e) => setDescripcionGasto(e.target.value)}
+                    className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     rows="3"
-                    placeholder="Observaciones sobre la ruta..."
+                    placeholder="Detalles adicionales del gasto..."
                   />
                 </div>
-              </div>
 
-              {/* Footer - fixed buttons */}
-              <div className="p-3 sm:p-4 border-t dark:border-slate-700 flex justify-end gap-2 flex-shrink-0">
-                <button
-                  onClick={() => setShowModalFinalizar(false)}
-                  className="px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleFinalizarRuta}
-                  disabled={procesando}
-                  className="px-3 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
-                >
-                  {procesando ? <Loader className="animate-spin" size={14} /> : <CheckCircle size={14} />}
-                  Finalizar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                {/* ✅ SECCIÓN FISCAL */}
+                <div className="mb-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      id="checkNCF"
+                      checked={conNCF}
+                      onChange={(e) => setConNCF(e.target.checked)}
+                      className="w-5 h-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <label htmlFor="checkNCF" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Tengo Comprobante Fiscal (NCF)
+                    </label>
+                  </div>
 
-        {/* Modal Agregar Gasto */}
-        {showModalGasto && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 xxs:p-3 xs:p-4">
-            <div className="bg-white dark:bg-slate-800 p-3 xxs:p-4 xs:p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4 text-amber-600 flex items-center gap-2">
-                <DollarSign /> Agregar Gasto
-              </h3>
+                  {conNCF && (
+                    <div className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg border border-slate-200 dark:border-slate-600 space-y-3 animation-fade-in">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">NCF</label>
+                          <input
+                            type="text"
+                            maxLength={11}
+                            value={numeroNCF}
+                            onChange={(e) => setNumeroNCF(e.target.value.toUpperCase())}
+                            className="w-full p-2 text-sm border rounded dark:bg-slate-800 dark:border-slate-500 dark:text-white uppercase"
+                            placeholder="B0100000001"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">RNC</label>
+                          <input
+                            type="text"
+                            maxLength={11}
+                            value={rncGasto}
+                            onChange={(e) => setRncGasto(e.target.value)}
+                            className="w-full p-2 text-sm border rounded dark:bg-slate-800 dark:border-slate-500 dark:text-white"
+                            placeholder="131234567"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Foto Factura (Requerida)</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(e) => setFotosGasto(Array.from(e.target.files))}
+                          className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
+                        />
+                        {fotosGasto.length > 0 && <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1"><CheckCircle size={12} /> Foto lista para subir</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Tipo de Gasto
-                </label>
-                <select
-                  value={tipoGasto}
-                  onChange={(e) => setTipoGasto(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                >
-                  <option value="combustible">⛽ Combustible</option>
-                  <option value="peaje">🛣️ Peaje</option>
-                  <option value="comida">🍽️ Comida</option>
-                  <option value="estacionamiento">🅿️ Estacionamiento</option>
-                  <option value="mantenimiento">🔧 Mantenimiento</option>
-                  <option value="otro">📝 Otro</option>
-                </select>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Monto (RD$)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={montoGasto}
-                  onChange={(e) => setMontoGasto(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Descripción (opcional)
-                </label>
-                <textarea
-                  value={descripcionGasto}
-                  onChange={(e) => setDescripcionGasto(e.target.value)}
-                  className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                  rows="3"
-                  placeholder="Detalles adicionales del gasto..."
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowModalGasto(false);
-                    resetFormGasto();
-                  }}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleAgregarGasto}
-                  disabled={procesando || !montoGasto || parseFloat(montoGasto) <= 0}
-                  className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {procesando ? <Loader className="animate-spin" size={16} /> : <DollarSign size={16} />}
-                  Registrar Gasto
-                </button>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setShowModalGasto(false);
+                      resetFormGasto();
+                    }}
+                    className="px-4 py-2 text-slate-600 dark:text-slate-400"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAgregarGasto}
+                    disabled={procesando || !montoGasto || parseFloat(montoGasto) <= 0}
+                    className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {procesando ? <Loader className="animate-spin" size={16} /> : <DollarSign size={16} />}
+                    Registrar Gasto
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         </div>
         {/* End Content Container */}

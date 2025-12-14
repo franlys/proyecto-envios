@@ -54,7 +54,8 @@ export const register = async (req, res) => {
       'almacen_eeuu',
       'almacen_rd',
       'cargador',
-      'propietario'
+      'propietario',
+      'secretaria_usa'
     ];
 
     if (!rolesValidos.includes(rol)) {
@@ -105,7 +106,11 @@ export const register = async (req, res) => {
       fechaCreacion: FieldValue.serverTimestamp(),
       creadoPor: adminUid || null,
       creadoPorNombre: adminData?.nombre || 'Sistema',
-      fotoURL: null
+      fotoURL: null,
+      // ✅ CAMPOS DE NOMINA
+      cedula: req.body.cedula || null,
+      banco: req.body.banco || 'BHD', // Default BHD for now
+      cuentaBanco: req.body.cuentaBanco || null
     };
 
     await userDocRef.set(newUser);

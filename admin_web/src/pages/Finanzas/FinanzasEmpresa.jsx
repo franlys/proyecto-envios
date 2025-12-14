@@ -22,7 +22,9 @@ import {
   Receipt,
   Ticket, // ✅ NUEVO ICONO
   Container, // ✅ NUEVO ICONO
-  ChevronDown // ✅ NUEVO ICONO
+  ChevronDown, // ✅ NUEVO ICONO
+  Building2, // ✅ NUEVO ICONO
+  FileText // ✅ NUEVO ICONO
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
@@ -42,7 +44,9 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import ModuloFiscal from './ModuloFiscal';
 import ComparadorPlanes from './ComparadorPlanes';
+
 
 const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -136,7 +140,8 @@ const FinanzasEmpresa = () => {
     gastos: { total: 0, change: 0, changeType: 'down', desglose: { repartidoresRD: 0, repartidoresUSD: 0, recolectoresUSD: 0, otrosUSD: 0 } },
     utilidad: { total: 0, change: 0, changeType: 'up' },
     facturasActivas: { total: 0, change: 0, changeType: 'up' },
-    tasaDolar: 58.50
+    tasaDolar: 58.50,
+    companyConfig: { rnc: '', ncfSequences: {}, ncfExpiry: '' } // Nuevo estado para config fiscal
   });
 
   // Datos de suscripción SaaS
@@ -178,6 +183,19 @@ const FinanzasEmpresa = () => {
         if (overviewRes.data.success) {
           setData(overviewRes.data.data);
           setTasaDolar(overviewRes.data.data.tasaDolar || 58.50);
+
+          // Cargar config fiscal
+          const companyRes = await api.get(`/companies/${userData.companyId}`);
+          if (companyRes.data) {
+            setData(prev => ({
+              ...prev,
+              companyConfig: {
+                rnc: companyRes.data.rnc || '',
+                ncfSequences: companyRes.data.ncfSequences || { B01: '', B02: '', B14: '', B15: '' },
+                ncfExpiry: companyRes.data.ncfExpiry || ''
+              }
+            }));
+          }
         }
 
         // Fetch suscripción data
@@ -211,13 +229,13 @@ const FinanzasEmpresa = () => {
         toast.error(errorMessage);
 
         // Asegurar que data tenga valores por defecto incluso en caso de error
-        // Esto previene que el componente se rompa si la API falla
         setData({
           ingresos: { total: 0, change: 0, changeType: 'neutral' },
           gastos: { total: 0, change: 0, changeType: 'neutral', desglose: { repartidoresRD: 0, repartidoresUSD: 0, recolectoresUSD: 0, otrosUSD: 0, detalleOtros: { gasolina: 0, comida: 0, peaje: 0, otros: 0 } } },
           utilidad: { total: 0, change: 0, changeType: 'neutral' },
           facturasActivas: { total: 0, change: 0, changeType: 'neutral' },
-          tasaDolar: 58.50
+          tasaDolar: 58.50,
+          companyConfig: { rnc: '', ncfSequences: {}, ncfExpiry: '' }
         });
       } finally {
         setLoading(false);
@@ -256,6 +274,24 @@ const FinanzasEmpresa = () => {
       }
     } finally {
       setCambiandoPlan(false);
+    }
+
+  };
+
+  // Guardar configuración fiscal
+  const handleSaveFiscalConfig = async () => {
+    try {
+      const res = await api.put(`/companies/${userData.companyId}/ncf-config`, {
+        rnc: data.companyConfig.rnc,
+        ncfSequences: data.companyConfig.ncfSequences,
+        ncfExpiry: data.companyConfig.ncfExpiry
+      });
+      if (res.data.success) {
+        toast.success('Configuración Fiscal guardada correctamente');
+      }
+    } catch (error) {
+      console.error('Error guardando config fiscal:', error);
+      toast.error('Error guardando configuración');
     }
   };
 
@@ -322,7 +358,9 @@ const FinanzasEmpresa = () => {
           {[
             { id: 'overview', label: 'Resumen Financiero', icon: BarChart3 },
             { id: 'suscripcion', label: 'Suscripción SaaS', icon: CreditCard },
-            { id: 'facturas', label: 'Facturas Pendientes', icon: Receipt }
+            { id: 'facturas', label: 'Facturas Pendientes', icon: Receipt },
+            { id: 'fiscal', label: 'Contabilidad & Nómina', icon: Building2 },
+            { id: 'config_fiscal', label: 'Configuración Fiscal', icon: FileText }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -341,6 +379,85 @@ const FinanzasEmpresa = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
+        {/* TAB 4: MODULO FISCAL */}
+        {activeTab === 'fiscal' && <ModuloFiscal userData={userData} />}
+
+        {/* TAB 5: CONFIGURACIÓN FISCAL */}
+        {activeTab === 'config_fiscal' && (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 max-w-4xl">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Configuración de Comprobantes Fiscales (NCF)</h2>
+
+            <div className="space-y-6">
+              {/* RNC */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">RNC de la Empresa</label>
+                <input
+                  type="text"
+                  className="w-full max-w-md px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                  placeholder="Ej: 101000000"
+                  value={data.companyConfig?.rnc || ''}
+                  onChange={(e) => setData({ ...data, companyConfig: { ...data.companyConfig, rnc: e.target.value } })}
+                />
+                <p className="text-xs text-slate-500 mt-1">Este RNC aparecerá en todas las facturas generadas.</p>
+              </div>
+
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6"></div>
+
+              {/* Secuencias */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Secuencias Activas (Próximo NCF a emitir)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {['B01', 'B02', 'B14', 'B15'].map(tipo => (
+                    <div key={tipo}>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {tipo} - {tipo === 'B01' ? 'Crédito Fiscal' : tipo === 'B02' ? 'Consumidor Final' : tipo === 'B14' ? 'Especial' : 'Gubernamental'}
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white font-mono"
+                        placeholder={`${tipo}00000001`}
+                        value={data.companyConfig?.ncfSequences?.[tipo] || ''}
+                        onChange={(e) => setData({
+                          ...data,
+                          companyConfig: {
+                            ...data.companyConfig,
+                            ncfSequences: {
+                              ...data.companyConfig.ncfSequences,
+                              [tipo]: e.target.value
+                            }
+                          }
+                        })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6"></div>
+
+              {/* Vencimiento */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Fecha de Vencimiento Secuencia Actual</label>
+                <input
+                  type="date"
+                  className="w-full max-w-md px-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                  value={data.companyConfig?.ncfExpiry || ''}
+                  onChange={(e) => setData({ ...data, companyConfig: { ...data.companyConfig, ncfExpiry: e.target.value } })}
+                />
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={handleSaveFiscalConfig}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                >
+                  Guardar Configuración
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 1: RESUMEN FINANCIERO */}
         {activeTab === 'overview' && (() => {
           // GUARD CLAUSE: Si data es null o undefined, no renderizar nada para evitar crashes

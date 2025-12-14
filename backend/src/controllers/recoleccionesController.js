@@ -7,6 +7,7 @@ import multer from 'multer';
 import path from 'path';
 import { sendEmail, generateTrackingButtonHTML, generateBrandedEmailHTML } from '../services/notificationService.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
+import { getNextNCF } from '../utils/ncfUtils.js';
 
 // ========================================
 // CONFIGURACIÓN DE MULTER
@@ -79,7 +80,8 @@ export const createRecoleccion = async (req, res) => {
 
       // Otros
       notas,
-      tipoServicio
+      tipoServicio,
+      ncfSolicitado // 'B01', 'B02', 'B14', 'B15' o null
     } = req.body;
 
     // ✅ VALIDACIÓN CRÍTICA: Verificar y parsear items
@@ -182,6 +184,25 @@ export const createRecoleccion = async (req, res) => {
 
     const codigoTracking = `RC-${year}${month}${day}-${String(siguienteNumero).padStart(4, '0')}`;
 
+    // ======================================================================
+    // 🏦 GENERACIÓN AUTOMÁTICA DE NCF (Si se solicita)
+    // ======================================================================
+    let ncfAsignado = null;
+
+    if (ncfSolicitado && companyId) {
+      try {
+        console.log(`🏦 Solicitando NCF automático tipo ${ncfSolicitado} para compañía ${companyId}`);
+        ncfAsignado = await getNextNCF(companyId, ncfSolicitado);
+      } catch (ncfError) {
+        console.error('❌ Error generando NCF:', ncfError);
+        return res.status(400).json({
+          success: false,
+          message: 'Error generando NCF. Verifique la configuración fiscal.',
+          details: ncfError.message
+        });
+      }
+    }
+
     const recoleccionData = {
       codigoTracking,
       companyId,
@@ -214,7 +235,9 @@ export const createRecoleccion = async (req, res) => {
         subtotal: parseFloat(subtotal) || 0,
         itbis: parseFloat(itbis) || 0,
         total: parseFloat(total) || 0,
-        moneda: 'USD'
+        moneda: 'USD',
+        ncf: ncfAsignado, // ✅ NCF Asignado
+        ncfTipo: ncfSolicitado || null
       },
 
       pago: {

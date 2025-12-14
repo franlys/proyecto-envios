@@ -7,7 +7,7 @@ export const empleadoController = {
   async createEmpleado(req, res) {
     try {
       console.log('🔍 Datos recibidos para crear empleado:', req.body);
-      
+
       const { email, password, nombre, telefono, rol, companyId, emailPersonal } = req.body;
 
       // Validaciones
@@ -27,9 +27,9 @@ export const empleadoController = {
       }
 
       if (password.length < 6) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'La contraseña debe tener al menos 6 caracteres' 
+          error: 'La contraseña debe tener al menos 6 caracteres'
         });
       }
 
@@ -55,8 +55,8 @@ export const empleadoController = {
       } else if (userData.rol === 'propietario' || userData.rol === 'admin_general') {
         // ✅ Propietario y admin_general pueden crear todos los roles excepto super_admin
         validRoles = ['admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
-      } else if (userData.rol === 'admin') {
-        // ✅ AÑADIDO 'cargador'
+      } else if (userData.rol === 'admin' || userData.rol === 'admin_general') {
+        // ✅ AÑADIDO 'cargador' y 'admin_general'
         validRoles = ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
       } else {
         return res.status(403).json({
@@ -66,9 +66,9 @@ export const empleadoController = {
       }
 
       if (rol && !validRoles.includes(rol)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: `Rol inválido. Roles permitidos: ${validRoles.join(', ')}` 
+          error: `Rol inválido. Roles permitidos: ${validRoles.join(', ')}`
         });
       }
 
@@ -130,18 +130,18 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error creando empleado:', error);
-      
+
       if (error.code === 'auth/email-already-exists') {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'El email ya está registrado' 
+          error: 'El email ya está registrado'
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         success: false,
         error: 'Error al crear empleado',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -198,12 +198,16 @@ export const empleadoController = {
           telefono: data.telefono || '',
           companyId: data.companyId,
           activo: data.activo !== false,
-          createdAt: data.createdAt ? 
-            (typeof data.createdAt.toDate === 'function' ? 
-              data.createdAt.toDate().toISOString() : 
+          createdAt: data.createdAt ?
+            (typeof data.createdAt.toDate === 'function' ?
+              data.createdAt.toDate().toISOString() :
               data.createdAt
-            ) : 
-            null
+            ) :
+            null,
+          // ✅ Datos de Nómina
+          cedula: data.cedula || '',
+          banco: data.banco || '',
+          cuentaBanco: data.cuentaBanco || ''
         };
       });
 
@@ -217,10 +221,10 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error obteniendo empleados:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al obtener empleados',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -233,9 +237,9 @@ export const empleadoController = {
       const doc = await db.collection('usuarios').doc(id).get();
 
       if (!doc.exists) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          error: 'Empleado no encontrado' 
+          error: 'Empleado no encontrado'
         });
       }
 
@@ -254,14 +258,14 @@ export const empleadoController = {
       const empleado = {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt ? 
-          (typeof data.createdAt.toDate === 'function' ? 
-            data.createdAt.toDate().toISOString() : 
+        createdAt: data.createdAt ?
+          (typeof data.createdAt.toDate === 'function' ?
+            data.createdAt.toDate().toISOString() :
             data.createdAt
-          ) : 
+          ) :
           null
       };
-      
+
       // ✅ CORRECCIÓN: Devolver en el formato { success: true, data: {...} }
       res.json({
         success: true,
@@ -270,10 +274,10 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error obteniendo empleado:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al obtener empleado',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -282,7 +286,7 @@ export const empleadoController = {
   async updateEmpleado(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, telefono, rol, activo } = req.body;
+      const { nombre, telefono, rol, activo, cedula, banco, cuentaBanco } = req.body;
 
       console.log('🔄 Actualizando empleado:', id);
 
@@ -290,9 +294,9 @@ export const empleadoController = {
       const doc = await empleadoRef.get();
 
       if (!doc.exists) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          error: 'Empleado no encontrado' 
+          error: 'Empleado no encontrado'
         });
       }
 
@@ -327,6 +331,11 @@ export const empleadoController = {
       }
       if (activo !== undefined) updateData.activo = activo;
 
+      // ✅ CAMBIOS DE NOMINA
+      if (cedula !== undefined) updateData.cedula = cedula;
+      if (banco !== undefined) updateData.banco = banco;
+      if (cuentaBanco !== undefined) updateData.cuentaBanco = cuentaBanco;
+
       updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
       updateData.updatedBy = req.userData.uid;
 
@@ -351,10 +360,10 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error actualizando empleado:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al actualizar empleado',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -370,9 +379,9 @@ export const empleadoController = {
       const doc = await empleadoRef.get();
 
       if (!doc.exists) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          error: 'Empleado no encontrado' 
+          error: 'Empleado no encontrado'
         });
       }
 
@@ -406,10 +415,10 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error cambiando estado del empleado:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al cambiar estado del empleado',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -424,9 +433,9 @@ export const empleadoController = {
       const doc = await db.collection('usuarios').doc(id).get();
 
       if (!doc.exists) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          error: 'Empleado no encontrado' 
+          error: 'Empleado no encontrado'
         });
       }
 
@@ -442,9 +451,9 @@ export const empleadoController = {
       }
 
       if (id === req.userData.uid) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'No puedes eliminarte a ti mismo' 
+          error: 'No puedes eliminarte a ti mismo'
         });
       }
 
@@ -469,10 +478,10 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error eliminando empleado:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al eliminar empleado',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -486,9 +495,9 @@ export const empleadoController = {
       console.log('🔐 Cambiando contraseña para usuario:', id);
 
       if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          error: 'La contraseña debe tener al menos 6 caracteres' 
+          error: 'La contraseña debe tener al menos 6 caracteres'
         });
       }
 
@@ -503,11 +512,11 @@ export const empleadoController = {
       }
 
       const empleadoDoc = await db.collection('usuarios').doc(id).get();
-      
+
       if (!empleadoDoc.exists) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           success: false,
-          error: 'Empleado no encontrado' 
+          error: 'Empleado no encontrado'
         });
       }
 
@@ -528,10 +537,10 @@ export const empleadoController = {
         console.log('✅ Contraseña actualizada en Firebase Auth');
       } catch (authError) {
         console.error('❌ Error actualizando contraseña en Auth:', authError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           success: false,
           error: 'Error al actualizar contraseña en Firebase Auth',
-          details: authError.message 
+          details: authError.message
         });
       }
 
@@ -550,10 +559,10 @@ export const empleadoController = {
 
     } catch (error) {
       console.error('❌ Error cambiando contraseña:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al cambiar contraseña',
-        details: error.message 
+        details: error.message
       });
     }
   },
@@ -570,9 +579,9 @@ export const empleadoController = {
 
       if (userData.rol !== 'super_admin') {
         if (!userData.companyId) {
-          return res.status(403).json({ 
+          return res.status(403).json({
             success: false,
-            error: 'Usuario sin compañía asignada' 
+            error: 'Usuario sin compañía asignada'
           });
         }
         query = query.where('companyId', '==', userData.companyId);
@@ -595,12 +604,12 @@ export const empleadoController = {
         data: repartidores // (Cambié 'repartidores' a 'data' por consistencia)
       });
 
-    } catch (error) { 
+    } catch (error) {
       console.error('❌ Error obteniendo repartidores:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: 'Error al obtener repartidores',
-        details: error.message 
+        details: error.message
       });
     }
   }

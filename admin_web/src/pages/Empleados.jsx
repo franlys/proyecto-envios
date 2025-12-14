@@ -1,7 +1,7 @@
 // admin_web/src/pages/Empleados.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Users, Plus, Search, Edit, Trash2, X, Shield, AlertCircle, Check, Eye, EyeOff, Key } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, X, Shield, AlertCircle, Check, Eye, EyeOff, Key, CreditCard } from 'lucide-react';
 import api from '../services/api';
 
 export default function Empleados() {
@@ -27,7 +27,11 @@ export default function Empleados() {
     telefono: '',
     rol: '',
     companyId: '', // Added for super_admin to select company
-    activo: true
+    activo: true,
+    // ✅ Campos de Nómina
+    cedula: '',
+    banco: 'BHD',
+    cuentaBanco: ''
   });
 
   const [successMessage, setSuccessMessage] = useState(null);
@@ -40,6 +44,7 @@ export default function Empleados() {
     { valor: 'almacen_rd', label: 'Encargado de Almacén (RD)', descripcion: 'Gestiona almacén en República Dominicana' },
     { valor: 'repartidor', label: 'Repartidor', descripcion: 'Entrega paquetes a destinatarios' },
     { valor: 'secretaria', label: 'Secretaria', descripcion: 'Gestión administrativa y atención' },
+    { valor: 'secretaria_usa', label: 'Secretaria USA', descripcion: 'Call Center y Citas EE.UU.' },
     { valor: 'admin_general', label: 'Administrador General', descripcion: 'Acceso completo al sistema' },
     { valor: 'propietario', label: 'Propietario', descripcion: 'Dueño de la empresa - Solo visualización' }
   ];
@@ -144,7 +149,8 @@ export default function Empleados() {
       setError(null);
 
       // Validaciones
-      if (!nuevoEmpleado.nombre || !nuevoEmpleado.email || !nuevoEmpleado.emailPersonal || !nuevoEmpleado.password || !nuevoEmpleado.rol) {
+      const isEditing = !!editingEmpleado;
+      if (!nuevoEmpleado.nombre || !nuevoEmpleado.email || !nuevoEmpleado.emailPersonal || (!isEditing && !nuevoEmpleado.password) || !nuevoEmpleado.rol) {
         throw new Error('Por favor completa todos los campos obligatorios');
       }
 
@@ -152,7 +158,8 @@ export default function Empleados() {
         throw new Error('Debes seleccionar una empresa para el usuario');
       }
 
-      if (nuevoEmpleado.password.length < 6) {
+      // Solo validar password si estamos creando o si se escribió algo
+      if ((!editingEmpleado || nuevoEmpleado.password) && nuevoEmpleado.password.length < 6) {
         throw new Error('La contraseña debe tener al menos 6 caracteres');
       }
 
@@ -164,20 +171,36 @@ export default function Empleados() {
         password: nuevoEmpleado.password,
         telefono: nuevoEmpleado.telefono || null,
         rol: nuevoEmpleado.rol,
-        companyId: userData.rol === 'super_admin' ? nuevoEmpleado.companyId : (userData.companyId || null)
+        companyId: userData.rol === 'super_admin' ? nuevoEmpleado.companyId : (userData.companyId || null),
+        // ✅ Payroll Fields
+        cedula: nuevoEmpleado.cedula,
+        banco: nuevoEmpleado.banco,
+        cuentaBanco: nuevoEmpleado.cuentaBanco
       };
 
       console.log('📤 Enviando datos:', empleadoData);
 
-      const response = await api.post('/auth/register', empleadoData, {
-        headers: {
-          'X-User-Id': user.uid
-        }
-      });
+      let response;
+
+      if (editingEmpleado) {
+        // MODO EDICIÓN
+        response = await api.put(`/empleados/${editingEmpleado.id}`, empleadoData, {
+          headers: { 'X-User-Id': user.uid }
+        });
+        setSuccessMessage('Empleado actualizado exitosamente');
+      } else {
+        // MODO CREACIÓN
+        response = await api.post('/auth/register', empleadoData, {
+          headers: {
+            'X-User-Id': user.uid
+          }
+        });
+        setSuccessMessage('Empleado creado exitosamente');
+      }
 
       if (response.data.success) {
-        setSuccessMessage('Empleado creado exitosamente');
         setShowModal(false);
+        setEditingEmpleado(null); // Limpiar modo edición
         setNuevoEmpleado({
           nombre: '',
           email: '',
@@ -186,7 +209,10 @@ export default function Empleados() {
           telefono: '',
           rol: '',
           companyId: '', // Reset companyId
-          activo: true
+          activo: true,
+          cedula: '',
+          banco: 'BHD',
+          cuentaBanco: ''
         });
         cargarEmpleados();
 
@@ -384,7 +410,23 @@ export default function Empleados() {
             Después de filtros: <span className="font-semibold">{empleadosFiltrados.length}</span>
           </p>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditingEmpleado(null);
+              setNuevoEmpleado({
+                nombre: '',
+                email: '',
+                emailPersonal: '',
+                password: '',
+                telefono: '',
+                rol: '',
+                companyId: '',
+                activo: true,
+                cedula: '',
+                banco: 'BHD',
+                cuentaBanco: ''
+              });
+              setShowModal(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -466,8 +508,8 @@ export default function Empleados() {
                       <button
                         onClick={() => handleCambiarEstado(empleado.id, !empleado.activo)}
                         className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${empleado.activo
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                            : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                          : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
                           } transition-colors cursor-pointer`}
                       >
                         {empleado.activo ? 'Activo' : 'Inactivo'}
@@ -475,6 +517,30 @@ export default function Empleados() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingEmpleado(empleado);
+                            setNuevoEmpleado({
+                              nombre: empleado.nombre,
+                              email: empleado.email,
+                              emailPersonal: empleado.emailPersonal || '', // Ojo: si no viene del backend podría faltar, pero auth/register lo pide
+                              password: '', // Password no se edita aquí
+                              telefono: empleado.telefono || '',
+                              rol: empleado.rol,
+                              companyId: empleado.companyId,
+                              activo: empleado.activo,
+                              cedula: empleado.cedula || '',
+                              banco: empleado.banco || 'BHD',
+                              cuentaBanco: empleado.cuentaBanco || ''
+                            });
+                            setShowModal(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+
                         {userData?.rol === 'super_admin' && (
                           <button
                             onClick={() => handleResetearPassword(empleado)}
@@ -506,10 +572,13 @@ export default function Empleados() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">Crear Nuevo Usuario</h2>
+              <h2 className="text-xl font-bold text-slate-900">
+                {editingEmpleado ? 'Editar Empleado' : 'Crear Nuevo Usuario'}
+              </h2>
               <button
                 onClick={() => {
                   setShowModal(false);
+                  setEditingEmpleado(null);
                   setError(null);
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -580,8 +649,10 @@ export default function Empleados() {
                     value={nuevoEmpleado.password}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent pr-10"
-                    required
+                    required={!editingEmpleado}
                     minLength={6}
+                    disabled={!!editingEmpleado}
+                    placeholder={editingEmpleado ? "Para cambiar contraseña, use el botón de 'Resetear'" : ""}
                   />
                   <button
                     type="button"
@@ -606,6 +677,67 @@ export default function Empleados() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
+              </div>
+
+              {/* ========================================================= */}
+              {/* 💰 SECCIÓN DE NÓMINA */}
+              {/* ========================================================= */}
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-indigo-600" />
+                  Datos para Nómina (Opcional)
+                </h3>
+
+                <div className="space-y-3">
+                  {/* Cédula */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Cédula de Identidad
+                    </label>
+                    <input
+                      type="text"
+                      name="cedula"
+                      value={nuevoEmpleado.cedula}
+                      onChange={handleInputChange}
+                      placeholder="001-0000000-0"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Banco */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        Banco
+                      </label>
+                      <select
+                        name="banco"
+                        value={nuevoEmpleado.banco}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="BHD">Banco BHD</option>
+                        <option value="POPULAR">Banco Popular</option>
+                        <option value="BANRESERVAS">Banreservas</option>
+                      </select>
+                    </div>
+
+                    {/* Cuenta */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                        No. Cuenta
+                      </label>
+                      <input
+                        type="text"
+                        name="cuentaBanco"
+                        value={nuevoEmpleado.cuentaBanco}
+                        onChange={handleInputChange}
+                        placeholder="000-0000-00"
+                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Rol */}
@@ -674,7 +806,7 @@ export default function Empleados() {
                   disabled={loading}
                   className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                 >
-                  {loading ? 'Creando...' : 'Crear Usuario'}
+                  {loading ? 'Guardando...' : (editingEmpleado ? 'Actualizar' : 'Crear Usuario')}
                 </button>
               </div>
             </form>

@@ -37,6 +37,8 @@ import ResetPassword from './pages/ResetPassword';
 
 // ✅ NUEVO - Módulo Financiero (simplificado - sin layout separado)
 import FinanzasDashboard from './pages/Finanzas/Dashboard';
+import DespachoUSA from './pages/DespachoUSA'; // 🆕 Call Center USA
+import PoolRecolecciones from './pages/PoolRecolecciones'; // 🆕 Bolsa de Cargas
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -133,6 +135,8 @@ function AppContent() {
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/almacen-usa" element={<PanelAlmacenUSA />} />
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
+            <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
+            <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
 
           </>
         )}
@@ -165,6 +169,8 @@ function AppContent() {
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/almacen-usa" element={<PanelAlmacenUSA />} />
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
+            <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
+            <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
           </>
         )}
 
@@ -175,6 +181,7 @@ function AppContent() {
           <>
             <Route path="/recolecciones" element={<Recolecciones />} />
             <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
+            <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
           </>
         )}
 
@@ -203,6 +210,16 @@ function AppContent() {
             <Route path="/secretarias" element={<PanelSecretarias />} />
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
+            <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
+          </>
+        )}
+
+        {/* ============================================ */}
+        {/* RUTAS PARA SECRETARIA USA (CALL CENTER) */}
+        {/* ============================================ */}
+        {rol === 'secretaria_usa' && (
+          <>
+            <Route path="/call-center" element={<DespachoUSA />} />
           </>
         )}
 
