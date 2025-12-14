@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { db } from '../config/firebase'; // Ensure this points to your firebase config
+import { db } from '../services/firebase'; // Ensure this points to your firebase config
 import { doc, getDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { Loader2, Package, MapPin, DollarSign, Upload, Camera } from 'lucide-react';

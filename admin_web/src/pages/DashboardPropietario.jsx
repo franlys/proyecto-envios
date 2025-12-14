@@ -128,7 +128,7 @@ const DashboardPropietario = () => {
 
           // Compatibilidad con métricas antiguas
           embarquesActivos: 0,
-          recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0,
+          // recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0, // Removed duplicate
           rutasEnCurso: dashboardData.rutas?.activas || 0,
           totalEmbarques: 0,
           empresa: null
