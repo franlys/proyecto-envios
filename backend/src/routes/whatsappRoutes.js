@@ -47,7 +47,24 @@ router.get('/instances', async (req, res) => {
 router.post('/instance', async (req, res) => {
     try {
         console.log('📡 Creando instancia WhatsApp:', req.body.instanceName);
-        const response = await evolutionClient.post('/instance/create', req.body);
+
+        // 🔹 INYECCIÓN AUTOMÁTICA DE WEBHOOK
+        // Determinamos la URL pública de este backend (Railway o Localhost)
+        const host = req.get('host'); // e.g. "backend-production.railway.app" or "localhost:8080"
+        const protocol = IS_PRODUCTION ? 'https' : 'http';
+        const webhookUrl = `${protocol}://${host}/api/whatsapp/webhook`;
+
+        // Modificamos el payload para incluir el webhook
+        const payload = {
+            ...req.body,
+            webhook: webhookUrl,
+            webhook_by_events: true,
+            events: ['MESSAGES_UPSERT']
+        };
+
+        console.log(`🔗 Configurando Webhook en: ${webhookUrl}`);
+
+        const response = await evolutionClient.post('/instance/create', payload);
         console.log('✅ Instancia creada (Data):', JSON.stringify(response.data, null, 2));
         res.json(response.data);
     } catch (error) {
