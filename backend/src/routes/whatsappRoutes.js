@@ -66,6 +66,28 @@ router.post('/instance', async (req, res) => {
 
         const response = await evolutionClient.post('/instance/create', payload);
         console.log('✅ Instancia creada (Data):', JSON.stringify(response.data, null, 2));
+
+        // 🔹 ACTUALIZAR FIRESTORE CON EL INSTANCE NAME
+        // El formato del instanceName es: company_{cleanName}_{id}
+        // Ejemplo: company_embarques_ivan_embarques_ivan
+        const parts = req.body.instanceName.split('_');
+        const companyId = parts[parts.length - 1]; // El ID siempre es la última parte
+
+        if (companyId) {
+            try {
+                await db.collection('companies').doc(companyId).update({
+                    whatsappInstanceName: req.body.instanceName,
+                    whatsappStatus: 'created' // Opcional, para trackear estado inicial
+                });
+                console.log(`💾 Firestore actualizado: Compañía ${companyId} -> Instance: ${req.body.instanceName}`);
+            } catch (dbError) {
+                console.error('⚠️ Error actualizando Firestore:', dbError);
+                // No fallamos la request principal, pero logueamos el error
+            }
+        } else {
+            console.warn('⚠️ No se pudo extraer companyId del instanceName:', req.body.instanceName);
+        }
+
         res.json(response.data);
     } catch (error) {
         handleAxiosError(res, error);

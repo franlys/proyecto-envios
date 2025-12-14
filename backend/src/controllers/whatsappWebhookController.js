@@ -55,6 +55,27 @@ export const handleWebhook = async (req, res) => {
                         console.log(`🏢 Webhook matches Company: ${companyData.name} (${companyId})`);
                     } else {
                         console.warn(`⚠️ Webhook received for unknown instance: ${instanceName}`);
+
+                        // 🟥 SELF-HEALING: Intentar extraer ID del nombre de la instancia
+                        // Formato esperado: company_{cleanName}_{id}
+                        // Ejemplo: company_embarques_ivan_embarques_ivan
+                        const parts = instanceName.split('_');
+                        const potentialId = parts[parts.length - 1];
+
+                        if (potentialId) {
+                            console.log(`🔄 Attempting Self-Healing for ID: ${potentialId}`);
+                            const docRef = companiesRef.doc(potentialId);
+                            const doc = await docRef.get();
+
+                            if (doc.exists) {
+                                console.log(`✅ Company Found by ID! Updating whatsappInstanceName...`);
+                                await docRef.update({ whatsappInstanceName: instanceName });
+                                companyId = potentialId; // Recuperado!
+                                console.log(`🎉 Self-Healing Successful for: ${doc.data().name}`);
+                            } else {
+                                console.error(`❌ Self-Healing failed: Document ${potentialId} not found.`);
+                            }
+                        }
                     }
                 } catch (err) {
                     console.error('Error looking up company from instance:', err);
