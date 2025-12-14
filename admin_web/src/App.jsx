@@ -39,6 +39,7 @@ import ResetPassword from './pages/ResetPassword';
 import FinanzasDashboard from './pages/Finanzas/Dashboard';
 import DespachoUSA from './pages/DespachoUSA'; // 🆕 Call Center USA
 import PoolRecolecciones from './pages/PoolRecolecciones'; // 🆕 Bolsa de Cargas
+import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -112,6 +113,8 @@ function AppContent() {
             <Route path="/companies" element={<Companies />} />
             <Route path="/empleados" element={<Empleados />} />
             <Route path="/tickets-admin" element={<TicketsAdmin />} />
+            {/* NUEVO GESTOR DE WHATSAPP CLOUD */}
+            <Route path="/configuracion/whatsapp" element={<CloudWhatsApp />} />
           </>
         )}
 

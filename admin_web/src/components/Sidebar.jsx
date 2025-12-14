@@ -16,7 +16,8 @@ import {
   ChevronRight,
   PackagePlus, // ✅ NUEVO: Icono para Nueva Recolección
   Calendar, // 🆕 Icono Citas
-  Map // 🆕 Icono Pool
+  Map, // 🆕 Icono Pool
+  QrCode // 🆕 Whatsapp Link
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -102,6 +103,13 @@ const Sidebar = () => {
       icon: MessageSquare,
       roles: ['super_admin'],
       badge: 'Nuevo'
+    },
+    {
+      name: 'WhatsApp Cloud',
+      path: '/configuracion/whatsapp',
+      icon: QrCode,
+      roles: ['super_admin'],
+      badge: 'Beta'
     }
   ];
 

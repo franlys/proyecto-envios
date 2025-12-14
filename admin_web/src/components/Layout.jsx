@@ -74,6 +74,7 @@ const Layout = ({ children }) => {
         { path: '/finanzas', label: 'Finanzas', icon: '💼' },
         { path: '/companies', label: 'Compañías', icon: '🏢' },
         { path: '/tickets-admin', label: 'Tickets', icon: '🎫' },
+        { path: '/configuracion/whatsapp', label: 'WhatsApp Cloud', icon: '📱' }, // ✅ NUEVO
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],

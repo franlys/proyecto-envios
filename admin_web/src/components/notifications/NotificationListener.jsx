@@ -5,24 +5,31 @@ import { useAuth } from '../../context/AuthContext';
 
 const NotificationListener = ({ onNewNotification, onLoadExisting }) => {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
 
   useEffect(() => {
-    // Solo iniciar listener si hay usuario autenticado
-    if (!user) return;
+    // Solo iniciar listener si hay usuario autenticado y datos cargados
+    if (!user || !userData) return;
+
+    // Debug
+    console.log('🔔 NotificationListener Check:', { rol: userData.rol, companyId: userData.companyId });
 
     // Validación de companyId para roles no super_admin
-    if (user.rol !== 'super_admin' && !user.companyId) {
-      console.warn('⚠️ Usuario sin companyId, listener no iniciado');
+    // Si es super_admin, permitimos continuar incluso sin companyId
+    const isSuperAdmin = userData.rol === 'super_admin';
+    const hasCompany = !!userData.companyId;
+
+    if (!isSuperAdmin && !hasCompany) {
+      console.warn('⚠️ Usuario sin companyId (y no es admin), listener no iniciado');
       return;
     }
 
-    console.log('🔥 NotificationListener iniciado para usuario:', user.rol);
+    console.log('🔥 NotificationListener iniciado. Rol:', userData.rol);
 
     const facturasRef = collection(db, 'facturas');
     let q;
 
-    if (user.rol === 'super_admin') {
+    if (userData.rol === 'super_admin') {
       q = query(
         facturasRef,
         where('estado', '==', 'no_entregado'),
@@ -32,7 +39,7 @@ const NotificationListener = ({ onNewNotification, onLoadExisting }) => {
     } else {
       q = query(
         facturasRef,
-        where('companyId', '==', user.companyId),
+        where('companyId', '==', userData.companyId),
         where('estado', '==', 'no_entregado'),
         orderBy('updatedAt', 'desc'),
         limit(50)
@@ -121,7 +128,12 @@ const NotificationListener = ({ onNewNotification, onLoadExisting }) => {
         });
       }
     }, (error) => {
-      console.error('❌ Error en listener:', error);
+      // Si es error de permisos, solo advertir (común en super_admin sin claims)
+      if (error.code === 'permission-denied') {
+        console.warn('⚠️ Listener detenido (Permisos insuficientes):', error.message);
+      } else {
+        console.warn('❌ Error en listener:', error);
+      }
     });
 
     return () => {

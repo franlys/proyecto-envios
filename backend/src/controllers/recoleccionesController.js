@@ -8,6 +8,7 @@ import path from 'path';
 import { sendEmail, generateTrackingButtonHTML, generateBrandedEmailHTML } from '../services/notificationService.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
 import { getNextNCF } from '../utils/ncfUtils.js';
+import whatsappService from '../services/whatsappService.js';
 
 // ========================================
 // CONFIGURACIÓN DE MULTER
@@ -296,6 +297,16 @@ export const createRecoleccion = async (req, res) => {
       }
     } catch (error) {
       console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    // 🟢 NOTIFICACIÓN WHATSAPP (Nueva Recolección)
+    if (remitenteTelefono) {
+      const mensajeWhatsapp = `📦 *Solicitud Recibida*\n\nHola *${remitenteNombre}*, hemos recibido tu solicitud de recolección #${codigoTracking}.\n\n📍 Destino: ${destinatarioNombre} (${destinatarioDireccion})\n💰 Total: $${parseFloat(total).toFixed(2)}\n\nUn conductor pasará pronto 🚚.`;
+
+      // No bloqueamos la respuesta (async)
+      whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+        .then(ok => ok ? console.log('✅ Whatsapp enviado') : console.log('⚠️ Whatsapp no enviado'))
+        .catch(e => console.error('Error Whatsapp:', e));
     }
 
     // Enviar notificación por correo al remitente (en segundo plano) con factura PDF
@@ -653,6 +664,14 @@ export const actualizarEstado = async (req, res) => {
       sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
         .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}`))
         .catch(err => console.error(`❌ Error enviando notificación a ${remitenteEmail}:`, err.message));
+
+      // 🟢 NOTIFICACIÓN WHATSAPP (Cambio de Estado)
+      // Solo enviamos si tenemos teléfono del remitente (que viene en recoleccionData)
+      const remitenteTelefono = recoleccionData.remitente?.telefono;
+      if (remitenteTelefono) {
+        const mensajeWhatsapp = `${estadoInfo.emoji} *Actualización de Estado*: ${recoleccionData.codigoTracking}\n\nHola *${recoleccionData.remitente?.nombre}*,\n\n${estadoInfo.mensaje}\n\nEstado actual: *${estadoInfo.titulo}*\n\nGracias por confiar en nosotros.`;
+        whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Status:', e));
+      }
     }
 
     res.json({

@@ -33,6 +33,7 @@ import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión d
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
 import nominaRoutes from './routes/nomina.js'; // ✅ NUEVO - Módulo de Nómina y Pagos
+import whatsappRoutes from './routes/whatsappRoutes.js'; // ✅ NUEVO - WhatsApp Cloud API
 
 // Importar middleware de validación de plan
 import { checkPlanActivo } from './middleware/checkPlanActivo.js';
@@ -130,6 +131,7 @@ app.use('/api/facturacion', facturacionRoutes);
 app.use('/api/finanzas', finanzasRoutes); // ✅ Finanzas tiene su propia validación
 app.use('/api/solicitudes', solicitudesRoutes); // 🆕 Endpoint para despacho
 app.use('/api/dashboard', dashboardRoutes); // Dashboard tiene su propia lógica de permisos
+app.use('/api/whatsapp', whatsappRoutes); // ✅ Proxy Público (protegido por CORS interno y lógica del frontend)
 
 // ⚠️ RUTAS OPERATIVAS - Requieren Plan Activo (mínimo Plan Operativo)
 // Estas rutas están protegidas por el middleware checkPlanActivo
