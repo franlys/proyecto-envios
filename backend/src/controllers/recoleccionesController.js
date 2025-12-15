@@ -299,9 +299,23 @@ export const createRecoleccion = async (req, res) => {
       console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
     }
 
-    // 🟢 NOTIFICACIÓN WHATSAPP (Nueva Recolección)
+    // 🟢 NOTIFICACIÓN WHATSAPP (Recolección Directa / Factura)
     if (remitenteTelefono) {
-      const mensajeWhatsapp = `📦 *Solicitud Recibida*\n\nHola *${remitenteNombre}*, hemos recibido tu solicitud de recolección #${codigoTracking}.\n\n📍 Destino: ${destinatarioNombre} (${destinatarioDireccion})\n💰 Total: $${parseFloat(total).toFixed(2)}\n\nUn conductor pasará pronto 🚚.`;
+      const montoTotal = parseFloat(total);
+      const montoPagadoVal = parseFloat(montoPagado) || 0;
+      const montoPendienteVal = montoTotal - montoPagadoVal;
+
+      let detallesPago = `💰 *Total:* $${montoTotal.toFixed(2)}`;
+
+      if (estadoPago === 'parcial' || (estadoPago === 'pendiente' && montoPagadoVal > 0)) {
+        detallesPago += `\n💵 *Abonado:* $${montoPagadoVal.toFixed(2)}\n⚠️ *Restante:* $${montoPendienteVal.toFixed(2)}`;
+      } else if (estadoPago === 'pendientes') {
+        detallesPago += `\n⚠️ *Estado:* Pendiente de Pago`;
+      } else if (estadoPago === 'pagada') {
+        detallesPago += `\n✅ *Estado:* Pagado`;
+      }
+
+      const mensajeWhatsapp = `🧾 *Recolección Exitosa / Factura Generada*\n\nHola *${remitenteNombre}*, gracias por tu envío. Aquí tienes los detalles de tu factura #${codigoTracking}.\n\n📍 Destino: ${destinatarioNombre} (${destinatarioDireccion})\n${detallesPago}\n\nGracias por confiar en nosotros. 🚛`;
 
       // No bloqueamos la respuesta (async)
       whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
@@ -311,21 +325,35 @@ export const createRecoleccion = async (req, res) => {
 
     // Enviar notificación por correo al remitente (en segundo plano) con factura PDF
     if (remitenteEmail) {
-      const subject = `Recolección Confirmada - ${codigoTracking}`;
+      const subject = `Factura Generada - ${codigoTracking}`;
       const trackingButton = generateTrackingButtonHTML(codigoTracking);
 
+      const montoTotal = parseFloat(total);
+      const montoPagadoVal = parseFloat(montoPagado) || 0;
+      const montoPendienteVal = montoTotal - montoPagadoVal;
+
+      let pagoHtml = `<p><strong>Total:</strong> $${montoTotal.toFixed(2)} USD</p>`;
+
+      if (estadoPago === 'parcial' || (estadoPago === 'pendiente' && montoPagadoVal > 0)) {
+        pagoHtml += `
+          <p><strong>Abonado:</strong> $${montoPagadoVal.toFixed(2)} USD</p>
+          <p style="color: #d32f2f;"><strong>Restante:</strong> $${montoPendienteVal.toFixed(2)} USD</p>
+          `;
+      } else {
+        pagoHtml += `<p><strong>Estado de Pago:</strong> ${estadoPago === 'pagada' ? 'Pagada ✅' : 'Pendiente ⚠️'}</p>`;
+      }
+
       const contentHtml = `
-          <h2 style="color: #333; margin-top: 0;">Recolección Creada Exitosamente</h2>
+          <h2 style="color: #333; margin-top: 0;">Recolección Exitosa / Factura Generada</h2>
           <p>Hola <strong>${remitenteNombre}</strong>,</p>
-          <p>Tu recolección ha sido registrada correctamente. Adjuntamos tu factura en formato PDF.</p>
+          <p>Tu envío ha sido procesado exitosamente. Adjuntamos tu factura en formato PDF.</p>
 
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #555;">Detalles de la Recolección</h3>
+            <h3 style="margin-top: 0; color: #555;">Detalles de la Factura</h3>
             <p><strong>Código de Tracking:</strong> ${codigoTracking}</p>
             <p><strong>Destinatario:</strong> ${destinatarioNombre}</p>
             <p><strong>Dirección:</strong> ${destinatarioDireccion}</p>
-            <p><strong>Total:</strong> $${parseFloat(total).toFixed(2)} USD</p>
-            <p><strong>Estado de Pago:</strong> ${estadoPago === 'pagada' ? 'Pagada' : 'Pendiente'}</p>
+            ${pagoHtml}
           </div>
 
           <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
