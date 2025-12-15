@@ -111,6 +111,13 @@ const Layout = ({ children }) => {
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
+      secretaria_usa: [ // ✅ NUEVO ROL DEFINIDO
+        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/call-center', label: 'Call Center USA', icon: '📞' },
+        { path: '/recolecciones/nueva', label: 'Agendar Cita', icon: '📅' }, // Solicitud explícita del usuario
+        { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
+        { path: '/ayuda', label: 'Ayuda', icon: '❓' }
+      ],
       secretaria: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/secretarias', label: 'Confirmar Facturas', icon: '📋' },
@@ -178,6 +185,7 @@ const Layout = ({ children }) => {
       almacen: 'Almacén RD',
       almacen_rd: 'Almacén RD',
       almacen_eeuu: 'Almacén EE.UU.',
+      secretaria_usa: 'Secretaría USA', // ✅ Label correcto
       repartidor: 'Repartidor'
     };
     return roles[rol] || 'Usuario';

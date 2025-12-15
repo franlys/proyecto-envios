@@ -289,6 +289,7 @@ function App() {
           {/* ============================================ */}
           <Route path="/tracking" element={<PublicTracking />} />
           <Route path="/tracking/:codigo" element={<PublicTracking />} />
+          <Route path="/agendar" element={<PublicBooking />} />
           <Route path="/agendar/:companyId" element={<PublicBooking />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

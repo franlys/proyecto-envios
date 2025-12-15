@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { db } from '../services/firebase'; // Ensure this points to your firebase config
+import { useParams, useNavigate } from 'react-router-dom'; // ✅ Import useNavigate
+import { db } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
-import { Loader2, Package, MapPin, DollarSign, Upload, Camera } from 'lucide-react';
+import { Loader2, Package, MapPin, DollarSign, Upload, Search, ArrowRight } from 'lucide-react'; // ✅ Add Search icon
 import axios from 'axios';
 
-// Backend URL - Should be env var but for now hardcoded fallback
+// Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function PublicBooking() {
     const { companyId } = useParams();
+    const navigate = useNavigate(); // ✅ Hook for navigation
 
-    const [loadingCompany, setLoadingCompany] = useState(true);
+    const [loadingCompany, setLoadingCompany] = useState(!!companyId); // Only load if ID exists
+    const [inputCompanyId, setInputCompanyId] = useState(''); // ✅ State for manual input
     const [company, setCompany] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -104,8 +106,57 @@ export default function PublicBooking() {
         }
     };
 
-    if (loadingCompany) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin" /></div>;
-    if (!company) return <div className="min-h-screen flex items-center justify-center">Empresa no válida</div>;
+    if (loadingCompany) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin text-indigo-600" /></div>;
+
+    // ✅ RENDER: LANDING PAGE (Si no hay companyId)
+    if (!companyId && !company) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-100">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Package className="w-8 h-8 text-indigo-600" />
+                    </div>
+
+                    <h1 className="text-2xl font-bold text-slate-800 mb-2">Agendar Recolección</h1>
+                    <p className="text-slate-600 mb-8">Ingresa el ID de la compañía para iniciar tu solicitud.</p>
+
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        if (inputCompanyId.trim()) navigate(`/agendar/${inputCompanyId.trim()}`);
+                    }}>
+                        <div className="relative mb-6">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                                type="text"
+                                value={inputCompanyId}
+                                onChange={(e) => setInputCompanyId(e.target.value)}
+                                placeholder="Ej: embarques_ivan"
+                                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-slate-50 focus:bg-white"
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={!inputCompanyId.trim()}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Continuar <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </form>
+
+                    <p className="mt-6 text-xs text-slate-400">
+                        ¿No sabes el ID? Pídelo a tu proveedor de envíos.
+                    </p>
+                </div>
+                <div className="mt-8 text-slate-400 text-sm font-medium">
+                    Powered by ProLogix
+                </div>
+            </div>
+        );
+    }
+
+    if (!company) return <div className="min-h-screen flex items-center justify-center text-red-500 font-medium">Empresa no encontrada o enlace inválido</div>;
 
     const primaryColor = company.colors?.primary || '#3b82f6';
 
