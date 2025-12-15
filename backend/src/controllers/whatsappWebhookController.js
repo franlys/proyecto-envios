@@ -101,25 +101,97 @@ export const handleWebhook = async (req, res) => {
 
                 console.log(`📩 Mensaje de ${pushName} (${remoteJid}): ${cleanText}`);
 
-                // 1. "Agendar" / "Nueva" / "Envío"
-                if (cleanText.includes('agendar') || cleanText.includes('nuevo') || cleanText.includes('envio')) {
+                // =============================================
+                // 🧠 INTELIGENCIA DEL BOT (Versión Mejorada)
+                // =============================================
+
+                // 1. Detección de Código de Tracking (Regex: RC-YYYYMMDD-XXXX)
+                // Flexible: Acepta espacios, sin guiones, etc.
+                const trackingMatch = cleanText.match(/rc[-\s]?\d{4,14}[-\s]?\d{0,6}/i);
+
+                if (trackingMatch) {
+                    const rawCode = trackingMatch[0].toUpperCase().replace(/\s/g, '-');
+                    // Normalizar formato si es necesario (asumimos formato exacto por ahora o búsqueda elástica)
+
+                    console.log(`🔎 Detectado posible tracking: ${rawCode}`);
+
+                    const recoleccionesRef = db.collection('recolecciones');
+                    // Buscar por 'codigoTracking'
+                    const snapshot = await recoleccionesRef
+                        .where('companyId', '==', companyId)
+                        .where('codigoTracking', '==', rawCode)
+                        .limit(1)
+                        .get();
+
+                    if (!snapshot.empty) {
+                        const data = snapshot.docs[0].data();
+                        const estado = data.estado.toUpperCase().replace('_', ' ');
+                        const historial = data.historial && data.historial.length > 0 ? data.historial[data.historial.length - 1].descripcion : 'Sin movimientos recientes';
+
+                        let msg = `📦 *Estatus del Envío*\n*${rawCode}*\n\n📊 *Estado:* ${estado}\n📍 *Último Movimiento:* ${historial}\n\n`;
+
+                        if (data.estado === 'pendiente') msg += '⏳ Tu paquete está en espera de recolección.';
+                        else if (data.estado === 'en_transito') msg += '🚢 Tu paquete va en camino a RD.';
+                        else if (data.estado === 'recibida_rd') msg += '🇩🇴 Tu paquete ya está en República Dominicana.';
+                        else if (data.estado === 'entregado') msg += '✅ ¡Paquete entregado!';
+
+                        await whatsappService.sendMessage(companyId, remoteJid, msg);
+                        return; // Detener flujo aquí
+                    } else {
+                        await whatsappService.sendMessage(companyId, remoteJid, `❌ No encontré ningún envío con el código *${rawCode}*.\nPor favor verifica y vuelve a intentar.`);
+                        return;
+                    }
+                }
+
+                // 2. Normalización de Intención (Fuzzy Matching Básico)
+                let intent = 'unknown';
+                if (cleanText.match(/agendar|ajendar|nuevo|envio|recojer|mandar|paquete/i)) intent = 'agendar';
+                else if (cleanText.match(/estatus|donde|rastreo|rastrear|guia|ubicacion/i)) intent = 'rastreo';
+                else if (cleanText.match(/soporte|ayuda|humano|persona|hablar|error|problema/i)) intent = 'soporte';
+                else if (cleanText.match(/hola|buenos|menu|inicio|opciones/i)) intent = 'menu';
+                else if (cleanText.match(/precio|costo|cotizar|cuanto/i)) intent = 'cotizar';
+
+                // 3. Ejecutar Acción Según Intención
+                if (intent === 'agendar') {
                     const link = `${FRONTEND_URL}/agendar/${companyId}`;
                     await whatsappService.sendMessage(companyId, remoteJid,
                         `📦 *Agendar Recolección*\n\nHola ${pushName}, para solicitar una recolección sin esperas, usa este enlace directo:\n\n👉 ${link}\n\n¡Es rápido y seguro!`);
-                }
 
-                // 2. "Estatus" / "Rastreo" / "Donde viene"
-                else if (cleanText.includes('estatus') || cleanText.includes('donde') || cleanText.includes('rastreo')) {
+                } else if (intent === 'rastreo') {
                     await whatsappService.sendMessage(companyId, remoteJid,
-                        `🔍 Para rastrear tu envío, por favor envíame el número de guía (ej: RC-123456-0001).`);
-                }
+                        `🔍 Para rastrear tu envío, envíame el número de guía (Ejemplo: *RC-20251214-0001*).`);
 
-                // 3. "Hola" / "Menu" / "Buenos dias"
-                else if (cleanText === 'hola' || cleanText.includes('buenos') || cleanText === 'menu' || cleanText === 'ayuda') {
+                } else if (intent === 'soporte') {
+                    // Obtener configuración de soporte de la compañía (si existe)
+                    let supportPhone = '';
+                    try {
+                        const companyDoc = await db.collection('companies').doc(companyId).get();
+                        if (companyDoc.exists) {
+                            supportPhone = companyDoc.data().supportPhone || '';
+                        }
+                    } catch (e) { console.error('Error fetching company support:', e); }
+
+                    if (supportPhone) {
+                        await whatsappService.sendMessage(companyId, remoteJid,
+                            `👨‍💻 *Soporte Humano*\n\nPara asistencia personalizada, por favor contacta a nuestro equipo de soporte:\n\n📞 *WhatsApp:* https://wa.me/${supportPhone.replace('+', '')}\n\nTe atenderemos lo antes posible.`);
+                    } else {
+                        // Fallback si no hay teléfono configurado
+                        await whatsappService.sendMessage(companyId, remoteJid,
+                            `👨‍💻 *Soporte*\n\nUn agente revisará tu caso pronto. Por favor deja tu mensaje detallado aquí.`);
+                    }
+
+                } else if (intent === 'cotizar') {
+                    await whatsappService.sendMessage(companyId, remoteJid,
+                        `💲 *Cotizaciones*\n\nPronto podrás cotizar aquí. Por el momento, usa la opción de *Agendar* para ver estimados.`);
+
+                } else if (intent === 'menu') {
                     const link = `${FRONTEND_URL}/agendar/${companyId}`;
-                    const menu = `👋 *¡Hola ${pushName}!* Bienvenido.\n\nSoy tu asistente virtual. Aquí tienes algunas opciones rápidas:\n\n📦 *Solicitar Recolección* (Escribe "Agendar", "Nuevo" o "Envío")\n👉 ${link}\n\n🚚 *Rastrear Paquete* (Escribe "Estatus" o "Rastreo")\n\n❓ *Ayuda / Soporte* (Escribe "Soporte")\n\n¿En qué puedo ayudarte hoy?`;
+                    const menu = `👋 *¡Hola ${pushName}!*\n\nSoy tu asistente virtual. Escribe una opción o lo que necesitas:\n\n📦 *Nuevo Envío* (Escribe "Agendar")\n🚚 *Rastrear* (Escribe tu código RC-...)\n👨‍💻 *Soporte* (Escribe "Ayuda")\n\n¿En qué te ayudo?`;
 
                     await whatsappService.sendMessage(companyId, remoteJid, menu);
+                } else {
+                    // Respuesta default para mensajes no entendidos (opcional, para no ser spammy a veces se omite)
+                    // await whatsappService.sendMessage(companyId, remoteJid, `🤷‍♂️ No entendí eso. Escribe *Menú* para ver opciones.`);
                 }
             }
         }

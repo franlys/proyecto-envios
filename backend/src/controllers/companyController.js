@@ -197,7 +197,7 @@ export const getCompanyById = async (req, res) => {
 export const updateCompany = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, telefono, direccion, plan, activo, emailConfig, invoiceDesign } = req.body;
+    const { nombre, telefono, supportPhone, direccion, plan, activo, emailConfig, invoiceDesign } = req.body;
 
     // Validar que el usuario sea super_admin
     const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
@@ -208,6 +208,7 @@ export const updateCompany = async (req, res) => {
     const updates = {};
     if (nombre !== undefined) updates.nombre = nombre;
     if (telefono !== undefined) updates.telefono = telefono;
+    if (supportPhone !== undefined) updates.supportPhone = supportPhone; // ✅ Nuevo campo
     if (direccion !== undefined) updates.direccion = direccion;
     if (plan !== undefined) updates.plan = plan;
     if (activo !== undefined) updates.activo = activo;
