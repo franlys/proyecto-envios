@@ -107,6 +107,7 @@ const Layout = ({ children }) => {
       recolector: [
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/recolecciones', label: 'Mis Recolecciones', icon: '📦' },
+        { path: '/pool', label: 'Bolsa de Cargas', icon: '📍' }, // ✅ SOLICITADO
         { path: '/recolecciones/nueva', label: 'Nueva Recolección', icon: '➕' }, // ✅ DIRECTO
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
