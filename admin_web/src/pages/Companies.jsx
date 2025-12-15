@@ -13,7 +13,7 @@ const Companies = () => {
     nombre: '',
     adminEmail: '',
     adminPassword: '',
-    adminPassword: '',
+
     telefono: '',
     supportPhone: '', // ✅ Nuevo campo
     direccion: '',
@@ -89,7 +89,7 @@ const Companies = () => {
     try {
       await api.put(`/companies/${selectedCompany.id}`, {
         nombre: formData.nombre,
-        nombre: formData.nombre,
+
         telefono: formData.telefono,
         supportPhone: formData.supportPhone, // ✅ Nuevo campo
         direccion: formData.direccion,
@@ -227,7 +227,7 @@ const Companies = () => {
       nombre: '',
       adminEmail: '',
       adminPassword: '',
-      adminPassword: '',
+
       telefono: '',
       supportPhone: '', // ✅ Nuevo campo
       direccion: '',
