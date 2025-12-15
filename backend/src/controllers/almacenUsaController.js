@@ -4,6 +4,7 @@
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
+import { generarNumeroContenedor } from '../utils/trackingUtils.js';
 
 // Estados válidos del sistema
 const ESTADOS_CONTENEDOR = {
@@ -32,16 +33,8 @@ const ESTADOS_ITEMS = {
 // ========================================
 export const crearContenedor = async (req, res) => {
   try {
-    const { numeroContenedor } = req.body;
     const companyId = req.userData?.companyId;
     const usuarioId = req.userData?.uid;
-
-    if (!numeroContenedor || numeroContenedor.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'El número de contenedor es requerido'
-      });
-    }
 
     if (!companyId || !usuarioId) {
       return res.status(401).json({
@@ -49,17 +42,12 @@ export const crearContenedor = async (req, res) => {
         message: 'Usuario no autenticado'
       });
     }
+    // ✅ GENERACIÓN AUTOMÁTICA DE ID
+    const nuevoNumero = await generarNumeroContenedor(companyId);
 
-    const existente = await db.collection('contenedores')
-      .where('companyId', '==', companyId)
-      .where('numeroContenedor', '==', numeroContenedor.trim())
-      .get();
-
-    if (!existente.empty) {
-      return res.status(400).json({
-        success: false,
-        message: 'Ya existe un contenedor con ese número'
-      });
+    // Validar generación
+    if (!nuevoNumero) {
+      throw new Error('No se pudo generar el número de contenedor');
     }
 
     const contenedorRef = db.collection('contenedores').doc();
@@ -68,7 +56,7 @@ export const crearContenedor = async (req, res) => {
     const contenedorData = {
       id: contenedorId,
       companyId,
-      numeroContenedor: numeroContenedor.trim(),
+      numeroContenedor: nuevoNumero,
       facturas: [],
       estado: ESTADOS_CONTENEDOR.ABIERTO,
       estadoFacturas: { completas: 0, incompletas: 0, total: 0 },
@@ -88,7 +76,8 @@ export const crearContenedor = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Contenedor creado exitosamente',
-      data: { id: contenedorId, numeroContenedor: numeroContenedor.trim(), estado: ESTADOS_CONTENEDOR.ABIERTO }
+      message: 'Contenedor creado exitosamente',
+      data: { id: contenedorId, numeroContenedor: nuevoNumero, estado: ESTADOS_CONTENEDOR.ABIERTO }
     });
   } catch (error) {
     console.error('Error creando contenedor:', error);
