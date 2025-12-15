@@ -783,24 +783,37 @@ export const asignarFacturaARuta = async (req, res) => {
       historial: FieldValue.arrayUnion(historialEntry)
     });
 
-    res.json({
-      success: true,
-      message: 'Factura asignada a ruta exitosamente',
-      data: {
-        facturaId,
-        codigoTracking: data.codigoTracking,
-        ruta: ruta.trim()
-      }
-    });
+  });
 
-  } catch (error) {
-    console.error('âŒ Error asignando factura a ruta:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al asignar la factura a la ruta',
-      error: error.message
-    });
+  // 🟢 NOTIFICACIÓN WHATSAPP (Asignación a Ruta)
+  try {
+    const destTelefono = data.destinatario?.telefono;
+    if (destTelefono) {
+      const mensajeWhatsapp = `📦 *Cargado en Ruta*: ${data.codigoTracking}\n\nHola *${data.destinatario?.nombre}*,\n\nTu paquete ha sido asignado a la ruta *${ruta}* y será despachado pronto.\n\nGracias por tu paciencia.`;
+      whatsappService.sendMessage(companyId, destTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Dest AssignRoute:', e));
+    }
+  } catch (notifError) {
+    console.error('Error enviando notif asignacion:', notifError);
   }
+
+  res.json({
+    success: true,
+    message: 'Factura asignada a ruta exitosamente',
+    data: {
+      facturaId,
+      codigoTracking: data.codigoTracking,
+      ruta: ruta.trim()
+    }
+  });
+
+} catch (error) {
+  console.error('âŒ Error asignando factura a ruta:', error);
+  res.status(500).json({
+    success: false,
+    message: 'Error al asignar la factura a la ruta',
+    error: error.message
+  });
+}
 };
 // ========================================
 // REASIGNAR FACTURA A NUEVA RUTA

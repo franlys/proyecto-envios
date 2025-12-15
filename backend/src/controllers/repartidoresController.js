@@ -5,6 +5,7 @@
 import { db, storage } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
+import whatsappService from '../services/whatsappService.js';
 
 // ==========================================================================
 // HELPER: Generar signed URLs de larga duración para imágenes en emails
@@ -264,10 +265,23 @@ export const iniciarEntregas = async (req, res) => {
       });
     }
 
-    if (data.estado !== 'asignada') {
+    // ✅ FIX 400 ERROR: Permitir iniciar si está 'asignada' o 'cargada'
+    // E incluso si ya está 'en_ruta' (idempotencia)
+    const estadosPermitidosInicio = ['asignada', 'cargada', 'en_ruta'];
+
+    if (!estadosPermitidosInicio.includes(data.estado)) {
       return res.status(400).json({
         success: false,
-        message: `La ruta no está en estado 'asignada'. Estado actual: ${data.estado}`
+        message: `La ruta no está lista para iniciar. Estado actual: ${data.estado}`
+      });
+    }
+
+    // Si ya está en ruta, solo devolver éxito sin reprocesar todo (idempotencia)
+    if (data.estado === 'en_ruta') {
+      return res.json({
+        success: true,
+        message: 'La ruta ya estaba iniciada',
+        data: { rutaId, estado: 'en_ruta', fechaInicio: data.fechaInicio }
       });
     }
 
@@ -388,6 +402,21 @@ export const iniciarEntregas = async (req, res) => {
           }
         } catch (error) {
           console.error(`❌ Error enviando notificación para factura ${facturaId}:`, error.message);
+        }
+
+        // 🟢 NOTIFICACIÓN WHATSAPP (Ruta Iniciada)
+        // Notificar al DESTINATARIO
+        const destTelefono = factura.destinatario?.telefono || ((await db.collection('recolecciones').doc(factura.id).get()).data()?.destinatario?.telefono);
+        if (destTelefono) {
+          const mensajeWhatsapp = `🚚 *Tu Paquete va en Camino* 📦\n\nHola, tu paquete con tracking *${factura.codigoTracking || 'N/A'}* ha salido a reparto y llegará pronto a tu dirección.\n\nPor favor, está atento a nuestro repartidor.`;
+          whatsappService.sendMessage(companyId, destTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Dest StartRoute:', e));
+        }
+
+        // Notificar al REMITENTE
+        const remTelefono = factura.remitente?.telefono || ((await db.collection('recolecciones').doc(factura.id).get()).data()?.remitente?.telefono);
+        if (remTelefono) {
+          const mensajeWhatsapp = `🚚 *Envío en Reparto*\n\nHola, el paquete que enviaste (${factura.codigoTracking || 'N/A'}) ya está en ruta hacia el destinatario.\n\nTe avisaremos cuando sea entregado.`;
+          whatsappService.sendMessage(companyId, remTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Rem StartRoute:', e));
         }
       }
     }
@@ -905,9 +934,9 @@ export const entregarFactura = async (req, res) => {
             <p><strong>Remitente:</strong> ${data.remitente?.nombre}</p>
             <p><strong>Recibido por:</strong> ${nombreReceptor || data.destinatario?.nombre}</p>
             <p><strong>Fecha y Hora:</strong> ${new Date().toLocaleString('es-DO', {
-              dateStyle: 'full',
-              timeStyle: 'short'
-            })}</p>
+          dateStyle: 'full',
+          timeStyle: 'short'
+        })}</p>
             <p><strong>Dirección:</strong> ${data.destinatario?.direccion}</p>
             <p><strong>Items Entregados:</strong> ${itemsEntregados} de ${totalItems}</p>
             ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
@@ -953,9 +982,9 @@ export const entregarFactura = async (req, res) => {
             <p><strong>Destinatario:</strong> ${data.destinatario?.nombre}</p>
             <p><strong>Recibido por:</strong> ${nombreReceptor || data.destinatario?.nombre}</p>
             <p><strong>Fecha y Hora:</strong> ${new Date().toLocaleString('es-DO', {
-              dateStyle: 'full',
-              timeStyle: 'short'
-            })}</p>
+          dateStyle: 'full',
+          timeStyle: 'short'
+        })}</p>
             <p><strong>Dirección de Entrega:</strong> ${data.destinatario?.direccion}</p>
             <p><strong>Items Entregados:</strong> ${itemsEntregados} de ${totalItems}</p>
             ${data.pago?.estado === 'pagada' ? `<p><strong>Pago:</strong> ✅ Confirmado (${data.pago.metodoPago || 'N/A'})</p>` : ''}
