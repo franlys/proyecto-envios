@@ -100,6 +100,78 @@ class WhatsappService {
             return false;
         }
     }
+    /**
+     * Envía un archivo multimedia (PDF, imagen)
+     * @param {string} companyId - ID de la compañía
+     * @param {string} phone - Número de teléfono
+     * @param {Buffer} fileBuffer - Buffer del archivo
+     * @param {string} fileName - Nombre del archivo (ej: factura.pdf)
+     * @param {string} caption - Texto opcional
+     * @param {string} mimeType - Tipo MIME (default: application/pdf)
+     */
+    async sendMediaFile(companyId, phone, fileBuffer, fileName, caption = '', mimeType = 'application/pdf') {
+        try {
+            if (!companyId || !phone || !fileBuffer) {
+                console.warn('⚠️ WhatsappService: Faltan datos para enviar media');
+                return false;
+            }
+
+            // 1. Obtener Instancia (reutilizar lógica)
+            // TODO: Refactorizar búsqueda de instancia a método privado
+            const instancesResponse = await axios.get(`${EVOLUTION_URL}/instance/fetchInstances`, {
+                headers: { 'apikey': EVOLUTION_KEY }
+            });
+            const instances = instancesResponse.data;
+            const activeInstance = instances.find(item => {
+                const instanceName = item.instance.instanceName || item.name;
+                return instanceName.includes(companyId) && (item.instance.status === 'open' || item.instance.state === 'open');
+            });
+
+            if (!activeInstance) {
+                console.warn(`⚠️ WhatsappService: No se encontró instancia conectada para enviar media`);
+                return false;
+            }
+
+            const instanceName = activeInstance.instance.instanceName || activeInstance.instance.name;
+
+            // 2. Formatear teléfono
+            let formattedPhone = phone.replace(/\D/g, '');
+            if (formattedPhone.length === 10 && (formattedPhone.startsWith('809') || formattedPhone.startsWith('829') || formattedPhone.startsWith('849'))) {
+                formattedPhone = '1' + formattedPhone;
+            }
+
+            // 3. Preparar Base64
+            const base64Content = fileBuffer.toString('base64');
+
+            // 4. Enviar Media
+            console.log(`📎 Enviando Archivo (${fileName}) desde ${instanceName} a ${formattedPhone}...`);
+
+            const sendResponse = await axios.post(`${EVOLUTION_URL}/message/sendMedia/${instanceName}`, {
+                number: formattedPhone,
+                options: {
+                    delay: 1000,
+                    presence: "composing"
+                },
+                mediaMessage: {
+                    mediatype: "document", // o "image"
+                    fileName: fileName,
+                    caption: caption,
+                    media: base64Content,
+                    mimetype: mimeType
+                }
+            }, {
+                headers: { 'apikey': EVOLUTION_KEY }
+            });
+
+            console.log('✅ WhatsApp Media enviado:', sendResponse.data?.key?.id);
+            return true;
+
+        } catch (error) {
+            console.error('❌ Error enviando media WhatsApp:', error.message);
+            if (error.response) console.error('Detalles API:', error.response.data);
+            return false;
+        }
+    }
 }
 
 export default new WhatsappService();

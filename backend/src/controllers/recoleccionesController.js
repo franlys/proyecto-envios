@@ -317,6 +317,14 @@ export const createRecoleccion = async (req, res) => {
       console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
     }
 
+    // 📄 GENERAR PDF FACTURA (Para enviar por ambos canales)
+    let pdfBuffer = null;
+    try {
+      pdfBuffer = await generateInvoicePDF(recoleccionData, companyConfig);
+    } catch (pdfError) {
+      console.error('⚠️ Error generando PDF de factura:', pdfError.message);
+    }
+
     // 🟢 NOTIFICACIÓN WHATSAPP (Recolección Directa / Factura)
     if (remitenteTelefono) {
       const montoTotal = parseFloat(total);
@@ -335,9 +343,23 @@ export const createRecoleccion = async (req, res) => {
 
       const mensajeWhatsapp = `🧾 *Recolección Exitosa / Factura Generada*\n\nHola *${remitenteNombre}*, gracias por tu envío. Aquí tienes los detalles de tu factura #${codigoTracking}.\n\n📍 Destino: ${destinatarioNombre} (${destinatarioDireccion})\n${detallesPago}\n\nGracias por confiar en nosotros. 🚛`;
 
-      // No bloqueamos la respuesta (async)
+      // 1. Enviar mensaje de texto
       whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
-        .then(ok => ok ? console.log('✅ Whatsapp enviado') : console.log('⚠️ Whatsapp no enviado'))
+        .then(() => {
+          // 2. Enviar PDF adjunto (si se generó correctamente)
+          // Esperamos un poco para que lleguen en orden
+          if (pdfBuffer) {
+            setTimeout(() => {
+              whatsappService.sendMediaFile(
+                companyId,
+                remitenteTelefono,
+                pdfBuffer,
+                `Factura_${codigoTracking}.pdf`,
+                `📄 Tu factura digital`
+              ).catch(e => console.error('Error enviando PDF WA:', e.message));
+            }, 1500);
+          }
+        })
         .catch(e => console.error('Error Whatsapp:', e));
     }
 
@@ -394,25 +416,16 @@ export const createRecoleccion = async (req, res) => {
 
       const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'pendiente_recoleccion');
 
-      // Generar PDF de la factura
-      generateInvoicePDF(recoleccionData, companyConfig)
-        .then(pdfBuffer => {
-          const attachments = [{
-            filename: `Factura_${codigoTracking}.pdf`,
-            content: pdfBuffer,
-            contentType: 'application/pdf'
-          }];
+      // Preparar adjuntos solo si el PDF existe
+      const attachments = pdfBuffer ? [{
+        filename: `Factura_${codigoTracking}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }] : [];
 
-          return sendEmail(remitenteEmail, subject, brandedHtml, attachments, companyConfig);
-        })
+      sendEmail(remitenteEmail, subject, brandedHtml, attachments, companyConfig)
         .then(() => console.log(`📧 Correo con factura PDF enviado a ${remitenteEmail}`))
-        .catch(err => {
-          console.error(`❌ Error enviando correo con PDF a ${remitenteEmail}:`, err.message);
-          // Si falla el PDF, intentar enviar sin adjunto
-          sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
-            .then(() => console.log(`📧 Correo enviado sin PDF a ${remitenteEmail}`))
-            .catch(err2 => console.error(`❌ Error enviando correo alternativo:`, err2.message));
-        });
+        .catch(err => console.error(`❌ Error enviando correo:`, err.message));
     }
 
     res.status(201).json({
