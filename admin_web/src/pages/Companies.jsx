@@ -184,29 +184,7 @@ const Companies = () => {
   };
 
 
-  const handleUpdateCompany = async (e) => {
-    e.preventDefault();
 
-    try {
-      await api.put(`/companies/${selectedCompany.id}`, {
-        nombre: formData.nombre,
-        telefono: formData.telefono,
-        supportPhone: formData.supportPhone,
-        direccion: formData.direccion,
-        plan: formData.plan,
-        emailConfig: formData.emailConfig,
-        invoiceDesign: formData.invoiceDesign
-      });
-
-      alert('Compañía actualizada exitosamente');
-      setShowModal(false);
-      resetForm();
-      fetchCompanies();
-    } catch (error) {
-      console.error('Error:', error);
-      alert(error.response?.data?.error || 'Error al actualizar compañía');
-    }
-  };
 
 
   const openEditModal = (company) => {
