@@ -165,25 +165,43 @@ export const createRecoleccion = async (req, res) => {
       });
     }
 
-    // Generar código de tracking único
-    const fecha = new Date();
-    const year = fecha.getFullYear();
-    const month = String(fecha.getMonth() + 1).padStart(2, '0');
-    const day = String(fecha.getDate()).padStart(2, '0');
+    // ======================================================================
+    // 🏷️ GENERACIÓN DE ID ESTANDARIZADO (EMI-RC-0000)
+    // ======================================================================
+    // Usamos una transacción para asegurar unicidad y atomicidad
+    const companyRef = db.collection('companies').doc(companyId);
+    let codigoTracking;
+    let recoleccionesCount;
 
-    const contadorRef = db.collection('contadores').doc(companyId);
-    const contadorDoc = await contadorRef.get();
+    try {
+      await db.runTransaction(async (t) => {
+        const doc = await t.get(companyRef);
+        if (!doc.exists) throw new Error('Company not found');
 
-    let siguienteNumero = 1;
-    if (contadorDoc.exists) {
-      siguienteNumero = (contadorDoc.data().recolecciones || 0) + 1;
+        const data = doc.data();
+        // Obtener prefijo o generarlo fallback (Primeras 3 letras mayúsculas)
+        const prefijo = data.prefijo || companyId.substring(0, 3).toUpperCase();
+
+        // Incrementar contador
+        const nextCount = (data.recolecciones_count || 0) + 1;
+        recoleccionesCount = nextCount;
+
+        // Formato: PREFIJO-RC-NUMERO (EMI-RC-0001)
+        codigoTracking = `${prefijo}-RC-${String(nextCount).padStart(4, '0')}`; // 4 dígitos inicialmente
+
+        // Actualizar contador en la compañía
+        t.update(companyRef, { recolecciones_count: nextCount });
+      });
+    } catch (e) {
+      console.error('Error Transaction ID:', e);
+      // Fallback a lógica antigua por seguridad si falla transacción
+      const fecha = new Date();
+      const year = fecha.getFullYear();
+      const month = String(fecha.getMonth() + 1).padStart(2, '0');
+      const day = String(fecha.getDate()).padStart(2, '0');
+      const random = Math.floor(Math.random() * 9999);
+      codigoTracking = `RC-${year}${month}${day}-${random}`;
     }
-
-    await contadorRef.set({
-      recolecciones: siguienteNumero
-    }, { merge: true });
-
-    const codigoTracking = `RC-${year}${month}${day}-${String(siguienteNumero).padStart(4, '0')}`;
 
     // ======================================================================
     // 🏦 GENERACIÓN AUTOMÁTICA DE NCF (Si se solicita)

@@ -59,10 +59,23 @@ export const createCompany = async (req, res) => {
     });
 
     // ======================================================================
-    // GENERAR PREFIJO ÚNICO PARA TRACKING
+    // GENERAR PREFIJO ÚNICO (ACRONYM)
     // ======================================================================
-    console.log(`🏢 Generando prefijo de tracking para: "${nombre}"`);
-    const trackingPrefix = await obtenerPrefijoUnico(companyId, nombre);
+    // Ejemplo: "Embarques Ivan" -> "EMI"
+    let prefijo = nombre.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+    if (prefijo.length < 3) {
+      prefijo = nombre.substring(0, 3).toUpperCase().padEnd(3, 'X');
+    }
+
+    // Verificar si el prefijo existe (simple check, en producción ser más robusto)
+    const prefixCheck = await db.collection('companies').where('prefijo', '==', prefijo).get();
+    if (!prefixCheck.empty) {
+      // Si existe, agregar número aleatorio
+      prefijo = prefijo.substring(0, 2) + Math.floor(Math.random() * 9);
+    }
+
+    console.log(`🏢 Generando prefijo de tracking para: "${nombre}" -> ${prefijo}`);
+    const trackingPrefix = await obtenerPrefijoUnico(companyId, nombre); // Mantener legacy por si acaso
 
     // Crear la compañía
     const companyData = {
@@ -75,10 +88,15 @@ export const createCompany = async (req, res) => {
       activo: true,
       createdAt: new Date().toISOString(),
       createdBy: req.userData.uid,
-      // ✅ NUEVO: Sistema de tracking con prefijos
-      trackingPrefix,              // Prefijo único (ej: "EMI", "LOE")
-      currentTrackingNumber: 0,    // Contador de tracking (inicia en 0)
-      lastTrackingGenerated: null  // Fecha del último tracking generado
+      // ✅ NUEVO: Sistema de tracking estandarizado
+      prefijo,                     // Acrónimo (ej: "EMI")
+      recolecciones_count: 0,      // Contador para RC
+      contenedores_count: 0,       // Contador para CNT
+
+      // Legacy tracking (mantener compatible por ahora)
+      trackingPrefix,
+      currentTrackingNumber: 0,
+      lastTrackingGenerated: null
     };
 
     // Agregar emailConfig si se proporciona
@@ -212,6 +230,10 @@ export const updateCompany = async (req, res) => {
     if (direccion !== undefined) updates.direccion = direccion;
     if (plan !== undefined) updates.plan = plan;
     if (activo !== undefined) updates.activo = activo;
+
+    if (plan !== undefined) updates.plan = plan;
+    if (activo !== undefined) updates.activo = activo;
+    if (req.body.prefijo !== undefined) updates.prefijo = req.body.prefijo; // Permite corregir manual
 
     // Actualización parcial de emailConfig
     if (emailConfig !== undefined) {
