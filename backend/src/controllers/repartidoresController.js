@@ -887,7 +887,42 @@ export const entregarFactura = async (req, res) => {
       }
     } catch (syncError) {
       console.error(`⚠️ Error sincronizando con colección 'facturas':`, syncError.message);
-      // No fallar la operación principal si falla la sincronización
+    }
+
+    // 🔄 ACTUALIZAR CONTADORES EN LA COLECCIÓN RUTAS
+    try {
+        // Buscar rutas activas que contengan esta factura
+        const rutasSnapshot = await db.collection('rutas')
+          .where('companyId', '==', data.companyId)
+          .where('estado', 'in', ['asignada', 'cargada', 'en_ruta', 'en_entrega'])
+          .get();
+
+        for (const rutaDoc of rutasSnapshot.docs) {
+          const rutaData = rutaDoc.data();
+          const facturas = rutaData.facturas || [];
+          const tieneFactura = facturas.some(f => (f.id || f.facturaId || f.recoleccionId) === facturaId);
+
+          if (tieneFactura) {
+             let facturasEntregadas = 0;
+             // Recalcular contador real
+             for (const f of facturas) {
+               const fId = f.id || f.facturaId || f.recoleccionId;
+               // Verificar estado real en recolecciones
+               const fDoc = await db.collection('recolecciones').doc(fId).get();
+               if (fDoc.exists && fDoc.data().estado === 'entregada') {
+                 facturasEntregadas++;
+               }
+             }
+             
+             await rutaDoc.ref.update({
+               facturasEntregadas: facturasEntregadas,
+               fechaActualizacion: new Date().toISOString()
+             });
+             console.log(`✅ Ruta ${rutaDoc.id} actualizada: ${facturasEntregadas} entregadas`);
+          }
+        }
+    } catch (routeError) {
+        console.warn('⚠️ Error actualizando contadores de ruta:', routeError);
     }
 
     // ✅ Enviar correo de confirmación con información completa
