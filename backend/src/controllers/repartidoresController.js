@@ -889,6 +889,11 @@ export const entregarFactura = async (req, res) => {
     }
 
     // ✅ Enviar correo de confirmación con información completa
+    // Variables para notificación (scope amplio)
+    let destinatarioEmail = data.destinatario?.email;
+    let remitenteEmail = data.remitente?.email;
+    let fotosParaEmail = [];
+
     try {
       // Obtener configuración de la compañía
       let companyConfig = null;
@@ -904,9 +909,6 @@ export const entregarFactura = async (req, res) => {
         }
       }
 
-      const destinatarioEmail = data.destinatario?.email;
-      const remitenteEmail = data.remitente?.email;
-
       console.log(`📬 Datos de correo de entrega para ${data.codigoTracking}:`);
       console.log(`   Remitente: ${data.remitente?.nombre} (${remitenteEmail || 'sin email'})`);
       console.log(`   Destinatario: ${data.destinatario?.nombre} (${destinatarioEmail || 'sin email'})`);
@@ -914,7 +916,7 @@ export const entregarFactura = async (req, res) => {
       // 🔐 Generar signed URLs de larga duración para fotos en emails
       console.log(`📸 Generando signed URLs para ${fotosEntrega.length} fotos...`);
       console.log(`   URLs originales:`, fotosEntrega);
-      const fotosParaEmail = await getSignedUrlsForEmail(fotosEntrega);
+      fotosParaEmail = await getSignedUrlsForEmail(fotosEntrega);
       console.log(`✅ Signed URLs generadas: ${fotosParaEmail.length} de ${fotosEntrega.length}`);
 
       // Calcular totales de items
