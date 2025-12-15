@@ -196,12 +196,14 @@ export const getDetalleRuta = async (req, res) => {
               items: facturaData.items || [],  // ✅ Esto ahora NO será sobreescrito
               itemsTotal: facturaData.itemsTotal || (facturaData.items?.length || 0),
               itemsEntregados: (facturaData.items || []).filter(i => i.entregado).length,
-              pago: facturaData.pago || {
-                total: 0,
-                estado: 'pendiente',
-                montoPagado: 0,
-                montoPendiente: 0
-              },
+              pago: (function () {
+                const pagoData = facturaData.pago || { total: 0, estado: 'pendiente', montoPagado: 0, montoPendiente: 0 };
+                // Corrección dinámica de estado si el saldo es 0
+                if (pagoData.montoPendiente <= 0 && pagoData.total > 0) {
+                  pagoData.estado = 'pagada';
+                }
+                return pagoData;
+              })(),
               fotosEntrega: facturaData.fotosEntrega || []
             });
           } else {
