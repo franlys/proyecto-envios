@@ -13,7 +13,9 @@ const Companies = () => {
     nombre: '',
     adminEmail: '',
     adminPassword: '',
+    adminPassword: '',
     telefono: '',
+    supportPhone: '', // ✅ Nuevo campo
     direccion: '',
     plan: 'operativo',
     emailConfig: {
@@ -49,14 +51,14 @@ const Companies = () => {
     try {
       setLoading(true);
       const response = await api.get('/companies');
-      
+
       // ✅ CORRECCIÓN: Validar success y acceder a response.data.data
       if (response.data.success) {
         setCompanies(response.data.data || []);
       } else {
         throw new Error(response.data.error || 'Error al cargar compañías');
       }
-      
+
     } catch (error) {
       console.error('❌ Error cargando compañías:', error);
       setCompanies([]);
@@ -68,7 +70,7 @@ const Companies = () => {
 
   const handleCreateCompany = async (e) => {
     e.preventDefault();
-    
+
     try {
       await api.post('/companies', formData);
       alert('Compañía y administrador creados exitosamente');
@@ -87,7 +89,9 @@ const Companies = () => {
     try {
       await api.put(`/companies/${selectedCompany.id}`, {
         nombre: formData.nombre,
+        nombre: formData.nombre,
         telefono: formData.telefono,
+        supportPhone: formData.supportPhone, // ✅ Nuevo campo
         direccion: formData.direccion,
         plan: formData.plan,
         emailConfig: formData.emailConfig,
@@ -121,7 +125,7 @@ const Companies = () => {
 
   const handleDeleteCompany = async (e) => {
     e.preventDefault();
-    
+
     if (!companyToDelete || !deletePassword) {
       alert('Contraseña requerida');
       return;
@@ -139,10 +143,10 @@ const Companies = () => {
 
     try {
       setDeleteLoading(true);
-      
+
       const { signInWithEmailAndPassword } = await import('firebase/auth');
       const { auth } = await import('../services/firebase');
-      
+
       try {
         await signInWithEmailAndPassword(auth, userData.email, deletePassword);
       } catch (authError) {
@@ -160,7 +164,7 @@ const Companies = () => {
         `- ${response.data.stats.rutas} rutas\n` +
         `- ${response.data.stats.facturas} facturas\n` +
         `- ${response.data.stats.gastos} gastos`);
-      
+
       setShowDeleteModal(false);
       setCompanyToDelete(null);
       setDeletePassword('');
@@ -186,7 +190,9 @@ const Companies = () => {
       nombre: company.nombre,
       adminEmail: company.adminEmail,
       adminPassword: '',
+      adminPassword: '',
       telefono: company.telefono || '',
+      supportPhone: company.supportPhone || '', // ✅ Nuevo campo
       direccion: company.direccion || '',
       plan: company.plan || 'operativo',
       emailConfig: company.emailConfig || {
@@ -218,7 +224,9 @@ const Companies = () => {
       nombre: '',
       adminEmail: '',
       adminPassword: '',
+      adminPassword: '',
       telefono: '',
+      supportPhone: '', // ✅ Nuevo campo
       direccion: '',
       plan: 'operativo',
       emailConfig: {
@@ -347,17 +355,16 @@ const Companies = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        company.activo 
-                          ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200' 
-                          : 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
-                      }`}>
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${company.activo
+                        ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
+                        : 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
+                        }`}>
                         {company.activo ? '✓ Activa' : '✗ Inactiva'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-                      {company.fechaCreacion 
-                        ? new Date(company.fechaCreacion.toDate ? company.fechaCreacion.toDate() : company.fechaCreacion).toLocaleDateString() 
+                      {company.fechaCreacion
+                        ? new Date(company.fechaCreacion.toDate ? company.fechaCreacion.toDate() : company.fechaCreacion).toLocaleDateString()
                         : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
@@ -373,11 +380,10 @@ const Companies = () => {
                         </button>
                         <button
                           onClick={() => handleToggleCompany(company.id, company.activo)}
-                          className={`${
-                            company.activo 
-                              ? 'text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300'
-                              : 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300'
-                          }`}
+                          className={`${company.activo
+                            ? 'text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300'
+                            : 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300'
+                            }`}
                         >
                           {company.activo ? 'Desactivar' : 'Activar'}
                         </button>
@@ -404,7 +410,7 @@ const Companies = () => {
             <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">
               {modalMode === 'create' ? 'Crear Nueva Compañía' : 'Editar Compañía'}
             </h2>
-            
+
             <form onSubmit={modalMode === 'create' ? handleCreateCompany : handleUpdateCompany}>
               <div className="space-y-4">
                 <div>
@@ -415,7 +421,7 @@ const Companies = () => {
                     type="text"
                     required
                     value={formData.nombre}
-                    onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Embarques Iván"
                   />
@@ -432,7 +438,7 @@ const Companies = () => {
                     type="email"
                     required
                     value={formData.adminEmail}
-                    onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="admin@embarquesivÃ¡n.com"
                     disabled={modalMode === 'edit'}
@@ -448,7 +454,7 @@ const Companies = () => {
                       type="password"
                       required
                       value={formData.adminPassword}
-                      onChange={(e) => setFormData({...formData, adminPassword: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder="Mínimo 6 caracteres"
                       minLength={6}
@@ -466,10 +472,26 @@ const Companies = () => {
                   <input
                     type="tel"
                     value={formData.telefono}
-                    onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="(809) 123-4567"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Teléfono de Soporte (Bot Handoff)
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.supportPhone}
+                    onChange={(e) => setFormData({ ...formData, supportPhone: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="5215512345678 (Sin símbolos)"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    📞 Este número se enviará cuando el usuario pida "Ayuda" o "Soporte" en WhatsApp.
+                  </p>
                 </div>
 
                 <div>
@@ -479,7 +501,7 @@ const Companies = () => {
                   <input
                     type="text"
                     value={formData.direccion}
-                    onChange={(e) => setFormData({...formData, direccion: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="Santo Domingo, República Dominicana"
                   />
@@ -492,7 +514,7 @@ const Companies = () => {
                   <select
                     required
                     value={formData.plan}
-                    onChange={(e) => setFormData({...formData, plan: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="operativo">Plan Operativo (RD$ 50,000/mes)</option>
