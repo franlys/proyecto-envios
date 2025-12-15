@@ -39,7 +39,10 @@ function generarPrefijo(nombre) {
   let prefijo = '';
 
   // 3. Estrategias de generación según número de palabras
-  if (palabras.length >= 3) {
+  if (normalizado === 'EMBARQUES IVAN' || normalizado === 'EMBARQUESIVAN') {
+    prefijo = 'EMI';
+  }
+  else if (palabras.length >= 3) {
     // Caso: "Transportes Rápidos Santo" → "TRS"
     prefijo = palabras.slice(0, 3).map(p => p[0]).join('');
   }
@@ -189,6 +192,52 @@ export async function generarCodigoTracking(companyId) {
     console.log(`📦 Código de tracking generado: ${codigoTracking} (Empresa: ${data.name})`);
 
     return codigoTracking;
+  });
+}
+
+/**
+ * Genera un nuevo número de contenedor usando transacción atómica
+ * 
+ * Formato: [PREFIJO]-CNT-[SECUENCIAL]
+ * Ejemplos: EMI-CNT-0001, EMI-CNT-0002
+ * 
+ * @param {string} companyId - ID de la empresa
+ * @returns {Promise<string>} Número de contenedor único
+ */
+export async function generarNumeroContenedor(companyId) {
+  return await db.runTransaction(async (transaction) => {
+    const companyRef = db.collection('companies').doc(companyId);
+    const companyDoc = await transaction.get(companyRef);
+
+    if (!companyDoc.exists) {
+      throw new Error('Empresa no encontrada');
+    }
+
+    const data = companyDoc.data();
+
+    // Verificar prefijo
+    if (!data.trackingPrefix) {
+      throw new Error('La empresa no tiene un prefijo configurado.');
+    }
+
+    const prefix = data.trackingPrefix;
+    const nextNumber = (data.currentContainerNumber || 0) + 1;
+
+    // Actualizar contador
+    transaction.update(companyRef, {
+      currentContainerNumber: nextNumber,
+      lastContainerGenerated: new Date().toISOString()
+    });
+
+    // Formatear: PREFIJO-CNT-0001
+    const padding = Math.max(3, String(nextNumber).length); // Al menos 3 dígitos
+    const paddedNumber = String(nextNumber).padStart(padding, '0');
+
+    const numeroContenedor = `${prefix}-CNT-${paddedNumber}`;
+
+    console.log(`📦 Contenedor generado: ${numeroContenedor} (Empresa: ${data.name})`);
+
+    return numeroContenedor;
   });
 }
 
