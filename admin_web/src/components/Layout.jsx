@@ -115,7 +115,7 @@ const Layout = ({ children }) => {
       secretaria_usa: [ // ✅ NUEVO ROL DEFINIDO
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/call-center', label: 'Call Center USA', icon: '📞' },
-        { path: '/recolecciones/nueva', label: 'Agendar Cita', icon: '📅' }, // Solicitud explícita del usuario
+        // { path: '/recolecciones/nueva', label: 'Agendar Cita', icon: '📅' }, // 🗑️ Eliminado por redundancia
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
         { path: '/ayuda', label: 'Ayuda', icon: '❓' }
       ],
