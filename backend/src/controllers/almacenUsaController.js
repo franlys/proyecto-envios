@@ -5,6 +5,7 @@ import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 import { generarNumeroContenedor } from '../utils/trackingUtils.js';
+import whatsappService from '../services/whatsappService.js';
 
 // Estados válidos del sistema
 const ESTADOS_CONTENEDOR = {
@@ -675,6 +676,15 @@ export const cerrarContenedor = async (req, res) => {
             sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
               .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Contenedor en tránsito`))
               .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
+          }
+
+          // 🟢 NOTIFICACIÓN WHATSAPP (En Tránsito)
+          const remitenteTelefono = facturaData.remitente?.telefono;
+          if (remitenteTelefono) {
+            const mensajeWhatsapp = `🚢 *En Tránsito a RD*: ${facturaData.codigoTracking}\n\nHola *${facturaData.remitente?.nombre}*,\n\nTu paquete está en camino hacia República Dominicana.\n\n📦 *Contenedor:* ${contenedor.numeroContenedor}\n\nTe avisaremos cuando llegue. Gracias por elegirnos.`;
+
+            whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+              .catch(e => console.error('Error enviando WA En Transito:', e));
           }
         } catch (error) {
           console.error(`❌ Error enviando notificación para factura ${factura.id}:`, error.message);

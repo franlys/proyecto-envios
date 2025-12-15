@@ -583,7 +583,7 @@ export const buscarPorCodigoTracking = async (req, res) => {
 export const actualizarEstado = async (req, res) => {
   try {
     const { id } = req.params;
-    const { estado, notas } = req.body;
+    const { estado, notas, fotos } = req.body; // ✅ Aceptamos fotos para evidencia
 
     const estadosPermitidos = [
       'pendiente',
@@ -623,12 +623,27 @@ export const actualizarEstado = async (req, res) => {
       fecha: new Date().toISOString()
     };
 
-    await recoleccionRef.update({
+
+    // ✅ ACTUALIZAR FOTOS SI EXISTEN (Evidencia de entrega)
+    const updateData = {
       estado,
       estadoGeneral: estado,
       fechaActualizacion: FieldValue.serverTimestamp(),
       historial: FieldValue.arrayUnion(historialEntry)
-    });
+    };
+
+    if (fotos && Array.isArray(fotos) && fotos.length > 0) {
+      updateData.fotos = FieldValue.arrayUnion(...fotos);
+      // Agregar al historial que se subió evidencia
+      updateData.historial = FieldValue.arrayUnion({
+        accion: 'evidencia_subida',
+        descripcion: `Se subieron ${fotos.length} fotos de evidencia`,
+        usuario: req.userData?.uid,
+        fecha: new Date().toISOString()
+      });
+    }
+
+    await recoleccionRef.update(updateData);
 
     // Obtener datos completos de la recolección para notificación
     const recoleccionData = doc.data();
@@ -724,12 +739,45 @@ export const actualizarEstado = async (req, res) => {
         .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}`))
         .catch(err => console.error(`❌ Error enviando notificación a ${remitenteEmail}:`, err.message));
 
-      // 🟢 NOTIFICACIÓN WHATSAPP (Cambio de Estado)
-      // Solo enviamos si tenemos teléfono del remitente (que viene en recoleccionData)
+      // 🟢 NOTIFICACIÓN WHATSAPP (Cambio de Estado + Evidencia)
       const remitenteTelefono = recoleccionData.remitente?.telefono;
       if (remitenteTelefono) {
-        const mensajeWhatsapp = `${estadoInfo.emoji} *Actualización de Estado*: ${recoleccionData.codigoTracking}\n\nHola *${recoleccionData.remitente?.nombre}*,\n\n${estadoInfo.mensaje}\n\nEstado actual: *${estadoInfo.titulo}*\n\nGracias por confiar en nosotros.`;
-        whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Status:', e));
+
+        // 1. Enviar TEXTO
+        let mensajeWhatsapp = `${estadoInfo.emoji} *Actualización de Estado*: ${recoleccionData.codigoTracking}\n\nHola *${recoleccionData.remitente?.nombre}*,\n\n${estadoInfo.mensaje}\n\nEstado actual: *${estadoInfo.titulo}*\n\nGracias por confiar en nosotros.`;
+
+        // Agregar nota si existe
+        if (notas) {
+          mensajeWhatsapp += `\n\n📝 *Nota:* ${notas}`;
+        }
+
+        whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+          .then(() => {
+            // 2. Enviar EVIDENCIA (Si hay fotos nuevas o existentes y es ENTREGADO)
+            if (estado === 'entregado') {
+              // Usar las fotos enviadas en este request o las que ya tenga
+              const evidencias = (fotos && Array.isArray(fotos) && fotos.length > 0)
+                ? fotos
+                : (recoleccionData.fotos || []);
+
+              if (evidencias.length > 0) {
+                console.log(`📸 Enviando ${evidencias.length} fotos de evidencia por WhatsApp...`);
+                // Enviar la primera foto como prueba principal (para no hacer spam)
+                const fotoPrincipal = evidencias[0];
+
+                setTimeout(() => {
+                  whatsappService.sendMediaUrl(
+                    companyId,
+                    remitenteTelefono,
+                    fotoPrincipal,
+                    '📸 Evidencia de entrega',
+                    'image'
+                  ).catch(e => console.error('Error enviando Foto Evidencia:', e));
+                }, 1500);
+              }
+            }
+          })
+          .catch(e => console.error('Error WA Status:', e));
       }
     }
 

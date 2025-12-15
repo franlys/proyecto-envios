@@ -172,6 +172,73 @@ class WhatsappService {
             return false;
         }
     }
+
+    /**
+     * Envía un archivo multimedia vía URL
+     * Útil proa enviar fotos de Firebase Storage sin descargarlas
+     * 
+     * @param {string} companyId - ID de la compañía
+     * @param {string} phone - Número de teléfono
+     * @param {string} mediaUrl - URL pública del archivo
+     * @param {string} caption - Texto opcional
+     * @param {string} mediaType - "image", "video", "document"
+     * @param {string} mimeType - "image/jpeg", "application/pdf" (opcional)
+     */
+    async sendMediaUrl(companyId, phone, mediaUrl, caption = '', mediaType = 'image', mimeType = '') {
+        try {
+            if (!companyId || !phone || !mediaUrl) {
+                console.warn('⚠️ WhatsappService: Faltan datos para enviar media URL');
+                return false;
+            }
+
+            // 1. Obtener Instancia
+            // TODO: Refactorizar esto para no duplicar lógica
+            const instancesResponse = await axios.get(`${EVOLUTION_URL}/instance/fetchInstances`, {
+                headers: { 'apikey': EVOLUTION_KEY }
+            });
+            const instances = instancesResponse.data;
+            const activeInstance = instances.find(item => {
+                const instanceName = item.instance.instanceName || item.name;
+                return instanceName.includes(companyId) && (item.instance.status === 'open' || item.instance.state === 'open');
+            });
+
+            if (!activeInstance) return false;
+            const instanceName = activeInstance.instance.instanceName || activeInstance.instance.name;
+
+            // 2. Formatear teléfono
+            let formattedPhone = phone.replace(/\D/g, '');
+            if (formattedPhone.length === 10 && (['809', '829', '849'].some(p => formattedPhone.startsWith(p)))) {
+                formattedPhone = '1' + formattedPhone;
+            }
+
+            // 3. Payload
+            const payload = {
+                number: formattedPhone,
+                options: { delay: 1000, presence: "composing" },
+                mediaMessage: {
+                    mediatype: mediaType,
+                    // fileName: "evidence", // Opcional
+                    caption: caption,
+                    media: mediaUrl
+                }
+            };
+
+            if (mimeType) payload.mediaMessage.mimetype = mimeType;
+
+            // 4. Enviar
+            console.log(`📡 Enviando Media URL (${mediaType}) desde ${instanceName}...`);
+            await axios.post(`${EVOLUTION_URL}/message/sendMedia/${instanceName}`, payload, {
+                headers: { 'apikey': EVOLUTION_KEY }
+            });
+
+            console.log('✅ WhatsApp Media URL enviado');
+            return true;
+
+        } catch (error) {
+            console.error('❌ Error enviando media URL WhatsApp:', error.message);
+            return false;
+        }
+    }
 }
 
 export default new WhatsappService();

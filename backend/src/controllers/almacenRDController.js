@@ -5,6 +5,7 @@
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML, generateTrackingButtonHTML } from '../services/notificationService.js';
+import whatsappService from '../services/whatsappService.js';
 
 // ========================================
 // CONSTANTES DE ESTADOS
@@ -447,6 +448,20 @@ export const confirmarRecepcion = async (req, res) => {
               .then(() => console.log(`Notificacion enviada al REMITENTE: ${remitenteEmail} - Recibido en RD`))
               .catch(err => console.error(`Error enviando notificacion al remitente:`, err.message));
           }
+          // 🟢 NOTIFICACIÓN WHATSAPP AL DESTINATARIO
+          const destTelefono = facturaData.destinatario?.telefono;
+          if (destTelefono) {
+            const mensajeWhatsapp = `🏭 *Recibido en RD*: ${facturaData.codigoTracking}\n\nHola *${facturaData.destinatario?.nombre}*,\n\n¡Buenas noticias! Tu paquete ha llegado a nuestro almacén en República Dominicana.\n\nPronto será procesado para entrega.`;
+            whatsappService.sendMessage(companyId, destTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Dest RD:', e));
+          }
+
+          // 🟢 NOTIFICACIÓN WHATSAPP AL REMITENTE
+          const remTelefono = facturaData.remitente?.telefono;
+          if (remTelefono) {
+            const mensajeWhatsapp = `🏭 *Tu envío llegó a RD*: ${facturaData.codigoTracking}\n\nHola *${facturaData.remitente?.nombre}*,\n\nEl paquete enviado a ${facturaData.destinatario?.nombre} ya está en República Dominicana.\n\nTe mantendremos informado.`;
+            whatsappService.sendMessage(companyId, remTelefono, mensajeWhatsapp).catch(e => console.error('Error WA Rem RD:', e));
+          }
+
         } catch (error) {
           console.error(`âŒ Error enviando notificación para factura ${facturaId}:`, error.message);
         }
