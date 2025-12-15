@@ -404,6 +404,7 @@ export const iniciarEntregas = async (req, res) => {
           console.error(`❌ Error enviando notificación para factura ${facturaId}:`, error.message);
         }
 
+
         // 🟢 NOTIFICACIÓN WHATSAPP (Ruta Iniciada)
         // Notificar al DESTINATARIO
         const destTelefono = factura.destinatario?.telefono || ((await db.collection('recolecciones').doc(factura.id).get()).data()?.destinatario?.telefono);
@@ -1016,6 +1017,46 @@ export const entregarFactura = async (req, res) => {
       }
     } catch (emailError) {
       console.warn('⚠️ Error enviando correo de confirmación:', emailError);
+    }
+
+    // 🟢 NOTIFICACIÓN WHATSAPP (ENTREGA + EVIDENCIA)
+    // Usamos fotosParaEmail porque ya son URLs firmadas y válidas
+    const evidenciaUrl = (fotosParaEmail && fotosParaEmail.length > 0) ? fotosParaEmail[0] : null;
+
+    // 1. Notificar al DESTINATARIO
+    if (destinatarioEmail || data.destinatario?.telefono) {
+      const destTelefono = data.destinatario?.telefono;
+      if (destTelefono) {
+        const mensajeWhatsapp = `✅ *Paquete Entregado* 📦\n\nHola *${data.destinatario?.nombre}*,\n\nTu paquete con tracking *${data.codigoTracking}* ha sido entregado exitosamente.\n\n👤 Recibido por: *${nombreReceptor || 'Destinatario'}*\n📅 Fecha: ${new Date().toLocaleString('es-DO')}\n\nGracias por preferirnos.`;
+
+        whatsappService.sendMessage(companyId, destTelefono, mensajeWhatsapp)
+          .then(() => {
+            if (evidenciaUrl) {
+              setTimeout(() => {
+                whatsappService.sendMediaUrl(companyId, destTelefono, evidenciaUrl, '📸 Evidencia de entrega', 'image')
+                  .catch(e => console.error('Error WA Dest Evidence:', e));
+              }, 1000);
+            }
+          })
+          .catch(e => console.error('Error WA Dest Delivered:', e));
+      }
+    }
+
+    // 2. Notificar al REMITENTE
+    const remTelefono = data.remitente?.telefono;
+    if (remTelefono) {
+      const mensajeWhatsapp = `✅ *Entrega Confirmada*\n\nHola *${data.remitente?.nombre}*,\n\nEl paquete enviado a ${data.destinatario?.nombre} (${data.codigoTracking}) ha sido entregado.\n\n👤 Recibido por: *${nombreReceptor || 'Destinatario'}*`;
+
+      whatsappService.sendMessage(companyId, remTelefono, mensajeWhatsapp)
+        .then(() => {
+          if (evidenciaUrl) {
+            setTimeout(() => {
+              whatsappService.sendMediaUrl(companyId, remTelefono, evidenciaUrl, '📸 Evidencia de entrega', 'image')
+                .catch(e => console.error('Error WA Rem Evidence:', e));
+            }, 1500);
+          }
+        })
+        .catch(e => console.error('Error WA Rem Delivered:', e));
     }
 
     res.json({
