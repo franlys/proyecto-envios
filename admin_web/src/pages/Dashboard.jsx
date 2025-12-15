@@ -79,6 +79,9 @@ const Dashboard = () => {
       if (rol === 'secretaria') {
         navigate('/secretarias');
         return;
+      } else if (rol === 'secretaria_usa') { // ✅ REDIRECT: Secretaria USA -> Call Center
+        navigate('/call-center');
+        return;
       } else if (rol === 'recolector') {
         navigate('/recolecciones');
         return;
@@ -97,7 +100,7 @@ const Dashboard = () => {
       }
 
       // Solo admin_general y super_admin ven este dashboard
-      if (rol !== 'admin_general' && rol !== 'super_admin') {
+      if (rol !== 'admin_general' && rol !== 'super_admin' && rol !== 'propietario') {
         navigate('/');
         return;
       }
@@ -109,6 +112,7 @@ const Dashboard = () => {
     const fetchStats = async () => {
       // Solo cargar stats si el usuario es admin
       if (!userData || (userData.rol !== 'admin_general' && userData.rol !== 'super_admin')) {
+        setLoading(false); // ✅ FIX: Detener carga si no es admin
         return;
       }
 
