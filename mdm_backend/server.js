@@ -36,31 +36,146 @@ app.get("/test", async (req, res) => {
 });
 
 // ===================================================
-// 🔹 CREAR EMPRESA EN ANDROID MANAGEMENT
+// 🔹 CALLBACK DE REGISTRO (Google redirige aquí)
 // ===================================================
+app.get("/callback-registro", async (req, res) => {
+  try {
+    const enterpriseToken = req.query.enterpriseToken;
+    const error = req.query.error;
+
+    // Si hubo error en el registro
+    if (error) {
+      console.error("❌ Error en el registro:", error);
+      return res.send(`
+        <html>
+          <head><title>Error en Registro</title></head>
+          <body style="font-family:Arial;padding:40px;text-align:center;">
+            <h1 style="color:red;">❌ Error en el Registro</h1>
+            <p>Hubo un problema durante el registro de la empresa:</p>
+            <pre style="background:#f5f5f5;padding:20px;border-radius:8px;">${error}</pre>
+            <p>Por favor, intenta nuevamente ejecutando el script de registro.</p>
+          </body>
+        </html>
+      `);
+    }
+
+    // Si no hay token, mostrar error
+    if (!enterpriseToken) {
+      console.error("❌ No se recibió enterpriseToken");
+      return res.send(`
+        <html>
+          <head><title>Token No Recibido</title></head>
+          <body style="font-family:Arial;padding:40px;text-align:center;">
+            <h1 style="color:orange;">⚠️ Token No Recibido</h1>
+            <p>No se recibió el token de la empresa.</p>
+            <p>Esto puede ocurrir si cancelaste el registro o si hubo un problema de conexión.</p>
+            <p>Por favor, ejecuta nuevamente el script de registro.</p>
+          </body>
+        </html>
+      `);
+    }
+
+    console.log("✅ Enterprise Token recibido:", enterpriseToken);
+    console.log("🧩 Completando registro de la empresa...");
+
+    // Crear la empresa usando el token
+    const projectId = await auth.getProjectId();
+    const response = await androidmanagement.enterprises.create({
+      projectId,
+      enterpriseToken,
+      signupUrlName: req.query.signupUrlName || undefined, // Opcional
+    });
+
+    const enterprise = response.data;
+    console.log("✅ Empresa creada exitosamente:", enterprise.name);
+    console.log("📋 Nombre:", enterprise.enterpriseDisplayName || "Sin nombre");
+
+    // Guardar información de la empresa en un archivo JSON local
+    const enterpriseInfo = {
+      name: enterprise.name,
+      displayName: enterprise.enterpriseDisplayName,
+      createdAt: new Date().toISOString(),
+      projectId: projectId,
+    };
+
+    fs.writeFileSync(
+      "./empresa-registrada.json",
+      JSON.stringify(enterpriseInfo, null, 2)
+    );
+
+    // Respuesta HTML de éxito
+    res.send(`
+      <html>
+        <head>
+          <title>Registro Exitoso</title>
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+        </head>
+        <body style="font-family:Arial;padding:40px;text-align:center;background:#f0f9ff;">
+          <div style="max-width:600px;margin:0 auto;background:white;padding:40px;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+            <h1 style="color:#10b981;">✅ Registro Completado</h1>
+            <p style="font-size:18px;color:#374151;">Tu empresa ha sido registrada exitosamente en Android Enterprise.</p>
+
+            <div style="background:#f3f4f6;padding:20px;border-radius:8px;margin:20px 0;text-align:left;">
+              <h3 style="margin-top:0;color:#1f2937;">📋 Información de la Empresa:</h3>
+              <p><strong>ID:</strong> <code style="background:#e5e7eb;padding:4px 8px;border-radius:4px;">${enterprise.name}</code></p>
+              <p><strong>Nombre:</strong> ${enterprise.enterpriseDisplayName || "No especificado"}</p>
+              <p><strong>Proyecto:</strong> ${projectId}</p>
+            </div>
+
+            <div style="background:#fef3c7;padding:16px;border-radius:8px;border-left:4px solid #f59e0b;margin:20px 0;text-align:left;">
+              <h4 style="margin:0 0 8px 0;color:#92400e;">📌 Siguiente Paso:</h4>
+              <p style="margin:0;color:#78350f;">Ahora puedes crear políticas y generar códigos QR para inscribir dispositivos.</p>
+            </div>
+
+            <p style="margin-top:30px;color:#6b7280;font-size:14px;">
+              La información se guardó en <code>empresa-registrada.json</code>
+            </p>
+          </div>
+        </body>
+      </html>
+    `);
+
+  } catch (error) {
+    console.error("❌ Error en callback de registro:", error);
+    const googleError = error.response?.data?.error?.message || error.message;
+
+    res.send(`
+      <html>
+        <head><title>Error al Crear Empresa</title></head>
+        <body style="font-family:Arial;padding:40px;text-align:center;">
+          <h1 style="color:red;">❌ Error al Crear Empresa</h1>
+          <p>Hubo un problema al crear la empresa en Android Management:</p>
+          <pre style="background:#f5f5f5;padding:20px;border-radius:8px;text-align:left;overflow:auto;">${googleError}</pre>
+          <p>Por favor, contacta al soporte técnico.</p>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// ===================================================
+// 🔹 CREAR EMPRESA MANUALMENTE (con Enterprise Token)
+// ===================================================
+// Este endpoint es para crear la empresa manualmente si
+// ya tienes un enterpriseToken de otra fuente
 app.post("/crear-empresa", async (req, res) => {
   try {
-    const { nombreEmpresa, emailContacto } = req.body;
+    const { enterpriseToken } = req.body;
 
-    if (!nombreEmpresa || !emailContacto) {
+    if (!enterpriseToken) {
       return res.status(400).json({
         success: false,
-        message: "Debe proporcionar nombreEmpresa y emailContacto.",
+        message: "Debe proporcionar enterpriseToken obtenido del registro.",
+        info: "Ejecuta 'node generar-url-registro.js' para obtener el token."
       });
     }
 
     const projectId = await auth.getProjectId();
-    console.log("🧩 Creando empresa para:", nombreEmpresa);
+    console.log("🧩 Creando empresa con token...");
 
     const response = await androidmanagement.enterprises.create({
       projectId,
-      agreementAccepted: true, // Campo en el nivel correcto
-      requestBody: {
-        enterpriseDisplayName: nombreEmpresa,
-        contactInfo: { 
-          contactEmail: emailContacto 
-        },
-      },
+      enterpriseToken,
     });
 
     console.log("✅ Empresa creada:", response.data.name);
