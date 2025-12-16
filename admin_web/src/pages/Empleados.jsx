@@ -25,6 +25,8 @@ export default function Empleados() {
     emailPersonal: '',
     password: '',
     telefono: '',
+    whatsappPersonal: '',
+    whatsappFlota: '',
     rol: '',
     companyId: '', // Added for super_admin to select company
     activo: true,
@@ -207,6 +209,8 @@ export default function Empleados() {
           emailPersonal: '',
           password: '',
           telefono: '',
+          whatsappPersonal: '',
+          whatsappFlota: '',
           rol: '',
           companyId: '', // Reset companyId
           activo: true,
@@ -526,6 +530,8 @@ export default function Empleados() {
                               emailPersonal: empleado.emailPersonal || '', // Ojo: si no viene del backend podría faltar, pero auth/register lo pide
                               password: '', // Password no se edita aquí
                               telefono: empleado.telefono || '',
+                              whatsappPersonal: empleado.whatsappPersonal || '',
+                              whatsappFlota: empleado.whatsappFlota || '',
                               rol: empleado.rol,
                               companyId: empleado.companyId,
                               activo: empleado.activo,
@@ -677,6 +683,42 @@ export default function Empleados() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
+              </div>
+
+              {/* WhatsApp Personal */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  WhatsApp Personal <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="whatsappPersonal"
+                  value={nuevoEmpleado.whatsappPersonal}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  required
+                  placeholder="+1 809-123-4567"
+                />
+                <p className="text-xs text-slate-500 mt-1">Número personal del empleado</p>
+              </div>
+
+              {/* WhatsApp de la Flota */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  WhatsApp de la Flota <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="whatsappFlota"
+                  value={nuevoEmpleado.whatsappFlota}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  required
+                  placeholder="+1 809-987-6543"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  📱 Número de la flota asignada al empleado (usado para notificaciones del sistema)
+                </p>
               </div>
 
               {/* ========================================================= */}

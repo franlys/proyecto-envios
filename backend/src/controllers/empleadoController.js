@@ -8,7 +8,7 @@ export const empleadoController = {
     try {
       console.log('🔍 Datos recibidos para crear empleado:', req.body);
 
-      const { email, password, nombre, telefono, rol, companyId, emailPersonal } = req.body;
+      const { email, password, nombre, telefono, rol, companyId, emailPersonal, whatsappPersonal, whatsappFlota, cedula, banco, cuentaBanco } = req.body;
 
       // Validaciones
       if (!email || !password || !nombre) {
@@ -23,6 +23,21 @@ export const empleadoController = {
         return res.status(400).json({
           success: false,
           error: 'El email personal es obligatorio para recuperación de contraseña'
+        });
+      }
+
+      // Validar WhatsApp obligatorios
+      if (!whatsappPersonal || !whatsappPersonal.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'El WhatsApp personal es obligatorio'
+        });
+      }
+
+      if (!whatsappFlota || !whatsappFlota.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'El WhatsApp de la flota es obligatorio para notificaciones del sistema'
         });
       }
 
@@ -101,9 +116,15 @@ export const empleadoController = {
         emailPersonal: emailPersonal.trim(),
         nombre,
         telefono: telefono || '',
+        whatsappPersonal: whatsappPersonal.trim(),
+        whatsappFlota: whatsappFlota.trim(),
         rol: rol || 'repartidor',
         companyId: assignedCompanyId,
         activo: true,
+        // Campos de nómina (opcionales)
+        cedula: cedula || '',
+        banco: banco || 'BHD',
+        cuentaBanco: cuentaBanco || '',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         createdBy: req.userData.uid,
         createdByName: userData.nombre || userData.email
@@ -122,9 +143,14 @@ export const empleadoController = {
           emailPersonal: emailPersonal.trim(),
           nombre,
           telefono: telefono || '',
+          whatsappPersonal: whatsappPersonal.trim(),
+          whatsappFlota: whatsappFlota.trim(),
           rol: rol || 'repartidor',
           companyId: assignedCompanyId,
-          activo: true
+          activo: true,
+          cedula: cedula || '',
+          banco: banco || 'BHD',
+          cuentaBanco: cuentaBanco || ''
         }
       });
 
@@ -286,7 +312,7 @@ export const empleadoController = {
   async updateEmpleado(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, telefono, rol, activo, cedula, banco, cuentaBanco } = req.body;
+      const { nombre, telefono, rol, activo, cedula, banco, cuentaBanco, whatsappPersonal, whatsappFlota } = req.body;
 
       console.log('🔄 Actualizando empleado:', id);
 
@@ -315,6 +341,8 @@ export const empleadoController = {
 
       if (nombre) updateData.nombre = nombre;
       if (telefono !== undefined) updateData.telefono = telefono;
+      if (whatsappPersonal !== undefined) updateData.whatsappPersonal = whatsappPersonal;
+      if (whatsappFlota !== undefined) updateData.whatsappFlota = whatsappFlota;
       if (rol) {
         // ✅ AÑADIDO 'cargador' y propietario
         const validRoles = (userData.rol === 'super_admin' || userData.rol === 'propietario')
@@ -331,7 +359,7 @@ export const empleadoController = {
       }
       if (activo !== undefined) updateData.activo = activo;
 
-      // ✅ CAMBIOS DE NOMINA
+      // ✅ CAMBIOS DE NOMINA Y WHATSAPP
       if (cedula !== undefined) updateData.cedula = cedula;
       if (banco !== undefined) updateData.banco = banco;
       if (cuentaBanco !== undefined) updateData.cuentaBanco = cuentaBanco;
