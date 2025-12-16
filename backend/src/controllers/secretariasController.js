@@ -14,6 +14,7 @@
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
+import whatsappService from '../services/whatsappService.js';
 
 // ========================================
 // OBTENER CONTENEDORES RECIBIDOS
@@ -334,8 +335,18 @@ export const confirmarFactura = async (req, res) => {
       const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'confirmada_secretaria', data.codigoTracking);
 
       sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
-        .then(() => console.log(`Notificacion enviada al remitente: ${remitenteEmail} - Confirmada`))
+        .then(() => console.log(`📧 Notificacion EMAIL enviada al remitente: ${remitenteEmail} - Confirmada`))
         .catch(err => console.error(`Error enviando notificacion:`, err.message));
+    }
+
+    // 📲 Enviar notificacion WhatsApp al remitente
+    const remitenteTelefono = data.remitente?.telefono;
+    if (remitenteTelefono) {
+      const mensajeWhatsapp = `✅ *Información Confirmada*\n\nHola *${data.remitente?.nombre}*,\n\nTe informamos que la información de tu envío *${data.codigoTracking}* ha sido revisada y confirmada.\n\n📦 Destinatario: ${data.destinatario?.nombre}\n📍 Dirección: ${data.destinatario?.direccion}\n🏘️ Sector: ${data.destinatario?.sector || 'N/A'}${data.destinatario?.telefono ? `\n📞 Teléfono: ${data.destinatario.telefono}` : ''}${notasSecretaria ? `\n\n📝 Notas: ${notasSecretaria}` : ''}\n\nTu paquete está listo para ser asignado a una ruta de entrega. Te notificaremos cuando sea cargado.\n\nGracias por confiar en nosotros.`;
+
+      whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+        .then(() => console.log(`📲 Notificacion WHATSAPP enviada al remitente: ${remitenteTelefono}`))
+        .catch(e => console.error('❌ Error WA Remitente Confirmacion:', e));
     }
 
     res.json({
@@ -441,19 +452,44 @@ export const editarFactura = async (req, res) => {
 
     // Actualizar pago si se proporcionó
     if (pago) {
-      if (pago.estado) {
-        updateData['pago.estado'] = pago.estado;
+      const montoTotal = data.facturacion?.total || 0;
+      let montoPagado = data.pago?.montoPagado || 0;
+
+      // Si se actualiza el monto pagado
+      if (pago.montoPagado !== undefined) {
+        montoPagado = parseFloat(pago.montoPagado);
+        updateData['pago.montoPagado'] = montoPagado;
+        const montoPendiente = montoTotal - montoPagado;
+        updateData['pago.montoPendiente'] = montoPendiente;
+        cambios.push('monto pagado');
+
+        // ✅ CORRECCIÓN: Calcular estado automáticamente basado en saldo
+        if (montoPendiente <= 0) {
+          updateData['pago.estado'] = 'pagada';
+        } else if (montoPagado > 0) {
+          updateData['pago.estado'] = 'parcial';
+        } else {
+          updateData['pago.estado'] = 'pendiente';
+        }
+        cambios.push('estado de pago (recalculado)');
+      }
+      // Si se actualiza solo el estado manualmente (sin cambiar monto)
+      else if (pago.estado) {
+        // ⚠️ Validar que el estado sea consistente con el saldo actual
+        const montoPendiente = data.pago?.montoPendiente || (montoTotal - montoPagado);
+
+        if (montoPendiente <= 0 && pago.estado !== 'pagada') {
+          console.warn(`⚠️ Estado inconsistente: saldo es 0 pero se intenta marcar como ${pago.estado}. Forzando a 'pagada'`);
+          updateData['pago.estado'] = 'pagada';
+        } else {
+          updateData['pago.estado'] = pago.estado;
+        }
         cambios.push('estado de pago');
       }
+
       if (pago.metodoPago) {
         updateData['pago.metodoPago'] = pago.metodoPago;
         cambios.push('método de pago');
-      }
-      if (pago.montoPagado !== undefined) {
-        updateData['pago.montoPagado'] = parseFloat(pago.montoPagado);
-        const montoTotal = data.facturacion?.total || 0;
-        updateData['pago.montoPendiente'] = montoTotal - parseFloat(pago.montoPagado);
-        cambios.push('monto pagado');
       }
       if (pago.referenciaPago) {
         updateData['pago.referenciaPago'] = pago.referenciaPago;

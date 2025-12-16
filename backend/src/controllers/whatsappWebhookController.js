@@ -143,13 +143,48 @@ export const handleWebhook = async (req, res) => {
                     }
                 }
 
-                // 2. Normalización de Intención (Fuzzy Matching Básico)
+                // 2. Normalización de Intención (IA Conversacional Avanzada)
                 let intent = 'unknown';
-                if (cleanText.match(/agendar|ajendar|nuevo|envio|recojer|mandar|paquete/i)) intent = 'agendar';
-                else if (cleanText.match(/estatus|donde|rastreo|rastrear|guia|ubicacion/i)) intent = 'rastreo';
-                else if (cleanText.match(/soporte|ayuda|humano|persona|hablar|error|problema/i)) intent = 'soporte';
-                else if (cleanText.match(/hola|buenos|menu|inicio|opciones/i)) intent = 'menu';
-                else if (cleanText.match(/precio|costo|cotizar|cuanto/i)) intent = 'cotizar';
+
+                // ✅ AGENDAR / SOLICITAR RECOLECCIÓN - Variaciones amplias
+                if (cleanText.match(/agendar|ajendar|agendrr|ajend|nuevo\s*envio|nueva\s*recoleccion|envio|emvio|enbio|recojer|recoje|recoja|recolectar|recoleccion|mandar|enviar|paquete|bulto|caja|sobre|courier|pickup|solicitar|solicito|quiero\s*(enviar|mandar)|como\s*(envio|mando)|necesito\s*(enviar|mandar)|programar|coordinar|como\s*hago|hacer\s*envio|crear\s*envio|pedido\s*nuevo/i)) {
+                    intent = 'agendar';
+                }
+
+                // ✅ RASTREO / TRACKING - Variaciones amplias
+                else if (cleanText.match(/estatus|status|estado|donde\s*esta|donde\s*anda|donde\s*va|donde\s*se\s*encuentra|rastreo|rastrear|rastrea|ubicacion|ubicar|track|seguir|seguimiento|consulta|consultar|ver\s*(mi\s*)?paquete|como\s*va|guia|numero\s*de\s*guia|codigo|ver\s*(el\s*)?estado|en\s*que\s*(estado|parte)|localizar|buscar\s*mi|informacion\s*de\s*(mi\s*)?envio/i)) {
+                    intent = 'rastreo';
+                }
+
+                // ✅ SOPORTE / AYUDA - Variaciones amplias
+                else if (cleanText.match(/soporte|suporte|ayuda|ayudar|ayudame|help|auxilio|asistencia|humano|persona|agente|representante|hablar\s*con|quiero\s*hablar|comunicar|contactar|problema|error|fallo|issue|queja|reclamo|devolucion|no\s*llego|perdido|dañado|incompleto|mal\s*estado|no\s*(me\s*)?funciona|no\s*aparece|no\s*puedo/i)) {
+                    intent = 'soporte';
+                }
+
+                // ✅ MENÚ / INICIO - Variaciones amplias
+                else if (cleanText.match(/hola|ola|buenos|buenas|buen\s*dia|menu|menú|opciones|inicio|start|comenzar|empezar|que\s*puedes|que\s*haces|como\s*funciona|info|informacion|servicios/i)) {
+                    intent = 'menu';
+                }
+
+                // ✅ COTIZACIÓN / PRECIOS - Variaciones amplias
+                else if (cleanText.match(/precio|precios|tarifa|tarifas|costo|costos|cuanto\s*cuesta|cuanto\s*vale|cuanto\s*sale|cuanto\s*es|cuanto\s*cobran|cotizar|cotizacion|cotización|presupuesto|estimado|valor|rate|fees|cuanto\s*me\s*cobran|cuanto\s*pagaria|barato|economico/i)) {
+                    intent = 'cotizar';
+                }
+
+                // ✅ HORARIOS - Nueva intención
+                else if (cleanText.match(/horario|horarios|hora|horas|cuando\s*abren|cuando\s*cierran|abren|cierran|disponible|abierto|cerrado|atencion|atención|trabajan|que\s*dia|dias\s*de\s*(atencion|trabajo)|sabado|domingo|festivo/i)) {
+                    intent = 'horarios';
+                }
+
+                // ✅ UBICACIÓN / DIRECCIÓN - Nueva intención
+                else if (cleanText.match(/direccion|dirección|ubicacion|ubicación|donde\s*estan|donde\s*quedan|como\s*llego|sucursal|oficina|almacen|bodega|warehouse|address|location|maps|mapa/i)) {
+                    intent = 'ubicacion';
+                }
+
+                // ✅ GRACIAS / DESPEDIDA - Nueva intención (cortesía)
+                else if (cleanText.match(/gracias|muchas\s*gracias|te\s*agradezco|thank|adios|chao|bye|hasta\s*luego|nos\s*vemos|perfecto|excelente|ok|vale|entendido|listo/i)) {
+                    intent = 'gracias';
+                }
 
                 // 3. Ejecutar Acción Según Intención
                 if (intent === 'agendar') {
@@ -181,17 +216,69 @@ export const handleWebhook = async (req, res) => {
                     }
 
                 } else if (intent === 'cotizar') {
+                    const linkCotizar = `${FRONTEND_URL}/agendar/${companyId}`;
                     await whatsappService.sendMessage(companyId, remoteJid,
-                        `💲 *Cotizaciones*\n\nPronto podrás cotizar aquí. Por el momento, usa la opción de *Agendar* para ver estimados.`);
+                        `💲 *Cotizaciones*\n\nHola ${pushName}, para obtener una cotización personalizada, agenda tu recolección aquí:\n\n👉 ${linkCotizar}\n\nNuestro equipo te contactará con el precio exacto según peso, destino y dimensiones.`);
+
+                } else if (intent === 'horarios') {
+                    // Obtener horarios de la compañía si están configurados
+                    let horarioMsg = `🕐 *Horarios de Atención*\n\n`;
+                    try {
+                        const companyDoc = await db.collection('companies').doc(companyId).get();
+                        if (companyDoc.exists) {
+                            const companyData = companyDoc.data();
+                            if (companyData.horarios) {
+                                horarioMsg += companyData.horarios;
+                            } else {
+                                horarioMsg += `📅 *Lunes a Viernes:* 9:00 AM - 6:00 PM\n📅 *Sábados:* 9:00 AM - 1:00 PM\n📅 *Domingos:* Cerrado\n\n💡 Para recolecciones urgentes, contáctanos directamente.`;
+                            }
+                        }
+                    } catch (e) {
+                        horarioMsg += `📅 *Lunes a Viernes:* 9:00 AM - 6:00 PM\n📅 *Sábados:* 9:00 AM - 1:00 PM\n\n💡 Contáctanos para horarios especiales.`;
+                    }
+                    await whatsappService.sendMessage(companyId, remoteJid, horarioMsg);
+
+                } else if (intent === 'ubicacion') {
+                    // Obtener ubicación de la compañía
+                    let ubicacionMsg = `📍 *Nuestra Ubicación*\n\n`;
+                    try {
+                        const companyDoc = await db.collection('companies').doc(companyId).get();
+                        if (companyDoc.exists) {
+                            const companyData = companyDoc.data();
+                            if (companyData.direccion) {
+                                ubicacionMsg += `${companyData.direccion}\n\n`;
+                            }
+                            if (companyData.googleMapsLink) {
+                                ubicacionMsg += `🗺️ Ver en Google Maps:\n${companyData.googleMapsLink}\n\n`;
+                            }
+                            ubicacionMsg += `📞 ¿Necesitas indicaciones? Escribe *Soporte* para hablar con nuestro equipo.`;
+                        } else {
+                            ubicacionMsg += `📞 Escribe *Soporte* para obtener nuestra dirección y coordinar tu visita.`;
+                        }
+                    } catch (e) {
+                        ubicacionMsg += `📞 Escribe *Soporte* para obtener nuestra dirección.`;
+                    }
+                    await whatsappService.sendMessage(companyId, remoteJid, ubicacionMsg);
+
+                } else if (intent === 'gracias') {
+                    const respuestas = [
+                        `¡De nada ${pushName}! 😊 Estoy aquí cuando me necesites.`,
+                        `¡Un placer ayudarte! 🙌 Escribe *Menú* si necesitas algo más.`,
+                        `¡Para servirte! 💙 Que tengas un excelente día.`,
+                        `¡Siempre a la orden! ✨ No dudes en escribir si necesitas ayuda.`
+                    ];
+                    const respuesta = respuestas[Math.floor(Math.random() * respuestas.length)];
+                    await whatsappService.sendMessage(companyId, remoteJid, respuesta);
 
                 } else if (intent === 'menu') {
-                    const link = `${FRONTEND_URL}/agendar/${companyId}`;
-                    const menu = `👋 *¡Hola ${pushName}!*\n\nSoy tu asistente virtual. Escribe una opción o lo que necesitas:\n\n📦 *Nuevo Envío* (Escribe "Agendar")\n🚚 *Rastrear* (Escribe tu código RC-...)\n👨‍💻 *Soporte* (Escribe "Ayuda")\n\n¿En qué te ayudo?`;
+                    const linkMenu = `${FRONTEND_URL}/agendar/${companyId}`;
+                    const menu = `👋 *¡Hola ${pushName}!*\n\nSoy tu asistente virtual 24/7. Puedo ayudarte con:\n\n📦 *Agendar Recolección*\n   Escribe: "nuevo envío", "agendar", "solicitar pickup"\n\n🔍 *Rastrear Envío*\n   Envía tu código: EMI-0001\n   O escribe: "dónde está mi paquete", "rastrear"\n\n💲 *Cotizar*\n   Escribe: "precio", "cuánto cuesta", "tarifa"\n\n👨‍💻 *Soporte Humano*\n   Escribe: "ayuda", "hablar con agente", "problema"\n\n🕐 *Horarios*\n   Escribe: "horario", "cuándo abren"\n\n📍 *Ubicación*\n   Escribe: "dirección", "dónde están"\n\n🚀 *Enlace Directo:*\n${linkMenu}\n\n¿En qué te ayudo hoy?`;
 
                     await whatsappService.sendMessage(companyId, remoteJid, menu);
                 } else {
-                    // Respuesta default para mensajes no entendidos (opcional, para no ser spammy a veces se omite)
-                    // await whatsappService.sendMessage(companyId, remoteJid, `🤷‍♂️ No entendí eso. Escribe *Menú* para ver opciones.`);
+                    // Respuesta inteligente para mensajes no entendidos
+                    await whatsappService.sendMessage(companyId, remoteJid,
+                        `🤔 No estoy seguro de entender. Pero puedo ayudarte con:\n\n📦 Agendar envíos\n🔍 Rastrear paquetes (envía tu código EMI-XXXX)\n💲 Cotizaciones\n👨‍💻 Soporte\n\nEscribe *Menú* para ver todas las opciones.`);
                 }
             }
         }

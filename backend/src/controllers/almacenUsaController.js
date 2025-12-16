@@ -297,8 +297,18 @@ export const agregarFactura = async (req, res) => {
       const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'en_contenedor_usa', facturaData.codigoTracking);
 
       sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
-        .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Factura agregada a contenedor`))
+        .then(() => console.log(`📧 Notificación EMAIL enviada a ${remitenteEmail} - Factura agregada a contenedor`))
         .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
+    }
+
+    // 📲 Enviar notificación WhatsApp al remitente
+    const remitenteTelefono = facturaData.remitente?.telefono;
+    if (remitenteTelefono) {
+      const mensajeWhatsapp = `📦 *En Contenedor - Almacén USA*\n\nHola *${facturaData.remitente?.nombre}*,\n\nTu paquete *${facturaData.codigoTracking}* ha sido colocado en el contenedor y pronto será enviado a República Dominicana.\n\n📦 Contenedor: ${result.contenedorId}\n👤 Destinatario: ${facturaData.destinatario?.nombre}\n📍 Dirección: ${facturaData.destinatario?.direccion}\n\nTe notificaremos cuando el contenedor salga en tránsito.\n\nGracias por confiar en nosotros.`;
+
+      whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+        .then(() => console.log(`📲 Notificación WHATSAPP enviada al remitente: ${remitenteTelefono}`))
+        .catch(e => console.error('❌ Error WA Remitente EnContenedor:', e));
     }
 
     res.json({
@@ -678,13 +688,22 @@ export const cerrarContenedor = async (req, res) => {
               .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
           }
 
-          // 🟢 NOTIFICACIÓN WHATSAPP (En Tránsito)
+          // 🟢 NOTIFICACIÓN WHATSAPP AL REMITENTE (En Tránsito)
           const remitenteTelefono = facturaData.remitente?.telefono;
           if (remitenteTelefono) {
             const mensajeWhatsapp = `🚢 *En Tránsito a RD*: ${facturaData.codigoTracking}\n\nHola *${facturaData.remitente?.nombre}*,\n\nTu paquete está en camino hacia República Dominicana.\n\n📦 *Contenedor:* ${contenedor.numeroContenedor}\n\nTe avisaremos cuando llegue. Gracias por elegirnos.`;
 
             whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
-              .catch(e => console.error('Error enviando WA En Transito:', e));
+              .catch(e => console.error('Error enviando WA Remitente En Transito:', e));
+          }
+
+          // 📲 NOTIFICACIÓN WHATSAPP AL DESTINATARIO (En Tránsito) - NUEVO
+          const destinatarioTelefono = facturaData.destinatario?.telefono;
+          if (destinatarioTelefono) {
+            const mensajeWhatsapp = `🚢 *Tu paquete viene en camino*: ${facturaData.codigoTracking}\n\nHola *${facturaData.destinatario?.nombre}*,\n\nEl paquete que te envió *${facturaData.remitente?.nombre}* está en tránsito hacia República Dominicana.\n\n📦 *Contenedor:* ${contenedor.numeroContenedor}\n\nTe notificaremos cuando llegue a nuestro almacén. ¡Pronto lo tendrás!`;
+
+            whatsappService.sendMessage(companyId, destinatarioTelefono, mensajeWhatsapp)
+              .catch(e => console.error('Error enviando WA Destinatario En Transito:', e));
           }
         } catch (error) {
           console.error(`❌ Error enviando notificación para factura ${factura.id}:`, error.message);

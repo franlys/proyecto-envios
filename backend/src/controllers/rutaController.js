@@ -610,11 +610,46 @@ export const getCargadoresDisponibles = async (req, res) => {
 // Auxiliares
 export const cerrarRuta = async (req, res) => {
   try {
-    await db.collection('rutas').doc(req.params.id).update({
-      estado: 'completada', fechaCierre: new Date().toISOString()
+    const rutaId = req.params.id;
+    const rutaRef = db.collection('rutas').doc(rutaId);
+    const rutaDoc = await rutaRef.get();
+
+    if (!rutaDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+    }
+
+    const rutaData = rutaDoc.data();
+    const facturasEnRuta = Array.isArray(rutaData.facturas) ? rutaData.facturas : [];
+
+    // ✅ VALIDACIÓN: Verificar que todas las facturas estén entregadas
+    let facturasNoEntregadas = 0;
+    for (const facturaRuta of facturasEnRuta) {
+      if (facturaRuta && facturaRuta.estado !== 'entregada') {
+        facturasNoEntregadas++;
+      }
+    }
+
+    // ❌ Si hay facturas sin entregar, rechazar el cierre automático
+    if (facturasNoEntregadas > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `No se puede cerrar la ruta. Hay ${facturasNoEntregadas} factura(s) sin entregar. Use el endpoint /finalizar para cerrar con facturas pendientes.`,
+        facturasNoEntregadas
+      });
+    }
+
+    // ✅ Si todas están entregadas, proceder al cierre
+    await rutaRef.update({
+      estado: 'completada',
+      fechaCierre: new Date().toISOString(),
+      facturasNoEntregadas: 0
     });
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+
+    res.json({ success: true, message: 'Ruta cerrada exitosamente' });
+  } catch (e) {
+    console.error('❌ Error cerrando ruta:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
 };
 export const updateEntrega = async (req, res) => res.json({ msg: 'ok' });
 // export const finalizarRuta ya está implementada arriba

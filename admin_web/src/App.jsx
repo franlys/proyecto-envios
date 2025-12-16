@@ -40,6 +40,7 @@ import ResetPassword from './pages/ResetPassword';
 import FinanzasDashboard from './pages/Finanzas/Dashboard';
 import DespachoUSA from './pages/DespachoUSA'; // 🆕 Call Center USA
 import PoolRecolecciones from './pages/PoolRecolecciones'; // 🆕 Bolsa de Cargas
+import GestionSolicitudes from './pages/GestionSolicitudes'; // 🆕 Gestión de Solicitudes (Secretaria)
 import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
 
 // ✅ Sistema de roles y permisos
@@ -212,6 +213,7 @@ function AppContent() {
             {/* ✅ CORRECCIÓN: Agregar ruta de detalle con parámetro */}
             <Route path="/rutas/:id" element={<DetalleRuta />} />
             <Route path="/secretarias" element={<PanelSecretarias />} />
+            <Route path="/solicitudes" element={<GestionSolicitudes />} /> {/* 🆕 Gestión de Solicitudes */}
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/facturas-pendientes-pago" element={<FacturasPendientesPago />} />
             <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}

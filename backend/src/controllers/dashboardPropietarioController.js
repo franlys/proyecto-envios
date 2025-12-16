@@ -48,6 +48,11 @@ export const getDashboardPropietario = async (req, res) => {
     const recoleccionesMetrics = await getRecoleccionesMetrics(companyId);
 
     // ====================================
+    // 📅 MÉTRICAS DE SOLICITUDES
+    // ====================================
+    const solicitudesMetrics = await getSolicitudesMetrics(companyId);
+
+    // ====================================
     // 💰 MÉTRICAS FINANCIERAS
     // ====================================
     const financialMetrics = await getFinancialMetrics(companyId);
@@ -63,6 +68,7 @@ export const getDashboardPropietario = async (req, res) => {
         facturas: facturasMetrics,
         noEntregadas: noEntregadasMetrics,
         recolecciones: recoleccionesMetrics,
+        solicitudes: solicitudesMetrics,
         finanzas: financialMetrics
       }
     });
@@ -467,6 +473,98 @@ async function getRecoleccionesMetrics(companyId) {
 
 // ====================================
 // 💰 FINANZAS - Resumen
+// ====================================
+// ====================================
+// 📅 SOLICITUDES - Métricas
+// ====================================
+async function getSolicitudesMetrics(companyId) {
+  try {
+    const solicitudesSnap = await db.collection('solicitudes_recoleccion')
+      .where('companyId', '==', companyId)
+      .get();
+
+    let pendientes = 0;
+    let asignadas = 0;
+    let completadas = 0;
+    let canceladas = 0;
+
+    // Métricas adicionales
+    let asignadasManual = 0;
+    let asignadasAuto = 0;
+    let solicitudesHoy = 0;
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    solicitudesSnap.forEach(doc => {
+      const data = doc.data();
+
+      // Contar por estado
+      switch (data.estado) {
+        case 'pendiente':
+          pendientes++;
+          break;
+        case 'asignada':
+          asignadas++;
+          if (data.tipoAsignacion === 'manual') asignadasManual++;
+          if (data.tipoAsignacion === 'auto') asignadasAuto++;
+          break;
+        case 'completada':
+          completadas++;
+          break;
+        case 'cancelada':
+          canceladas++;
+          break;
+      }
+
+      // Contar solicitudes creadas hoy
+      if (data.createdAt) {
+        const fechaCreacion = typeof data.createdAt === 'string'
+          ? new Date(data.createdAt)
+          : data.createdAt.toDate ? data.createdAt.toDate() : null;
+
+        if (fechaCreacion && fechaCreacion >= hoy) {
+          solicitudesHoy++;
+        }
+      }
+    });
+
+    const total = solicitudesSnap.size;
+    const porcentajePendientes = total > 0 ? ((pendientes / total) * 100).toFixed(1) : 0;
+    const porcentajeCompletadas = total > 0 ? ((completadas / total) * 100).toFixed(1) : 0;
+
+    return {
+      total,
+      pendientes,
+      asignadas,
+      completadas,
+      canceladas,
+      solicitudesHoy,
+      asignacionManual: asignadasManual,
+      asignacionAuto: asignadasAuto,
+      porcentajePendientes: parseFloat(porcentajePendientes),
+      porcentajeCompletadas: parseFloat(porcentajeCompletadas)
+    };
+
+  } catch (error) {
+    console.error('❌ Error calculando métricas de solicitudes:', error);
+    return {
+      total: 0,
+      pendientes: 0,
+      asignadas: 0,
+      completadas: 0,
+      canceladas: 0,
+      solicitudesHoy: 0,
+      asignacionManual: 0,
+      asignacionAuto: 0,
+      porcentajePendientes: 0,
+      porcentajeCompletadas: 0
+    };
+  }
+}
+
+// ====================================
+// 💰 FINANZAS - Métricas
 // ====================================
 async function getFinancialMetrics(companyId) {
   try {

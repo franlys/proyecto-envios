@@ -14,7 +14,9 @@ import {
   DollarSign,
   BarChart3,
   Clock,
-  ShoppingCart
+  ShoppingCart,
+  Calendar,
+  Phone
 } from 'lucide-react';
 
 // Componente para animar números
@@ -120,6 +122,16 @@ const DashboardPropietario = () => {
           recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0,
           recoleccionesCompletadas: dashboardData.recolecciones?.hoy?.completadas || 0,
           recoleccionesPendientes: dashboardData.recolecciones?.hoy?.pendientes || 0,
+
+          // Solicitudes
+          solicitudesTotal: dashboardData.solicitudes?.total || 0,
+          solicitudesPendientes: dashboardData.solicitudes?.pendientes || 0,
+          solicitudesAsignadas: dashboardData.solicitudes?.asignadas || 0,
+          solicitudesCompletadas: dashboardData.solicitudes?.completadas || 0,
+          solicitudesHoy: dashboardData.solicitudes?.solicitudesHoy || 0,
+          solicitudesAsignacionManual: dashboardData.solicitudes?.asignacionManual || 0,
+          solicitudesAsignacionAuto: dashboardData.solicitudes?.asignacionAuto || 0,
+          porcentajeSolicitudesCompletadas: dashboardData.solicitudes?.porcentajeCompletadas || 0,
 
           // Finanzas
           cobrosFinanzas: dashboardData.finanzas?.mes?.cobros || 0,
@@ -335,12 +347,112 @@ const DashboardPropietario = () => {
         </div>
       </motion.div>
 
+      {/* 📅 Solicitudes - Métricas */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="mb-8"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
+          <Calendar className="w-6 h-6 mr-2 text-indigo-600" />
+          Solicitudes de Recolección
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <MetricCard
+            title="Total Solicitudes"
+            value={stats.solicitudesTotal}
+            total={stats.solicitudesTotal}
+            icon={ShoppingCart}
+            gradient="from-indigo-500 to-purple-500"
+            delay={0.1}
+            onClick={() => navigate('/solicitudes')}
+          />
+          <MetricCard
+            title="Pendientes"
+            value={stats.solicitudesPendientes}
+            total={stats.solicitudesTotal}
+            icon={Clock}
+            gradient="from-amber-500 to-orange-500"
+            delay={0.2}
+            onClick={() => navigate('/solicitudes')}
+          />
+          <MetricCard
+            title="Asignadas"
+            value={stats.solicitudesAsignadas}
+            total={stats.solicitudesTotal}
+            icon={Truck}
+            gradient="from-blue-500 to-cyan-500"
+            delay={0.3}
+          />
+          <MetricCard
+            title="Completadas"
+            value={stats.solicitudesCompletadas}
+            total={stats.solicitudesTotal}
+            icon={CheckCircle2}
+            gradient="from-emerald-500 to-teal-500"
+            delay={0.4}
+          />
+          <MetricCard
+            title="Hoy"
+            value={stats.solicitudesHoy}
+            total={stats.solicitudesTotal}
+            icon={Activity}
+            gradient="from-purple-500 to-pink-500"
+            delay={0.5}
+          />
+        </div>
+
+        {/* Sub-métricas de Asignación */}
+        {(stats.solicitudesAsignacionManual > 0 || stats.solicitudesAsignacionAuto > 0) && (
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Asignación Manual (Secretaria)</p>
+                  <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">
+                    {stats.solicitudesAsignacionManual}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-indigo-200 dark:bg-indigo-800 rounded-full flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-4 border border-emerald-100 dark:border-emerald-800"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Auto-Asignación (Recolector)</p>
+                  <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">
+                    {stats.solicitudesAsignacionAuto}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-200 dark:bg-emerald-800 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-300" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </motion.div>
+
       {/* ⚠️ No Entregadas - Análisis */}
       {stats.totalNoEntregadas > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
           className="mb-8"
         >
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">

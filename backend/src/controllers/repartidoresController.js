@@ -930,11 +930,11 @@ export const entregarFactura = async (req, res) => {
     let destinatarioEmail = data.destinatario?.email;
     let remitenteEmail = data.remitente?.email;
     let fotosParaEmail = [];
+    const companyId = data.companyId; // ✅ MOVIDO FUERA DEL TRY-CATCH
 
     try {
       // Obtener configuración de la compañía
       let companyConfig = null;
-      const companyId = data.companyId;
       if (companyId) {
         try {
           const companyDoc = await db.collection('companies').doc(companyId).get();
@@ -1128,6 +1128,22 @@ export const reportarNoEntrega = async (req, res) => {
     console.log(`🚫 Reportando NO entrega para factura ${facturaId}`);
 
     const facturaRef = db.collection('recolecciones').doc(facturaId);
+    const doc = await facturaRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Factura no encontrada'
+      });
+    }
+
+    const data = doc.data();
+    const companyId = data.companyId;
+
+    // Obtener nombre del repartidor
+    const userDoc = await db.collection('usuarios').doc(repartidorId).get();
+    const nombreRepartidor = userDoc.data()?.nombre || 'Repartidor';
+
     await facturaRef.update({
       estado: 'no_entregada',
       estadoGeneral: 'no_entregada',
@@ -1135,13 +1151,122 @@ export const reportarNoEntrega = async (req, res) => {
       descripcionNoEntrega: descripcion,
       fotosNoEntrega: fotos || [],
       intentarNuevamente: intentarNuevamente || false,
+      reportadoPor: repartidorId,
+      nombreReportador: nombreRepartidor,
       fechaNoEntrega: new Date().toISOString(),
       fechaActualizacion: new Date().toISOString()
     });
 
+    // ✅ ENVIAR NOTIFICACIONES EMAIL + WHATSAPP
+
+    // Obtener configuración de la compañía
+    let companyConfig = null;
+    try {
+      const companyDoc = await db.collection('companies').doc(companyId).get();
+      if (companyDoc.exists) {
+        companyConfig = companyDoc.data();
+      }
+    } catch (error) {
+      console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
+    }
+
+    const motivosLegibles = {
+      'destinatario_ausente': 'Destinatario ausente',
+      'direccion_incorrecta': 'Dirección incorrecta',
+      'negativa_recibir': 'Negativa a recibir',
+      'otro': 'Otro motivo'
+    };
+    const motivoLegible = motivosLegibles[motivo] || motivo;
+
+    // 📧 EMAIL AL DESTINATARIO
+    const destinatarioEmail = data.destinatario?.email;
+    if (destinatarioEmail) {
+      const subject = `⚠️ No se pudo entregar tu paquete - ${data.codigoTracking}`;
+      const contentHTML = `
+        <h2 style="color: #f44336; margin-top: 0;">⚠️ No se pudo completar la entrega</h2>
+        <p>Hola <strong>${data.destinatario?.nombre}</strong>,</p>
+        <p>Lamentablemente no pudimos entregar tu paquete en este intento.</p>
+
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ff9800;">
+          <h3 style="margin-top: 0; color: #856404;">Detalles del Intento de Entrega</h3>
+          <p><strong>Código de Tracking:</strong> ${data.codigoTracking}</p>
+          <p><strong>Motivo:</strong> ${motivoLegible}</p>
+          ${descripcion ? `<p><strong>Descripción:</strong> ${descripcion}</p>` : ''}
+          <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-DO')}</p>
+        </div>
+
+        ${intentarNuevamente ? `
+          <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="color: #2e7d32; margin: 0;"><strong>✅ Reintentaremos la entrega:</strong> Coordinaremos un nuevo intento de entrega. Te contactaremos pronto.</p>
+          </div>
+        ` : `
+          <p><strong>Por favor contacta a nuestro equipo</strong> para coordinar la entrega de tu paquete.</p>
+        `}
+
+        <p>Disculpa las molestias.</p>
+      `;
+
+      const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'no_entregada', data.codigoTracking);
+
+      sendEmail(destinatarioEmail, subject, brandedHTML, [], companyConfig)
+        .then(() => console.log(`📧 Notificación EMAIL enviada al destinatario: ${destinatarioEmail}`))
+        .catch(err => console.error(`❌ Error enviando email:`, err.message));
+    }
+
+    // 📧 EMAIL AL REMITENTE
+    const remitenteEmail = data.remitente?.email;
+    if (remitenteEmail) {
+      const subject = `⚠️ Intento de entrega fallido - ${data.codigoTracking}`;
+      const contentHTML = `
+        <h2 style="color: #f44336; margin-top: 0;">⚠️ Intento de entrega fallido</h2>
+        <p>Hola <strong>${data.remitente?.nombre}</strong>,</p>
+        <p>Te informamos que no se pudo entregar el paquete destinado a <strong>${data.destinatario?.nombre}</strong>.</p>
+
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ff9800;">
+          <h3 style="margin-top: 0; color: #856404;">Detalles</h3>
+          <p><strong>Código de Tracking:</strong> ${data.codigoTracking}</p>
+          <p><strong>Destinatario:</strong> ${data.destinatario?.nombre}</p>
+          <p><strong>Motivo:</strong> ${motivoLegible}</p>
+          ${descripcion ? `<p><strong>Descripción:</strong> ${descripcion}</p>` : ''}
+        </div>
+
+        ${intentarNuevamente ? `
+          <p>Se reintentará la entrega próximamente.</p>
+        ` : `
+          <p>El destinatario deberá contactarnos para coordinar la entrega.</p>
+        `}
+      `;
+
+      const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'no_entregada', data.codigoTracking);
+
+      sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
+        .then(() => console.log(`📧 Notificación EMAIL enviada al remitente: ${remitenteEmail}`))
+        .catch(err => console.error(`❌ Error enviando email:`, err.message));
+    }
+
+    // 📲 WHATSAPP AL DESTINATARIO
+    const destinatarioTelefono = data.destinatario?.telefono;
+    if (destinatarioTelefono) {
+      const mensajeWhatsapp = `⚠️ *No se pudo entregar tu paquete*\n\nHola *${data.destinatario?.nombre}*,\n\nLamentablemente no pudimos entregar tu paquete *${data.codigoTracking}*.\n\n❌ Motivo: ${motivoLegible}${descripcion ? `\n📝 ${descripcion}` : ''}${intentarNuevamente ? `\n\n✅ Reintentaremos la entrega pronto. Te contactaremos para coordinar.` : `\n\nPor favor contacta a nuestro equipo para coordinar la entrega.`}\n\nDisculpa las molestias.`;
+
+      whatsappService.sendMessage(companyId, destinatarioTelefono, mensajeWhatsapp)
+        .then(() => console.log(`📲 Notificación WHATSAPP enviada al destinatario: ${destinatarioTelefono}`))
+        .catch(e => console.error('❌ Error WA Destinatario NoEntrega:', e));
+    }
+
+    // 📲 WHATSAPP AL REMITENTE
+    const remitenteTelefono = data.remitente?.telefono;
+    if (remitenteTelefono) {
+      const mensajeWhatsapp = `⚠️ *Intento de entrega fallido*\n\nHola *${data.remitente?.nombre}*,\n\nTe informamos que no se pudo entregar tu paquete *${data.codigoTracking}* a ${data.destinatario?.nombre}.\n\n❌ Motivo: ${motivoLegible}${intentarNuevamente ? `\n\n✅ Se reintentará la entrega próximamente.` : ``}`;
+
+      whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+        .then(() => console.log(`📲 Notificación WHATSAPP enviada al remitente: ${remitenteTelefono}`))
+        .catch(e => console.error('❌ Error WA Remitente NoEntrega:', e));
+    }
+
     res.json({
       success: true,
-      message: 'Reporte de no entrega registrado'
+      message: 'Reporte de no entrega registrado y notificaciones enviadas'
     });
 
   } catch (error) {

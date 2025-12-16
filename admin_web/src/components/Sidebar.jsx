@@ -17,7 +17,8 @@ import {
   PackagePlus, // ✅ NUEVO: Icono para Nueva Recolección
   Calendar, // 🆕 Icono Citas
   Map, // 🆕 Icono Pool
-  QrCode // 🆕 Whatsapp Link
+  QrCode, // 🆕 Whatsapp Link
+  ClipboardList // 🆕 Icono Gestión Solicitudes
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -78,6 +79,13 @@ const Sidebar = () => {
       path: '/secretarias',
       icon: Phone,
       roles: ['admin', 'secretaria']
+    },
+    {
+      name: 'Gestión Solicitudes', // 🆕 Gestión de Solicitudes de Recolección
+      path: '/solicitudes',
+      icon: ClipboardList,
+      roles: ['admin', 'secretaria'],
+      badge: 'Nuevo'
     },
     {
       name: 'Facturas No Entregadas',

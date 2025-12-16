@@ -4,7 +4,8 @@ import {
     createSolicitud,
     getSolicitudes,
     asignarSolicitud,
-    completarSolicitud
+    completarSolicitud,
+    getRecolectoresDisponibles
 } from '../controllers/solicitudesController.js';
 
 const router = express.Router();
@@ -17,6 +18,9 @@ router.post('/', createSolicitud);
 
 // 📋 Obtener lista de solicitudes (Pool / Historial)
 router.get('/', getSolicitudes);
+
+// 👥 Obtener recolectores disponibles (para asignación manual por Secretaria)
+router.get('/recolectores', getRecolectoresDisponibles);
 
 // 🙋‍♂️ Asignar/Reclamar solicitud
 router.put('/:id/asignar', asignarSolicitud);
