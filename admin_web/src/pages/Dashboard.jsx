@@ -19,6 +19,7 @@ import {
   Truck,
   CheckCircle2
 } from 'lucide-react';
+import ContenedorStatsCard from '../components/ContenedorStatsCard';
 
 // 🎯 Componente para animar números (CountUp effect)
 const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 0 }) => {
@@ -319,11 +320,25 @@ const Dashboard = () => {
         <MonitorRepartidores />
       </div>
 
+      {/* 📦 Estadísticas de Contenedores */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+        className="mb-6"
+      >
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+          <Package className="w-6 h-6 text-indigo-600" />
+          Monitoreo de Contenedores
+        </h2>
+        <ContenedorStatsCard />
+      </motion.div>
+
       {/* Accesos rápidos */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.8 }}
+        transition={{ duration: 0.4, delay: 0.9 }}
         className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
       >
         <div className="flex items-center gap-3 mb-6">

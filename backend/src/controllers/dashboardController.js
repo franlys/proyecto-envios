@@ -441,3 +441,237 @@ export const getStatsPublic = async (req, res) => {
     });
   }
 };
+
+/**
+ * 📦 Obtener estadísticas detalladas de un contenedor específico
+ * Incluye: progreso, confirmación, entregas, facturas, estados
+ */
+export const getContenedorStats = async (req, res) => {
+  try {
+    const { contenedorId } = req.params;
+    const { companyId, rol } = req.userData;
+
+    console.log(`📦 Obteniendo estadísticas del contenedor: ${contenedorId}`);
+
+    // Obtener datos del contenedor
+    const contenedorDoc = await db.collection('contenedores').doc(contenedorId).get();
+
+    if (!contenedorDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contenedor no encontrado'
+      });
+    }
+
+    const contenedorData = contenedorDoc.data();
+
+    // Verificar permisos (solo si no es super_admin)
+    if (rol !== 'super_admin' && contenedorData.companyId !== companyId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para ver este contenedor'
+      });
+    }
+
+    // Obtener todas las facturas (recolecciones) del contenedor
+    const facturasSnapshot = await db.collection('recolecciones')
+      .where('numeroContenedor', '==', contenedorData.numeroContenedor)
+      .get();
+
+    const facturas = [];
+    facturasSnapshot.forEach(doc => {
+      facturas.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    // Calcular estadísticas
+    const totalFacturas = facturas.length;
+    const facturasConfirmadas = facturas.filter(f =>
+      f.estadoGeneral === 'confirmada' ||
+      f.estadoGeneral === 'en_transito' ||
+      f.estadoGeneral === 'recibida_rd' ||
+      f.estadoGeneral === 'lista_entrega' ||
+      f.estadoGeneral === 'en_ruta_entrega' ||
+      f.estadoGeneral === 'entregada'
+    ).length;
+
+    const facturasEnTransito = facturas.filter(f =>
+      f.estadoGeneral === 'en_transito' ||
+      f.estadoGeneral === 'recibida_rd' ||
+      f.estadoGeneral === 'lista_entrega' ||
+      f.estadoGeneral === 'en_ruta_entrega' ||
+      f.estadoGeneral === 'entregada'
+    ).length;
+
+    const facturasRecibidasRD = facturas.filter(f =>
+      f.estadoGeneral === 'recibida_rd' ||
+      f.estadoGeneral === 'lista_entrega' ||
+      f.estadoGeneral === 'en_ruta_entrega' ||
+      f.estadoGeneral === 'entregada'
+    ).length;
+
+    const facturasListaEntrega = facturas.filter(f =>
+      f.estadoGeneral === 'lista_entrega' ||
+      f.estadoGeneral === 'en_ruta_entrega' ||
+      f.estadoGeneral === 'entregada'
+    ).length;
+
+    const facturasEnRutaEntrega = facturas.filter(f =>
+      f.estadoGeneral === 'en_ruta_entrega' ||
+      f.estadoGeneral === 'entregada'
+    ).length;
+
+    const facturasEntregadas = facturas.filter(f =>
+      f.estadoGeneral === 'entregada'
+    ).length;
+
+    const facturasNoEntregadas = facturas.filter(f =>
+      f.estadoGeneral === 'no_entregada'
+    ).length;
+
+    const facturasPendientes = facturas.filter(f =>
+      f.estadoGeneral === 'pendiente' ||
+      f.estadoGeneral === 'recolectada' ||
+      !f.estadoGeneral
+    ).length;
+
+    // Calcular porcentajes
+    const porcentajeConfirmacion = totalFacturas > 0
+      ? Math.round((facturasConfirmadas / totalFacturas) * 100)
+      : 0;
+
+    const porcentajeEntrega = totalFacturas > 0
+      ? Math.round((facturasEntregadas / totalFacturas) * 100)
+      : 0;
+
+    const porcentajeEnTransito = totalFacturas > 0
+      ? Math.round((facturasEnTransito / totalFacturas) * 100)
+      : 0;
+
+    const porcentajeRecibidasRD = totalFacturas > 0
+      ? Math.round((facturasRecibidasRD / totalFacturas) * 100)
+      : 0;
+
+    // Calcular progreso general del contenedor
+    let progresoGeneral = 0;
+    if (totalFacturas > 0) {
+      // Lógica de progreso:
+      // 0-25%: Recolección (facturas creadas)
+      // 25-50%: Confirmación
+      // 50-75%: En tránsito
+      // 75-90%: Recibidas en RD
+      // 90-100%: Entregadas
+
+      if (facturasEntregadas === totalFacturas) {
+        progresoGeneral = 100;
+      } else if (facturasRecibidasRD > 0) {
+        progresoGeneral = 75 + Math.round((facturasEntregadas / totalFacturas) * 25);
+      } else if (facturasEnTransito > 0) {
+        progresoGeneral = 50 + Math.round((facturasEnTransito / totalFacturas) * 25);
+      } else if (facturasConfirmadas > 0) {
+        progresoGeneral = 25 + Math.round((facturasConfirmadas / totalFacturas) * 25);
+      } else {
+        progresoGeneral = Math.round((totalFacturas > 0 ? 25 : 0));
+      }
+    }
+
+    // Determinar estado actual
+    let estadoActual = 'CREADO';
+    if (facturasEntregadas === totalFacturas && totalFacturas > 0) {
+      estadoActual = 'COMPLETADO';
+    } else if (facturasRecibidasRD > 0) {
+      estadoActual = 'EN_ENTREGA';
+    } else if (facturasEnTransito > 0) {
+      estadoActual = 'EN_TRANSITO';
+    } else if (facturasConfirmadas > 0) {
+      estadoActual = 'CONFIRMADO';
+    } else if (totalFacturas > 0) {
+      estadoActual = 'EN_RECOLECCION';
+    }
+
+    // Calcular valor total
+    const valorTotal = facturas.reduce((sum, f) => {
+      const precioTotal = (f.items || []).reduce((itemSum, item) => {
+        return itemSum + (parseFloat(item.precio) || 0);
+      }, 0);
+      return sum + precioTotal;
+    }, 0);
+
+    // Obtener rutas asociadas al contenedor
+    const rutasSnapshot = await db.collection('rutas')
+      .where('contenedorId', '==', contenedorId)
+      .get();
+
+    const rutas = [];
+    rutasSnapshot.forEach(doc => {
+      rutas.push({
+        id: doc.id,
+        nombre: doc.data().nombre,
+        tipo: doc.data().tipo,
+        estado: doc.data().estado,
+        totalPaquetes: (doc.data().facturas || []).length
+      });
+    });
+
+    // Respuesta completa
+    res.json({
+      success: true,
+      contenedor: {
+        id: contenedorId,
+        numeroContenedor: contenedorData.numeroContenedor,
+        fechaCreacion: contenedorData.createdAt,
+        fechaEmbarque: contenedorData.fechaEmbarque,
+        estado: estadoActual,
+        progresoGeneral,
+
+        // Totales
+        totalFacturas,
+        valorTotal,
+        totalRutas: rutas.length,
+
+        // Estadísticas por estado
+        facturasPendientes,
+        facturasConfirmadas,
+        facturasEnTransito,
+        facturasRecibidasRD,
+        facturasListaEntrega,
+        facturasEnRutaEntrega,
+        facturasEntregadas,
+        facturasNoEntregadas,
+
+        // Porcentajes
+        porcentajeConfirmacion,
+        porcentajeEnTransito,
+        porcentajeRecibidasRD,
+        porcentajeEntrega,
+
+        // Información adicional
+        cargadorId: contenedorData.cargadorId,
+        notas: contenedorData.notas,
+
+        // Rutas asociadas
+        rutas
+      },
+
+      // Lista de facturas para análisis detallado
+      facturas: facturas.map(f => ({
+        id: f.id,
+        codigoTracking: f.codigoTracking,
+        estadoGeneral: f.estadoGeneral,
+        remitente: f.remitente?.nombre,
+        destinatario: f.destinatario?.nombre,
+        valorItems: (f.items || []).reduce((sum, item) => sum + (parseFloat(item.precio) || 0), 0)
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas del contenedor:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas del contenedor',
+      error: error.message
+    });
+  }
+};

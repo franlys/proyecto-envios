@@ -3,7 +3,8 @@ import express from 'express';
 import {
   getStatsSuperAdmin,
   getStatsAdminGeneral,
-  getStatsPublic
+  getStatsPublic,
+  getContenedorStats
 } from '../controllers/dashboardController.js';
 import { getDashboardPropietario } from '../controllers/dashboardPropietarioController.js';
 import { verifyToken, checkRole } from '../middleware/auth.js';
@@ -116,9 +117,21 @@ router.get('/health', (req, res) => {
     endpoints: [
       'GET /api/dashboard/stats-super-admin',
       'GET /api/dashboard/stats-admin-general',
-      'GET /api/dashboard/stats'
+      'GET /api/dashboard/stats',
+      'GET /api/dashboard/contenedor/:contenedorId'
     ]
   });
 });
+
+/**
+ * @route   GET /api/dashboard/contenedor/:contenedorId
+ * @desc    Obtener estadísticas detalladas de un contenedor específico
+ * @access  Private (admin_general, propietario, almacen_rd)
+ */
+router.get('/contenedor/:contenedorId',
+  verifyToken,
+  checkRole('admin_general', 'propietario', 'almacen_rd', 'super_admin'),
+  getContenedorStats
+);
 
 export default router;
