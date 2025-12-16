@@ -1163,7 +1163,7 @@ export const getEstadisticas = async (req, res) => {
 // ========================================
 export const createPublicRecoleccion = async (req, res) => {
   try {
-    console.log('📦 Creando nueva recolección PÚBLICA...');
+    console.log('📦 Creando nueva recolección PÚBLICA (Solicitud Simplificada)...');
     console.log('📥 Body recibido:', JSON.stringify(req.body, null, 2));
 
     const {
@@ -1172,23 +1172,34 @@ export const createPublicRecoleccion = async (req, res) => {
       remitenteTelefono,
       remitenteEmail,
       remitenteDireccion,
+      fechaPreferida,
+      horaPreferida,
+      items,
+      fotos,
+      notasAdicionales,
+      tipoServicio,
+      // Legacy fields (optional for backward compatibility)
       destinatarioNombre,
       destinatarioTelefono,
       destinatarioEmail,
       destinatarioDireccion,
       destinatarioZona,
       destinatarioSector,
-      items,
       subtotal,
       itbis,
       total,
-      notas,
-      tipoServicio,
-      fotos
+      notas
     } = req.body;
 
     if (!companyId) {
       return res.status(400).json({ success: false, message: 'Falta companyId' });
+    }
+
+    if (!remitenteNombre || !remitenteTelefono || !remitenteDireccion) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faltan datos del remitente (nombre, teléfono, dirección)'
+      });
     }
 
     let itemsArray = items;
@@ -1196,7 +1207,7 @@ export const createPublicRecoleccion = async (req, res) => {
       try { itemsArray = JSON.parse(items); } catch (e) { itemsArray = []; }
     }
     if (!Array.isArray(itemsArray) || itemsArray.length === 0) {
-      return res.status(400).json({ success: false, message: 'Items inválidos o vacíos' });
+      return res.status(400).json({ success: false, message: 'Debes agregar al menos un artículo' });
     }
 
     // Get Company Settings for NCF and Email
@@ -1226,6 +1237,14 @@ export const createPublicRecoleccion = async (req, res) => {
 
     const codigoTracking = `RC-${year}${month}${day}-${String(siguienteNumero).padStart(4, '0')}`;
 
+    // Build notes description with pickup preferences
+    let notasCompletas = notasAdicionales || 'Solicitud creada desde Web Pública';
+    if (fechaPreferida || horaPreferida) {
+      notasCompletas += '\n\n📅 Fecha/Hora Preferida:';
+      if (fechaPreferida) notasCompletas += ` ${fechaPreferida}`;
+      if (horaPreferida) notasCompletas += ` a las ${horaPreferida}`;
+    }
+
     const recoleccionData = {
       codigoTracking,
       companyId,
@@ -1238,17 +1257,19 @@ export const createPublicRecoleccion = async (req, res) => {
         direccion: remitenteDireccion || ''
       },
       destinatario: {
-        nombre: destinatarioNombre || '',
+        nombre: destinatarioNombre || 'Por definir',
         telefono: destinatarioTelefono || '',
         email: destinatarioEmail || '',
-        direccion: destinatarioDireccion || '',
+        direccion: destinatarioDireccion || 'Por definir',
         zona: destinatarioZona || '',
         sector: destinatarioSector || ''
       },
       items: itemsArray.map(item => ({
         cantidad: parseInt(item.cantidad) || 1,
         descripcion: item.descripcion || item.producto || '',
-        precio: parseFloat(item.precio) || 0
+        precio: parseFloat(item.precio) || 0,
+        pesoAproximado: item.pesoAproximado || '',
+        dimensionesAproximadas: item.dimensionesAproximadas || ''
       })),
       facturacion: {
         subtotal: parseFloat(subtotal) || 0,
@@ -1268,6 +1289,11 @@ export const createPublicRecoleccion = async (req, res) => {
         notasPago: '',
         historialPagos: []
       },
+      solicitudPublica: {
+        fechaPreferida: fechaPreferida || null,
+        horaPreferida: horaPreferida || null,
+        notasCliente: notasAdicionales || ''
+      },
       estado: 'pendiente',
       estadoItems: 'completo',
       estadoGeneral: 'sin_confirmar',
@@ -1276,12 +1302,12 @@ export const createPublicRecoleccion = async (req, res) => {
       rutaId: null,
       repartidorId: null,
       fechaAsignacionRuta: null,
-      notas: notas || 'Creado desde Web Pública',
+      notas: notasCompletas || notas || 'Creado desde Web Pública',
       tipoServicio: tipoServicio || 'standard',
       fotos: Array.isArray(fotos) ? fotos : [],
       historial: [{
         accion: 'creacion_publica',
-        descripcion: 'Recolección creada desde Web',
+        descripcion: 'Solicitud de recolección creada desde Web (cliente no especificó destinatario ni precios)',
         usuario: 'PUBLIC',
         fecha: new Date().toISOString()
       }],
@@ -1292,9 +1318,22 @@ export const createPublicRecoleccion = async (req, res) => {
 
     const docRef = await db.collection('recolecciones').add(recoleccionData);
 
-    // 🟢 NOTIFICACIÓN WHATSAPP
+    // 🟢 NOTIFICACIÓN WHATSAPP AL CLIENTE
     if (remitenteTelefono) {
-      const mensajeWhatsapp = `📦 *Solicitud Recibida (Web)*\n\nHola *${remitenteNombre}*, hemos recibido tu solicitud #${codigoTracking}.\n\n📍 Destino: ${destinatarioNombre}\n💰 Total Estimado: $${parseFloat(total).toFixed(2)}\n\nNos pondremos en contacto pronto!`;
+      // Build items summary
+      const itemsSummary = itemsArray.map(item =>
+        `• ${item.cantidad}x ${item.descripcion}`
+      ).join('\n');
+
+      let mensajeWhatsapp = `📦 *Solicitud de Recolección Recibida*\n\nHola *${remitenteNombre}*, ¡gracias por tu solicitud!\n\n🔖 Código: *${codigoTracking}*\n📍 Recolección en: ${remitenteDireccion}\n\n📦 Artículos:\n${itemsSummary}`;
+
+      if (fechaPreferida || horaPreferida) {
+        mensajeWhatsapp += `\n\n📅 Fecha preferida: ${fechaPreferida || 'No especificada'}`;
+        if (horaPreferida) mensajeWhatsapp += ` a las ${horaPreferida}`;
+      }
+
+      mensajeWhatsapp += '\n\n✅ Nuestro equipo revisará tu solicitud y te contactará pronto para confirmar la recolección y completar los detalles del envío.\n\n💡 Tip: Guarda este código de tracking para consultar el estado de tu envío.';
+
       whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
         .catch(e => console.error('Error WA Public:', e));
     }

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // ✅ Import useNavigate
+import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
-import { Loader2, Package, MapPin, DollarSign, Upload, Search, ArrowRight } from 'lucide-react'; // ✅ Add Search icon
+import { Loader2, Package, MapPin, Upload, Search, ArrowRight, Calendar, Camera } from 'lucide-react';
 import axios from 'axios';
 
 // Backend URL
@@ -20,21 +20,25 @@ export default function PublicBooking() {
     const [success, setSuccess] = useState(false);
     const [trackingCode, setTrackingCode] = useState('');
 
-    // Form State
+    // Form State - Simplified for customer pickup requests
     const [formData, setFormData] = useState({
         remitenteNombre: '',
         remitenteTelefono: '',
         remitenteEmail: '',
         remitenteDireccion: '',
-        destinatarioNombre: '',
-        destinatarioTelefono: '',
-        destinatarioDireccion: '',
-        destinatarioSector: '',
+        fechaPreferida: '',
+        horaPreferida: '',
         items: [],
-        fotos: []
+        fotos: [],
+        notasAdicionales: ''
     });
 
-    const [newItem, setNewItem] = useState({ descripcion: '', cantidad: 1, precio: 0 });
+    const [newItem, setNewItem] = useState({
+        descripcion: '',
+        cantidad: 1,
+        pesoAproximado: '',
+        dimensionesAproximadas: ''
+    });
 
     useEffect(() => {
         fetchCompany();
@@ -62,18 +66,33 @@ export default function PublicBooking() {
     };
 
     const handleAddItem = () => {
-        if (!newItem.descripcion) return;
+        if (!newItem.descripcion) {
+            toast.error('Ingresa una descripción del artículo');
+            return;
+        }
         setFormData({
             ...formData,
             items: [...formData.items, newItem]
         });
-        setNewItem({ descripcion: '', cantidad: 1, precio: 0 });
+        setNewItem({
+            descripcion: '',
+            cantidad: 1,
+            pesoAproximado: '',
+            dimensionesAproximadas: ''
+        });
+    };
+
+    const handleRemoveItem = (index) => {
+        setFormData({
+            ...formData,
+            items: formData.items.filter((_, i) => i !== index)
+        });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (formData.items.length === 0) {
-            toast.error('Agrega al menos un artículo');
+            toast.error('Agrega al menos un artículo para recolectar');
             return;
         }
 
@@ -81,26 +100,29 @@ export default function PublicBooking() {
         try {
             const payload = {
                 companyId,
-                ...formData,
-                subtotal: 0, // Calculate on backend or simple sum
-                total: 0 // Calculate logic here or backend? Let's sum it roughly for display logic
+                remitenteNombre: formData.remitenteNombre,
+                remitenteTelefono: formData.remitenteTelefono,
+                remitenteEmail: formData.remitenteEmail,
+                remitenteDireccion: formData.remitenteDireccion,
+                fechaPreferida: formData.fechaPreferida,
+                horaPreferida: formData.horaPreferida,
+                items: formData.items,
+                fotos: formData.fotos,
+                notasAdicionales: formData.notasAdicionales,
+                tipoServicio: 'standard',
+                // Backend will handle destinatario, pricing, etc.
             };
-            // Simple sum
-            const total = formData.items.reduce((sum, item) => sum + (item.cantidad * item.precio), 0);
-            payload.subtotal = total;
-            payload.total = total;
-            payload.tipoServicio = 'standard';
 
             const res = await axios.post(`${API_URL}/recolecciones/public`, payload);
 
             if (res.data.success) {
                 setSuccess(true);
                 setTrackingCode(res.data.data.codigoTracking);
-                toast.success(`Solicitud enviada: ${res.data.data.codigoTracking}`);
+                toast.success(`¡Solicitud enviada! Código: ${res.data.data.codigoTracking}`);
             }
         } catch (error) {
             console.error('Submit Error:', error);
-            toast.error('Error enviando solicitud');
+            toast.error(error.response?.data?.message || 'Error enviando solicitud');
         } finally {
             setSubmitting(false);
         }
@@ -197,76 +219,214 @@ export default function PublicBooking() {
             <div className="max-w-3xl mx-auto px-4 py-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
 
-                    {/* Remitente (Tú) */}
+                    {/* Tus Datos */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="flex items-center gap-2 font-semibold text-gray-700 mb-4">
                             <MapPin className="w-5 h-5 text-[color:var(--primary)]" />
-                            Tus Datos (Remitente)
+                            Tus Datos
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input required placeholder="Tu Nombre Completo" className="input-field p-3 border rounded-lg w-full"
-                                value={formData.remitenteNombre} onChange={e => setFormData({ ...formData, remitenteNombre: e.target.value })} />
-                            <input required placeholder="Teléfono / WhatsApp" className="input-field p-3 border rounded-lg w-full"
-                                value={formData.remitenteTelefono} onChange={e => setFormData({ ...formData, remitenteTelefono: e.target.value })} />
-                            <input placeholder="Email (Opcional)" className="input-field p-3 border rounded-lg w-full md:col-span-2"
-                                value={formData.remitenteEmail} onChange={e => setFormData({ ...formData, remitenteEmail: e.target.value })} />
-                            <textarea placeholder="Tu Dirección Exacta (Calle, Casa, Referencia)" className="input-field p-3 border rounded-lg w-full md:col-span-2" rows="2"
-                                value={formData.remitenteDireccion} onChange={e => setFormData({ ...formData, remitenteDireccion: e.target.value })} />
+                            <input
+                                required
+                                placeholder="Tu Nombre Completo"
+                                className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                value={formData.remitenteNombre}
+                                onChange={e => setFormData({ ...formData, remitenteNombre: e.target.value })}
+                            />
+                            <input
+                                required
+                                placeholder="Teléfono / WhatsApp"
+                                className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                value={formData.remitenteTelefono}
+                                onChange={e => setFormData({ ...formData, remitenteTelefono: e.target.value })}
+                            />
+                            <input
+                                type="email"
+                                placeholder="Email (Opcional)"
+                                className="p-3 border border-gray-300 rounded-lg w-full md:col-span-2 focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                value={formData.remitenteEmail}
+                                onChange={e => setFormData({ ...formData, remitenteEmail: e.target.value })}
+                            />
                         </div>
                     </div>
 
-                    {/* Destinatario */}
+                    {/* Dirección de Recolección */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="flex items-center gap-2 font-semibold text-gray-700 mb-4">
+                            <MapPin className="w-5 h-5 text-[color:var(--primary)]" />
+                            Dirección de Recolección
+                        </h3>
+                        <textarea
+                            required
+                            placeholder="Dirección exacta donde recogeremos (Calle, número, sector, referencias)"
+                            className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                            rows="3"
+                            value={formData.remitenteDireccion}
+                            onChange={e => setFormData({ ...formData, remitenteDireccion: e.target.value })}
+                        />
+                        <p className="text-xs text-gray-500 mt-2">💡 Sé lo más específico posible para que nuestro equipo te encuentre fácilmente</p>
+                    </div>
+
+                    {/* Fecha y Hora Preferida */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="flex items-center gap-2 font-semibold text-gray-700 mb-4">
+                            <Calendar className="w-5 h-5 text-[color:var(--primary)]" />
+                            Fecha y Hora Preferida
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm text-gray-600 mb-1 block">Fecha</label>
+                                <input
+                                    type="date"
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                    value={formData.fechaPreferida}
+                                    onChange={e => setFormData({ ...formData, fechaPreferida: e.target.value })}
+                                    min={new Date().toISOString().split('T')[0]}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-600 mb-1 block">Hora</label>
+                                <input
+                                    type="time"
+                                    className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                    value={formData.horaPreferida}
+                                    onChange={e => setFormData({ ...formData, horaPreferida: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">⏰ Opcional: Si no especificas, te contactaremos para coordinar</p>
+                    </div>
+
+                    {/* Artículos a Recolectar */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="flex items-center gap-2 font-semibold text-gray-700 mb-4">
                             <Package className="w-5 h-5 text-[color:var(--primary)]" />
-                            ¿A quién envías?
+                            ¿Qué necesitas enviar?
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input required placeholder="Nombre Destinatario" className="input-field p-3 border rounded-lg w-full"
-                                value={formData.destinatarioNombre} onChange={e => setFormData({ ...formData, destinatarioNombre: e.target.value })} />
-                            <input required placeholder="Teléfono Destinatario" className="input-field p-3 border rounded-lg w-full"
-                                value={formData.destinatarioTelefono} onChange={e => setFormData({ ...formData, destinatarioTelefono: e.target.value })} />
-                            <textarea required placeholder="Dirección de Entrega" className="input-field p-3 border rounded-lg w-full md:col-span-2" rows="2"
-                                value={formData.destinatarioDireccion} onChange={e => setFormData({ ...formData, destinatarioDireccion: e.target.value })} />
+
+                        {/* Lista de artículos agregados */}
+                        {formData.items.length > 0 && (
+                            <div className="space-y-2 mb-4">
+                                {formData.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-start bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <div className="flex-1">
+                                            <div className="font-medium text-gray-700">
+                                                {item.cantidad}x {item.descripcion}
+                                            </div>
+                                            {item.pesoAproximado && (
+                                                <div className="text-xs text-gray-500">Peso: {item.pesoAproximado}</div>
+                                            )}
+                                            {item.dimensionesAproximadas && (
+                                                <div className="text-xs text-gray-500">Dimensiones: {item.dimensionesAproximadas}</div>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveItem(idx)}
+                                            className="text-red-500 hover:text-red-700 text-sm font-medium ml-2"
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Formulario para agregar artículo */}
+                        <div className="space-y-3 border-t border-gray-200 pt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="md:col-span-2">
+                                    <label className="text-xs text-gray-500 mb-1 block">Descripción del artículo *</label>
+                                    <input
+                                        value={newItem.descripcion}
+                                        onChange={e => setNewItem({ ...newItem, descripcion: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                        placeholder="Ej: Caja de zapatos, Electrodoméstico, etc."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 mb-1 block">Cantidad *</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={newItem.cantidad}
+                                        onChange={e => setNewItem({ ...newItem, cantidad: parseInt(e.target.value) || 1 })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs text-gray-500 mb-1 block">Peso aproximado (opcional)</label>
+                                    <input
+                                        value={newItem.pesoAproximado}
+                                        onChange={e => setNewItem({ ...newItem, pesoAproximado: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                        placeholder="Ej: 5kg, 10 libras"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 mb-1 block">Dimensiones aproximadas (opcional)</label>
+                                    <input
+                                        value={newItem.dimensionesAproximadas}
+                                        onChange={e => setNewItem({ ...newItem, dimensionesAproximadas: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                                        placeholder="Ej: 30x20x15cm"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleAddItem}
+                                className="w-full bg-[color:var(--primary)] text-white py-2 px-4 rounded-lg hover:opacity-90 transition-opacity font-medium"
+                            >
+                                + Agregar Artículo
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-3">📦 Esta información nos ayuda a estimar el espacio necesario en el vehículo</p>
+                    </div>
+
+                    {/* Fotos Opcionales */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 className="flex items-center gap-2 font-semibold text-gray-700 mb-4">
+                            <Camera className="w-5 h-5 text-[color:var(--primary)]" />
+                            Fotos (Opcional)
+                        </h3>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[color:var(--primary)] transition-colors cursor-pointer">
+                            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600">Próximamente: Sube fotos de tus artículos</p>
+                            <p className="text-xs text-gray-400 mt-1">Esto ayudará a nuestros recolectores a prepararse mejor</p>
                         </div>
                     </div>
 
-                    {/* Paquetes */}
+                    {/* Notas Adicionales */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="flex items-center gap-2 font-semibold text-gray-700 mb-4">
                             <Upload className="w-5 h-5 text-[color:var(--primary)]" />
-                            ¿Qué envías?
+                            Notas Adicionales
                         </h3>
-                        <div className="space-y-4">
-                            {formData.items.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                                    <span>{item.cantidad}x {item.descripcion}</span>
-                                    <span className="font-medium">${item.precio}</span>
-                                </div>
-                            ))}
-
-                            <div className="flex gap-2 items-end">
-                                <div className="flex-1">
-                                    <label className="text-xs text-gray-500">Descripción</label>
-                                    <input value={newItem.descripcion} onChange={e => setNewItem({ ...newItem, descripcion: e.target.value })} className="w-full p-2 border rounded" placeholder="Ej: Caja de Zapatos" />
-                                </div>
-                                <div className="w-20">
-                                    <label className="text-xs text-gray-500">Cant.</label>
-                                    <input type="number" value={newItem.cantidad} onChange={e => setNewItem({ ...newItem, cantidad: parseInt(e.target.value) })} className="w-full p-2 border rounded" />
-                                </div>
-                                <div className="w-24">
-                                    <label className="text-xs text-gray-500">Valor $</label>
-                                    <input type="number" value={newItem.precio} onChange={e => setNewItem({ ...newItem, precio: parseFloat(e.target.value) })} className="w-full p-2 border rounded" />
-                                </div>
-                                <button type="button" onClick={handleAddItem} className="bg-[color:var(--primary)] text-white p-2 rounded hover:opacity-90">
-                                    +
-                                </button>
-                            </div>
-                        </div>
+                        <textarea
+                            placeholder="¿Algo más que debamos saber? (instrucciones especiales, acceso al lugar, etc.)"
+                            className="p-3 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)] focus:border-transparent"
+                            rows="3"
+                            value={formData.notasAdicionales}
+                            onChange={e => setFormData({ ...formData, notasAdicionales: e.target.value })}
+                        />
                     </div>
 
-                    <button disabled={submitting} type="submit" className="w-full bg-[color:var(--primary)] text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50">
-                        {submitting ? 'Enviando...' : 'Solicitar Recolección'}
+                    <button
+                        disabled={submitting}
+                        type="submit"
+                        className="w-full bg-[color:var(--primary)] text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {submitting ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Enviando solicitud...
+                            </span>
+                        ) : (
+                            '📦 Solicitar Recolección'
+                        )}
                     </button>
                 </form>
             </div>
