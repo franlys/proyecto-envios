@@ -5,21 +5,21 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  XMarkIcon,
-  PhotoIcon,
-  CalendarIcon,
-  TruckIcon,
-  ArchiveBoxIcon,
-  MapPinIcon,
-  UserIcon,
-  ClockIcon,
-  DocumentTextIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  EyeIcon
-} from '@heroicons/react/24/outline';
+  Search,
+  Filter,
+  X,
+  Image,
+  Calendar,
+  Truck,
+  Package,
+  MapPin,
+  User,
+  Clock,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Eye
+} from 'lucide-react';
 
 const Historial = () => {
   const { user } = useAuth();
@@ -186,9 +186,9 @@ const Historial = () => {
 
   const obtenerIconoTipo = (tipo) => {
     return tipo === 'recoleccion' ? (
-      <ArchiveBoxIcon className="h-5 w-5 text-indigo-600" />
+      <Package className="h-5 w-5 text-indigo-600" />
     ) : (
-      <TruckIcon className="h-5 w-5 text-emerald-600" />
+      <Truck className="h-5 w-5 text-emerald-600" />
     );
   };
 
@@ -212,16 +212,16 @@ const Historial = () => {
             onClick={() => setShowFilters(!showFilters)}
           >
             <div className="flex items-center gap-3">
-              <FunnelIcon className="h-6 w-6 text-indigo-600" />
+              <Filter className="h-6 w-6 text-indigo-600" />
               <h2 className="text-lg font-semibold text-slate-800">Filtros Avanzados</h2>
               <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
                 {filteredRutas.length} resultados
               </span>
             </div>
             {showFilters ? (
-              <ChevronUpIcon className="h-5 w-5 text-slate-600" />
+              <ChevronUp className="h-5 w-5 text-slate-600" />
             ) : (
-              <ChevronDownIcon className="h-5 w-5 text-slate-600" />
+              <ChevronDown className="h-5 w-5 text-slate-600" />
             )}
           </div>
 
@@ -233,7 +233,7 @@ const Historial = () => {
                   Búsqueda General
                 </label>
                 <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                   <input
                     type="text"
                     value={filters.busqueda}
@@ -357,7 +357,7 @@ const Historial = () => {
                   onClick={limpiarFiltros}
                   className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
                 >
-                  <XMarkIcon className="h-5 w-5" />
+                  <X className="h-5 w-5" />
                   Limpiar Filtros
                 </button>
               </div>
@@ -372,7 +372,7 @@ const Historial = () => {
           </div>
         ) : filteredRutas.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-12 text-center">
-            <DocumentTextIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+            <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-600 text-lg">No se encontraron rutas con los filtros aplicados</p>
           </div>
         ) : (
@@ -408,19 +408,19 @@ const Historial = () => {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <UserIcon className="h-4 w-4" />
+                          <User className="h-4 w-4" />
                           {ruta.repartidorNombre || 'Sin asignar'}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <MapPinIcon className="h-4 w-4" />
+                          <MapPin className="h-4 w-4" />
                           {ruta.zona || 'Sin zona'}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <CalendarIcon className="h-4 w-4" />
+                          <Calendar className="h-4 w-4" />
                           {new Date(ruta.fechaCreacion || ruta.createdAt).toLocaleDateString('es-DO')}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <ArchiveBoxIcon className="h-4 w-4" />
+                          <Package className="h-4 w-4" />
                           {ruta.facturas?.length || 0} paquetes
                         </div>
                       </div>
@@ -428,7 +428,7 @@ const Historial = () => {
                       {/* Indicador de fotos */}
                       {ruta.fotos && ruta.fotos.length > 0 && (
                         <div className="flex items-center gap-2 mt-3 text-sm text-indigo-600">
-                          <PhotoIcon className="h-4 w-4" />
+                          <Image className="h-4 w-4" />
                           {ruta.fotos.length} foto{ruta.fotos.length > 1 ? 's' : ''} disponible{ruta.fotos.length > 1 ? 's' : ''}
                         </div>
                       )}
@@ -439,7 +439,7 @@ const Historial = () => {
                   <button
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
                   >
-                    <EyeIcon className="h-5 w-5" />
+                    <Eye className="h-5 w-5" />
                     Ver Detalles
                   </button>
                 </div>
@@ -465,7 +465,7 @@ const Historial = () => {
                 onClick={() => setMostrarDetalles(false)}
                 className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
-                <XMarkIcon className="h-6 w-6" />
+                <X className="h-6 w-6" />
               </button>
             </div>
 
@@ -553,7 +553,7 @@ const Historial = () => {
                           className="w-full h-32 object-cover rounded-lg border border-slate-200"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
-                          <EyeIcon className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-all" />
+                          <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-all" />
                         </div>
                         {foto.descripcion && (
                           <p className="text-xs text-slate-600 mt-1">{foto.descripcion}</p>
@@ -571,7 +571,7 @@ const Historial = () => {
                   <div className="space-y-3 max-h-60 overflow-y-auto">
                     {rutaSeleccionada.historial.map((evento, index) => (
                       <div key={index} className="flex items-start gap-3 bg-slate-50 p-3 rounded-lg">
-                        <ClockIcon className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                        <Clock className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-slate-800">{evento.descripcion || evento.accion}</p>
                           <p className="text-xs text-slate-500 mt-1">
@@ -626,7 +626,7 @@ const Historial = () => {
               onClick={() => setFotoModalVisible(false)}
               className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors z-10"
             >
-              <XMarkIcon className="h-6 w-6 text-white" />
+              <X className="h-6 w-6 text-white" />
             </button>
             <img
               src={fotoActual.url || fotoActual}
