@@ -15,7 +15,8 @@ import {
   getCargadoresDisponibles,
   getContenedoresDisponibles,
   getFacturasDisponibles,
-  getStatsRepartidor
+  getStatsRepartidor,
+  getHistorialRutas
 } from '../controllers/rutaController.js';
 
 const router = express.Router();
@@ -36,6 +37,7 @@ router.get('/facturas-disponibles', getFacturasDisponibles);
 // Listar rutas (Corrección del Error 500)
 router.get('/', getAllRutas);
 router.get('/activas', getRutasActivas);
+router.get('/historial', getHistorialRutas); // ✅ NUEVO - Historial completo con filtros
 
 // Crear ruta (Sistema Avanzado Web)
 router.post('/crear-avanzada', createRutaAvanzada);

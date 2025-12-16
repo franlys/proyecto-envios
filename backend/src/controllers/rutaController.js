@@ -656,3 +656,159 @@ export const updateEntrega = async (req, res) => res.json({ msg: 'ok' });
 export const getStatsRepartidor = async (req, res) => res.json({ success: true, data: {} });
 export const getRutasActivas = async (req, res) => getAllRutas(req, res);
 export const createRuta = async (req, res) => createRutaAvanzada(req, res);
+
+/**
+ * 📚 Obtener historial completo de rutas con información detallada
+ * Incluye: facturas, fotos, eventos del historial, notas
+ * Acceso: admin_general, almacen_rd
+ */
+export const getHistorialRutas = async (req, res) => {
+  try {
+    const { companyId, rol } = req.userData;
+
+    // Verificar permisos
+    if (!['admin_general', 'almacen_rd', 'propietario', 'super_admin'].includes(rol)) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para acceder al historial'
+      });
+    }
+
+    console.log(`📚 Obteniendo historial de rutas para companyId: ${companyId}`);
+
+    // Obtener todas las rutas con paginación opcional
+    const limit = parseInt(req.query.limit) || 500; // Default 500 rutas
+    let query = db.collection('rutas')
+      .where('companyId', '==', companyId)
+      .orderBy('createdAt', 'desc')
+      .limit(limit);
+
+    const rutasSnapshot = await query.get();
+
+    if (rutasSnapshot.empty) {
+      return res.json({
+        success: true,
+        rutas: [],
+        total: 0
+      });
+    }
+
+    // Procesar cada ruta y enriquecer con datos
+    const rutasPromises = rutasSnapshot.docs.map(async (doc) => {
+      const rutaData = doc.data();
+      const rutaId = doc.id;
+
+      // Obtener información del repartidor si existe
+      let repartidorNombre = 'Sin asignar';
+      if (rutaData.repartidorId) {
+        try {
+          const repartidorDoc = await db.collection('usuarios').doc(rutaData.repartidorId).get();
+          if (repartidorDoc.exists) {
+            repartidorNombre = repartidorDoc.data().nombre;
+          }
+        } catch (err) {
+          console.warn(`⚠️ Error obteniendo repartidor ${rutaData.repartidorId}:`, err.message);
+        }
+      }
+
+      // Obtener información del contenedor si existe
+      let numeroContenedor = null;
+      if (rutaData.contenedorId) {
+        try {
+          const contenedorDoc = await db.collection('contenedores').doc(rutaData.contenedorId).get();
+          if (contenedorDoc.exists) {
+            numeroContenedor = contenedorDoc.data().numeroContenedor;
+          }
+        } catch (err) {
+          console.warn(`⚠️ Error obteniendo contenedor ${rutaData.contenedorId}:`, err.message);
+        }
+      }
+
+      // Obtener facturas de la ruta con sus fotos
+      let facturas = [];
+      if (rutaData.facturas && rutaData.facturas.length > 0) {
+        const facturasPromises = rutaData.facturas.map(async (facturaId) => {
+          try {
+            const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+            if (facturaDoc.exists) {
+              const facturaData = facturaDoc.data();
+              return {
+                id: facturaDoc.id,
+                codigoTracking: facturaData.codigoTracking,
+                destinatario: facturaData.destinatario,
+                estadoGeneral: facturaData.estadoGeneral,
+                fotos: facturaData.fotos || [],
+                fotosEntrega: facturaData.fotosEntrega || [],
+                fotosNoEntrega: facturaData.fotosNoEntrega || []
+              };
+            }
+          } catch (err) {
+            console.warn(`⚠️ Error obteniendo factura ${facturaId}:`, err.message);
+          }
+          return null;
+        });
+
+        const facturasResult = await Promise.all(facturasPromises);
+        facturas = facturasResult.filter(f => f !== null);
+      }
+
+      // Recopilar todas las fotos de la ruta
+      const todasLasFotos = [];
+
+      // Fotos de las facturas
+      facturas.forEach(factura => {
+        if (factura.fotos) todasLasFotos.push(...factura.fotos);
+        if (factura.fotosEntrega) todasLasFotos.push(...factura.fotosEntrega);
+        if (factura.fotosNoEntrega) todasLasFotos.push(...factura.fotosNoEntrega);
+      });
+
+      // Fotos de la ruta misma (si existen)
+      if (rutaData.fotos) todasLasFotos.push(...rutaData.fotos);
+      if (rutaData.fotosCarga) todasLasFotos.push(...rutaData.fotosCarga);
+
+      return {
+        id: rutaId,
+        nombre: rutaData.nombre,
+        tipo: rutaData.tipo,
+        estado: rutaData.estado,
+        repartidorId: rutaData.repartidorId,
+        repartidorNombre,
+        numeroContenedor,
+        zona: rutaData.zona,
+        direccionCarga: rutaData.direccionCarga,
+        fechaCreacion: rutaData.createdAt,
+        fechaSalida: rutaData.fechaSalida,
+        fechaCierre: rutaData.fechaCierre,
+        fechaFinalizacion: rutaData.fechaFinalizacion,
+        fechaInicioCarga: rutaData.fechaInicioCarga,
+        fechaFinCarga: rutaData.fechaFinCarga,
+        facturas,
+        fotos: todasLasFotos,
+        historial: rutaData.historial || [],
+        notas: rutaData.notas,
+        notasCargador: rutaData.notasCargador,
+        notasRepartidor: rutaData.notasRepartidor,
+        totalPaquetes: facturas.length,
+        cargadoresIds: rutaData.cargadoresIds || []
+      };
+    });
+
+    const rutas = await Promise.all(rutasPromises);
+
+    console.log(`✅ Historial cargado: ${rutas.length} rutas`);
+
+    res.json({
+      success: true,
+      rutas,
+      total: rutas.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo historial de rutas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener el historial',
+      error: error.message
+    });
+  }
+};

@@ -1,6 +1,7 @@
 import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
+import whatsappNotificationService from '../services/whatsappNotificationService.js';
 
 // ==========================================================================
 // 📋 OBTENER RUTAS ASIGNADAS AL CARGADOR (Soporte Híbrido + Robusto)
@@ -787,6 +788,28 @@ export const finalizarCarga = async (req, res) => {
     await batch.commit();
 
     console.log('✅ Carga finalizada exitosamente');
+
+    // NOTIFICAR AL REPARTIDOR POR WHATSAPP
+    try {
+      if (data.repartidorId) {
+        const zona = data.zona || 'No especificada';
+        const totalFacturas = data.facturas?.length || 0;
+        const facturasCompletas = totalFacturas - facturasIncompletas.length;
+
+        await whatsappNotificationService.notifyRouteAssignment(companyId, data.repartidorId, {
+          codigoRuta: data.nombre || rutaId,
+          tipo: 'entrega_lista',
+          zona,
+          totalPaquetes: facturasCompletas,
+          fechaSalida: new Date().toLocaleDateString('es-DO'),
+          mensaje: `✅ La carga de tu ruta está completa y lista para entrega.\n\n📦 *Paquetes cargados:* ${facturasCompletas}${facturasIncompletas.length > 0 ? `\n⚠️ *Pendientes:* ${facturasIncompletas.length}` : ''}\n\n🚚 Puedes comenzar la entrega cuando estés listo.`
+        });
+        console.log(`✅ Notificación de carga completa enviada al repartidor`);
+      }
+    } catch (err) {
+      console.error('❌ Error notificando al repartidor:', err.message);
+      // No fallar la operación por error de notificación
+    }
 
     res.json({
       success: true,

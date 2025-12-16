@@ -42,6 +42,7 @@ import DespachoUSA from './pages/DespachoUSA'; // 🆕 Call Center USA
 import PoolRecolecciones from './pages/PoolRecolecciones'; // 🆕 Bolsa de Cargas
 import GestionSolicitudes from './pages/GestionSolicitudes'; // 🆕 Gestión de Solicitudes (Secretaria)
 import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
+import Historial from './pages/Historial'; // 🆕 Historial de Rutas
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -142,6 +143,7 @@ function AppContent() {
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
             <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
             <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
+            <Route path="/historial" element={<Historial />} /> {/* 🆕 Historial de Rutas */}
 
           </>
         )}
@@ -176,6 +178,7 @@ function AppContent() {
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
             <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
             <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
+            <Route path="/historial" element={<Historial />} /> {/* 🆕 Historial de Rutas */}
           </>
         )}
 
@@ -250,6 +253,7 @@ function AppContent() {
             <Route path="/facturas-no-entregadas" element={<FacturasNoEntregadas />} />
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/almacen-rd" element={<PanelAlmacenRD />} />
+            <Route path="/historial" element={<Historial />} /> {/* 🆕 Historial de Rutas */}
           </>
         )}
 

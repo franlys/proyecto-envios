@@ -71,10 +71,16 @@ class WhatsAppNotificationService {
         return;
       }
 
-      const { codigoRuta, tipo, zona, totalPaquetes, fechaSalida } = rutaData;
-      const tipoLabel = tipo === 'recoleccion' ? 'Recolección' : 'Entrega';
+      const { codigoRuta, tipo, zona, totalPaquetes, fechaSalida, mensaje: mensajePersonalizado } = rutaData;
 
-      const mensaje = `🚚 *Nueva Ruta Asignada*\n\nHola *${user.nombre}*, se te ha asignado una nueva ruta:\n\n📋 *Código:* ${codigoRuta}\n🏷️ *Tipo:* ${tipoLabel}\n📍 *Zona:* ${zona || 'No especificada'}\n📦 *Paquetes:* ${totalPaquetes}\n📅 *Salida:* ${fechaSalida || 'Por confirmar'}\n\n✅ Revisa los detalles en el sistema.\n💡 Recuerda actualizar el estado de cada paquete.`;
+      // Si se proporciona un mensaje personalizado, usarlo
+      let mensaje;
+      if (mensajePersonalizado) {
+        mensaje = `Hola *${user.nombre}*,\n\n${mensajePersonalizado}`;
+      } else {
+        const tipoLabel = tipo === 'recoleccion' ? 'Recolección' : tipo === 'carga' ? 'Carga' : 'Entrega';
+        mensaje = `🚚 *Nueva Ruta Asignada*\n\nHola *${user.nombre}*, se te ha asignado una nueva ruta:\n\n📋 *Código:* ${codigoRuta}\n🏷️ *Tipo:* ${tipoLabel}\n📍 *Zona:* ${zona || 'No especificada'}\n📦 *Paquetes:* ${totalPaquetes}\n📅 *Salida:* ${fechaSalida || 'Por confirmar'}\n\n✅ Revisa los detalles en el sistema.\n💡 Recuerda actualizar el estado de cada paquete.`;
+      }
 
       await whatsappService.sendMessage(companyId, user.whatsappFlota, mensaje);
       console.log(`✅ Notificación de ruta enviada a ${user.nombre} (${user.whatsappFlota})`);

@@ -18,7 +18,8 @@ import {
   Calendar, // 🆕 Icono Citas
   Map, // 🆕 Icono Pool
   QrCode, // 🆕 Whatsapp Link
-  ClipboardList // 🆕 Icono Gestión Solicitudes
+  ClipboardList, // 🆕 Icono Gestión Solicitudes
+  History // 🆕 Icono Historial
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -104,6 +105,13 @@ const Sidebar = () => {
       path: '/reportes',
       icon: BarChart3,
       roles: ['super_admin', 'admin']
+    },
+    {
+      name: 'Historial', // 🆕 Historial de Rutas
+      path: '/historial',
+      icon: History,
+      roles: ['super_admin', 'admin', 'almacen_rd', 'propietario'],
+      badge: 'Fotos'
     },
     {
       name: 'Tickets de Soporte',
