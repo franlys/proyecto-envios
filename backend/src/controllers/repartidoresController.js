@@ -6,6 +6,7 @@ import { db, storage } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
 import whatsappService from '../services/whatsappService.js';
+import whatsappNotificationService from '../services/whatsappNotificationService.js';
 
 // ==========================================================================
 // HELPER: Generar signed URLs de larga duración para imágenes en emails
@@ -1262,6 +1263,37 @@ export const reportarNoEntrega = async (req, res) => {
       whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
         .then(() => console.log(`📲 Notificación WHATSAPP enviada al remitente: ${remitenteTelefono}`))
         .catch(e => console.error('❌ Error WA Remitente NoEntrega:', e));
+    }
+
+    // ========================================
+    // 📱 NOTIFICAR A ADMIN Y SECRETARIAS (INTERNO)
+    // ========================================
+    try {
+      // Obtener datos de la ruta si existe
+      let rutaCodigo = data.rutaNombre || 'Sin ruta';
+      if (data.rutaId) {
+        try {
+          const rutaDoc = await db.collection('rutas').doc(data.rutaId).get();
+          if (rutaDoc.exists) {
+            rutaCodigo = rutaDoc.data().nombre || data.rutaId;
+          }
+        } catch (e) {
+          console.warn('No se pudo obtener info de ruta:', e.message);
+        }
+      }
+
+      await whatsappNotificationService.notifyEntregaFallida(companyId, {
+        codigoTracking: data.codigoTracking,
+        rutaCodigo,
+        repartidorNombre: nombreRepartidor,
+        motivo: motivoLegible,
+        evidencias: fotos && fotos.length > 0 ? 'Sí' : null,
+        clienteNombre: data.destinatario?.nombre,
+        clienteTelefono: data.destinatario?.telefono
+      });
+      console.log('✅ Notificación de entrega fallida enviada a admin y secretarias');
+    } catch (err) {
+      console.error('❌ Error notificando entrega fallida a equipo interno:', err.message);
     }
 
     res.json({

@@ -12,6 +12,7 @@
 import { db } from '../config/firebase.js';
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 import { sendEmail, generateBrandedEmailHTML } from '../services/notificationService.js';
+import whatsappNotificationService from '../services/whatsappNotificationService.js';
 
 // ========================================
 // MAPEO DE SECTORES A ZONAS
@@ -469,6 +470,48 @@ export const crearRutaAvanzada = async (req, res) => {
       } catch (error) {
         console.error('⚠️ Error preparando notificación de ruta:', error.message);
       }
+    }
+
+    // ========================================
+    // ENVIAR NOTIFICACIÓN WHATSAPP AL REPARTIDOR
+    // ========================================
+    try {
+      // Calcular zona predominante de las facturas
+      const zonas = facturasConOrden
+        .map(f => f.zona)
+        .filter(z => z && z !== 'Sin zona');
+      const zonaPredominante = zonas.length > 0
+        ? zonas.reduce((a, b) =>
+          zonas.filter(z => z === a).length >= zonas.filter(z => z === b).length ? a : b
+        )
+        : 'No especificada';
+
+      await whatsappNotificationService.notifyRouteAssignment(companyId, repartidorId, {
+        codigoRuta: rutaRef.id,
+        tipo: 'entrega',
+        zona: zonaPredominante,
+        totalPaquetes: facturasIds.length,
+        fechaSalida: new Date().toLocaleDateString('es-DO')
+      });
+    } catch (err) {
+      console.error('❌ Error enviando notificación WhatsApp al repartidor:', err.message);
+    }
+
+    // ========================================
+    // NOTIFICAR A CARGADORES VÍA WHATSAPP
+    // ========================================
+    try {
+      for (const cargadorId of cargadoresIds) {
+        await whatsappNotificationService.notifyRouteAssignment(companyId, cargadorId, {
+          codigoRuta: rutaRef.id,
+          tipo: 'carga',
+          zona: direccionCarga || 'Almacén',
+          totalPaquetes: facturasIds.length,
+          fechaSalida: new Date().toLocaleDateString('es-DO')
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error notificando cargadores:', err.message);
     }
 
     // ========================================
