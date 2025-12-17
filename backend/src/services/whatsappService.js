@@ -1,5 +1,5 @@
 import axios from 'axios';
-// import admin from '../config/firebase.js'; // Not used in this file yet
+import { storage } from '../config/firebase.js';
 
 // Constantes de configuración
 // NOTA: En producción (Railway), process.env.EVOLUTION_API_URL debe estar definido.
@@ -11,6 +11,59 @@ const DEFAULT_URL = IS_PRODUCTION
 
 const EVOLUTION_URL = process.env.EVOLUTION_API_URL || DEFAULT_URL;
 const EVOLUTION_KEY = process.env.EVOLUTION_API_KEY || '429683C4C977415CAAFCCE10F7D57E11';
+
+/**
+ * Convierte una URL de Firebase Storage a una URL firmada accesible públicamente
+ * Esto es necesario porque WhatsApp no puede acceder a URLs con tokens de Firebase
+ * @param {string} url - URL de Firebase Storage (puede ser firebasestorage.googleapis.com o storage.googleapis.com)
+ * @returns {Promise<string>} - URL firmada válida por 7 días
+ */
+async function convertToSignedUrl(url) {
+    try {
+        const bucket = storage.bucket();
+        let filePath = url;
+
+        // Si es una URL completa de Firebase Storage, extraer el path
+        if (url.includes('firebasestorage.googleapis.com')) {
+            const urlParts = url.split('/o/')[1];
+            if (urlParts) {
+                filePath = decodeURIComponent(urlParts.split('?')[0]);
+                console.log(`📸 Path extraído para WhatsApp: ${filePath.substring(0, 80)}...`);
+            }
+        } else if (url.includes('storage.googleapis.com')) {
+            // Formato: https://storage.googleapis.com/bucket-name/path
+            const parts = url.split('.googleapis.com/')[1];
+            if (parts) {
+                const pathParts = parts.split('/');
+                pathParts.shift(); // Remover bucket name
+                filePath = pathParts.join('/');
+                console.log(`📸 Path extraído para WhatsApp: ${filePath.substring(0, 80)}...`);
+            }
+        }
+
+        const file = bucket.file(filePath);
+
+        // Verificar si existe
+        const [exists] = await file.exists();
+        if (!exists) {
+            console.error(`❌ Archivo no existe en Storage: ${filePath}`);
+            return url; // Retornar URL original como fallback
+        }
+
+        // Generar signed URL válida por 7 días
+        const [signedUrl] = await file.getSignedUrl({
+            action: 'read',
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 días
+        });
+
+        console.log(`✅ Signed URL generada para WhatsApp (válida 7 días)`);
+        return signedUrl;
+
+    } catch (error) {
+        console.error(`❌ Error generando signed URL para WhatsApp: ${error.message}`);
+        return url; // Retornar URL original como fallback
+    }
+}
 
 /**
  * Servicio para enviar mensajes de WhatsApp vía Evolution API
@@ -175,8 +228,9 @@ class WhatsappService {
 
     /**
      * Envía un archivo multimedia vía URL
-     * Útil proa enviar fotos de Firebase Storage sin descargarlas
-     * 
+     * Útil para enviar fotos de Firebase Storage sin descargarlas
+     * Convierte automáticamente URLs de Firebase a signed URLs accesibles por WhatsApp
+     *
      * @param {string} companyId - ID de la compañía
      * @param {string} phone - Número de teléfono
      * @param {string} mediaUrl - URL pública del archivo
@@ -190,6 +244,11 @@ class WhatsappService {
                 console.warn('⚠️ WhatsappService: Faltan datos para enviar media URL');
                 return false;
             }
+
+            // 🔄 NUEVO: Convertir URL de Firebase Storage a signed URL para WhatsApp
+            console.log(`📸 URL original: ${mediaUrl.substring(0, 100)}...`);
+            const accessibleUrl = await convertToSignedUrl(mediaUrl);
+            console.log(`📸 URL para WhatsApp: ${accessibleUrl.substring(0, 100)}...`);
 
             // 1. Obtener Instancia
             // TODO: Refactorizar esto para no duplicar lógica
@@ -211,7 +270,7 @@ class WhatsappService {
                 formattedPhone = '1' + formattedPhone;
             }
 
-            // 3. Payload
+            // 3. Payload con signed URL
             const payload = {
                 number: formattedPhone,
                 options: { delay: 1000, presence: "composing" },
@@ -219,7 +278,7 @@ class WhatsappService {
                     mediatype: mediaType,
                     // fileName: "evidence", // Opcional
                     caption: caption,
-                    media: mediaUrl
+                    media: accessibleUrl // ✅ Usar signed URL en lugar de la original
                 }
             };
 
@@ -231,7 +290,7 @@ class WhatsappService {
                 headers: { 'apikey': EVOLUTION_KEY }
             });
 
-            console.log('✅ WhatsApp Media URL enviado');
+            console.log('✅ WhatsApp Media URL enviado con signed URL');
             return true;
 
         } catch (error) {
