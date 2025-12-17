@@ -181,12 +181,12 @@ export default function PublicBooking() {
                 // Backend will handle destinatario, pricing, etc.
             };
 
-            const res = await axios.post(`${API_URL}/recolecciones/public`, payload);
+            const res = await axios.post(`${API_URL}/solicitudes/public`, payload);
 
             if (res.data.success) {
                 setSuccess(true);
-                setTrackingCode(res.data.data.codigoTracking);
-                toast.success(`¡Solicitud enviada! Código: ${res.data.data.codigoTracking}`);
+                // Las solicitudes no tienen tracking code hasta que se completan
+                toast.success('¡Solicitud enviada exitosamente! Te contactaremos pronto.');
             }
         } catch (error) {
             console.error('Submit Error:', error);
