@@ -85,7 +85,7 @@ const Sidebar = () => {
       name: 'Gestión Solicitudes', // 🆕 Gestión de Solicitudes de Recolección
       path: '/solicitudes',
       icon: ClipboardList,
-      roles: ['admin', 'secretaria'],
+      roles: ['admin', 'secretaria', 'secretaria_usa'],
       badge: 'Nuevo'
     },
     {

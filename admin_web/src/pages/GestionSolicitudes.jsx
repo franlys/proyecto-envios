@@ -60,6 +60,16 @@ const GestionSolicitudes = () => {
         return () => clearInterval(interval);
     }, [filtroEstado]);
 
+    // Debug logs
+    useEffect(() => {
+        console.log('📊 Estado actual:', {
+            solicitudes: solicitudes.length,
+            solicitudesPendientes: solicitudes.filter(s => s.estado === 'pendiente').length,
+            recolectores: recolectores.length,
+            filtroActual: filtroEstado
+        });
+    }, [solicitudes, recolectores, filtroEstado]);
+
     const fetchSolicitudes = async () => {
         try {
             const params = filtroEstado !== 'todas' ? `?estado=${filtroEstado}` : '';
@@ -205,6 +215,27 @@ const GestionSolicitudes = () => {
                 </button>
             </div>
 
+            {/* Banner de ayuda */}
+            {solicitudesPendientes.length > 0 && recolectores.length > 0 && (
+                <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-600 rounded-lg">
+                            <GripVertical className="text-white" size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-1">
+                                💡 Cómo usar el Drag & Drop
+                            </h3>
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                <strong>1.</strong> Haz clic y mantén presionado sobre una solicitud (izquierda)<br />
+                                <strong>2.</strong> Arrastra hacia un recolector (derecha)<br />
+                                <strong>3.</strong> Suelta cuando veas el mensaje "⬇️ Suelta aquí para asignar"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Filtros */}
             <div className="mb-6 flex gap-2 flex-wrap">
                 {['pendiente', 'asignada', 'completada', 'todas'].map((estado) => (
@@ -218,6 +249,11 @@ const GestionSolicitudes = () => {
                         }`}
                     >
                         {estado.charAt(0).toUpperCase() + estado.slice(1)}
+                        {estado === 'pendiente' && solicitudesPendientes.length > 0 && (
+                            <span className="ml-2 bg-white text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                                {solicitudesPendientes.length}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
