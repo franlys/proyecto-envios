@@ -118,18 +118,26 @@ class WhatsappService {
 
             const instanceName = activeInstance.instance.instanceName || activeInstance.instance.name;
 
-            // 2. Formatear número
-            // Si es RD (809/829/849) o USA (1...), asegurarse de que tenga el 1 delante.
+            // 2. Formatear número para WhatsApp
+            // Evolution API espera formato: número@s.whatsapp.net
+            // Para RD: 1809XXXXXXX@s.whatsapp.net
             let formattedPhone = phone.replace(/\D/g, ''); // Solo dígitos
+
+            // Si el número tiene 10 dígitos y empieza con 809/829/849, agregar prefijo 1
             if (formattedPhone.length === 10 && (formattedPhone.startsWith('809') || formattedPhone.startsWith('829') || formattedPhone.startsWith('849'))) {
                 formattedPhone = '1' + formattedPhone;
             }
 
+            // Si ya tiene 11 dígitos y empieza con 1809/1829/1849, está bien
+            // Si tiene otro formato, dejarlo como está
+
+            const whatsappNumber = `${formattedPhone}@s.whatsapp.net`;
+
             // 3. Enviar mensaje
-            console.log(`📨 Enviando WhatsApp desde ${instanceName} a ${formattedPhone}...`);
+            console.log(`📨 Enviando WhatsApp desde ${instanceName} a ${whatsappNumber}...`);
 
             const sendResponse = await axios.post(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
-                number: formattedPhone,
+                number: whatsappNumber,
                 options: {
                     delay: 1000,
                     presence: "composing",

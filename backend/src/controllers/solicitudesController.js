@@ -259,8 +259,9 @@ export const asignarSolicitud = async (req, res) => {
         }
 
         // Actualizar solicitud
+        // ✅ CORRECCIÓN: Siempre usar 'asignada', sin estado intermedio 'asignada_pendiente'
         const updateData = {
-            estado: esAsignacionManual ? 'asignada_pendiente' : 'asignada', // asignada_pendiente = esperando confirmación
+            estado: 'asignada',
             recolectorId: targetId,
             recolectorNombre: recolectorNombre,
             asignadoPor: asignadoPor,
