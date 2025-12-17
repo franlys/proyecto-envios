@@ -796,7 +796,7 @@ export const finalizarCarga = async (req, res) => {
         const totalFacturas = data.facturas?.length || 0;
         const facturasCompletas = totalFacturas - facturasIncompletas.length;
 
-        await whatsappNotificationService.notifyRouteAssignment(companyId, data.repartidorId, {
+        await whatsappNotificationService.notifyRouteAssignment(data.companyId, data.repartidorId, {
           codigoRuta: data.nombre || rutaId,
           tipo: 'entrega_lista',
           zona,
@@ -808,6 +808,25 @@ export const finalizarCarga = async (req, res) => {
       }
     } catch (err) {
       console.error('❌ Error notificando al repartidor:', err.message);
+      // No fallar la operación por error de notificación
+    }
+
+    // 📱 NOTIFICAR A SECRETARIAS QUE LA RUTA ESTÁ LISTA
+    try {
+      const totalFacturas = data.facturas?.length || 0;
+      const facturasCompletas = totalFacturas - facturasIncompletas.length;
+
+      await whatsappNotificationService.notifySecretariasContenedorReady(data.companyId, {
+        rutaCodigo: data.nombre || rutaId,
+        repartidorNombre: data.repartidorNombre || 'Repartidor',
+        zona: data.zona || 'No especificada',
+        totalFacturas: facturasCompletas,
+        facturasIncompletas: facturasIncompletas.length,
+        fechaCarga: new Date().toISOString()
+      });
+      console.log(`✅ Notificación de ruta lista enviada a secretarias`);
+    } catch (err) {
+      console.error('❌ Error notificando a secretarias:', err.message);
       // No fallar la operación por error de notificación
     }
 

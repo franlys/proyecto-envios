@@ -435,6 +435,68 @@ export const finalizarRuta = async (req, res) => {
 
     await batch.commit();
 
+    // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR
+    try {
+      const { default: whatsappNotificationService } = await import('../services/whatsappNotificationService.js');
+
+      // Calcular datos financieros
+      const gastos = Array.isArray(rutaData.gastos) ? rutaData.gastos : [];
+      const totalGastos = gastos.reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
+
+      // Calcular facturas pagadas y total cobrado (solo las entregadas)
+      let facturasPagadas = 0;
+      let totalFacturasPagadas = 0;
+      let facturasEntregadasCount = 0;
+
+      for (const facturaRuta of facturasEnRuta) {
+        if (facturaRuta && facturaRuta.estado === 'entregada') {
+          facturasEntregadasCount++;
+          // Obtener datos de pago de la factura
+          const facturaId = facturaRuta.facturaId || facturaRuta.id;
+          try {
+            const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+            if (facturaDoc.exists) {
+              const facturaData = facturaDoc.data();
+              const pago = facturaData.pago || {};
+              if (pago.estado === 'pagada' || pago.montoPendiente === 0) {
+                facturasPagadas++;
+                totalFacturasPagadas += parseFloat(pago.montoPagado || pago.total || 0);
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error obteniendo datos de pago de factura ${facturaId}:`, error.message);
+          }
+        }
+      }
+
+      const reporteData = {
+        rutaCodigo: rutaId,
+        montoAsignado: parseFloat(rutaData.montoAsignado) || 0,
+        gastos: gastos,
+        totalGastos: totalGastos,
+        facturasPagadas: facturasPagadas,
+        totalFacturasPagadas: totalFacturasPagadas,
+        totalCobrado: totalFacturasPagadas,
+        dineroAEntregar: totalFacturasPagadas - totalGastos,
+        facturasEntregadas: facturasEntregadasCount,
+        totalFacturas: facturasEnRuta.length
+      };
+
+      // Obtener companyId del usuario que cierra la ruta
+      const userData = await getUserDataSafe(req.user?.uid || req.userData?.uid);
+      if (userData?.companyId && rutaData.repartidorId) {
+        await whatsappNotificationService.sendFinancialReportOnRouteClose(
+          userData.companyId,
+          rutaData.repartidorId,
+          reporteData
+        );
+        console.log('✅ Reporte financiero enviado al repartidor');
+      }
+    } catch (error) {
+      console.error('⚠️ Error enviando reporte financiero:', error);
+      // No fallar el cierre de ruta por error en notificación
+    }
+
     // 3. Respuesta final
     res.json({
       success: true,
@@ -644,6 +706,61 @@ export const cerrarRuta = async (req, res) => {
       fechaCierre: new Date().toISOString(),
       facturasNoEntregadas: 0
     });
+
+    // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR
+    try {
+      const { default: whatsappNotificationService } = await import('../services/whatsappNotificationService.js');
+
+      // Calcular datos financieros
+      const gastos = Array.isArray(rutaData.gastos) ? rutaData.gastos : [];
+      const totalGastos = gastos.reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
+
+      // Calcular facturas pagadas y total cobrado
+      let facturasPagadas = 0;
+      let totalFacturasPagadas = 0;
+
+      for (const facturaRuta of facturasEnRuta) {
+        if (facturaRuta && facturaRuta.estado === 'entregada') {
+          // Obtener datos de pago de la factura
+          const facturaId = facturaRuta.facturaId || facturaRuta.id;
+          const facturaDoc = await db.collection('recolecciones').doc(facturaId).get();
+          if (facturaDoc.exists) {
+            const facturaData = facturaDoc.data();
+            const pago = facturaData.pago || {};
+            if (pago.estado === 'pagada' || pago.montoPendiente === 0) {
+              facturasPagadas++;
+              totalFacturasPagadas += parseFloat(pago.montoPagado || pago.total || 0);
+            }
+          }
+        }
+      }
+
+      const reporteData = {
+        rutaCodigo: rutaId,
+        montoAsignado: parseFloat(rutaData.montoAsignado) || 0,
+        gastos: gastos,
+        totalGastos: totalGastos,
+        facturasPagadas: facturasPagadas,
+        totalFacturasPagadas: totalFacturasPagadas,
+        totalCobrado: totalFacturasPagadas,
+        dineroAEntregar: totalFacturasPagadas - totalGastos,
+        facturasEntregadas: facturasEnRuta.length,
+        totalFacturas: facturasEnRuta.length
+      };
+
+      const userData = await getUserDataSafe(req.userData.uid);
+      if (userData?.companyId && rutaData.repartidorId) {
+        await whatsappNotificationService.sendFinancialReportOnRouteClose(
+          userData.companyId,
+          rutaData.repartidorId,
+          reporteData
+        );
+        console.log('✅ Reporte financiero enviado al repartidor');
+      }
+    } catch (error) {
+      console.error('⚠️ Error enviando reporte financiero:', error);
+      // No fallar el cierre de ruta por error en notificación
+    }
 
     res.json({ success: true, message: 'Ruta cerrada exitosamente' });
   } catch (e) {

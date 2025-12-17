@@ -639,6 +639,23 @@ export const cerrarContenedor = async (req, res) => {
 
     console.log(`✅ Contenedor ${contenedorId} cerrado: ${facturasActualizadas}/${(contenedor.facturas || []).length} facturas`);
 
+    // 📱 NOTIFICAR A ALMACÉN RD QUE EL CONTENEDOR ESTÁ EN TRÁNSITO
+    try {
+      const { default: whatsappNotificationService } = await import('../services/whatsappNotificationService.js');
+
+      await whatsappNotificationService.notifyAlmacenRDContenedorEnTransito(companyId, {
+        numeroContenedor: contenedor.numeroContenedor,
+        totalFacturas: contenedor.facturas?.length || 0,
+        facturasCompletas: estadoFacturas.completas,
+        facturasIncompletas: estadoFacturas.incompletas,
+        fechaCierre: new Date().toISOString()
+      });
+      console.log('✅ Notificación enviada a Almacén RD');
+    } catch (error) {
+      console.error('⚠️ Error enviando notificación a Almacén RD:', error);
+      // No fallar el cierre por error de notificación
+    }
+
     // ✅ ENVIAR NOTIFICACIÓN A TODOS LOS REMITENTES (en segundo plano)
     if (contenedor.facturas && Array.isArray(contenedor.facturas)) {
       // Obtener configuración de la compañía
