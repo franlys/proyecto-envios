@@ -797,11 +797,85 @@ export const getHistorialRutas = async (req, res) => {
 
     console.log(`✅ Historial cargado: ${rutas.length} rutas`);
 
-    res.json({
-      success: true,
-      rutas,
-      total: rutas.length
-    });
+    // ✅ NUEVO: Incluir solicitudes de recolección (citas del Call Center y Bot WhatsApp)
+    try {
+      const solicitudesSnapshot = await db.collection('solicitudes_recoleccion')
+        .where('companyId', '==', companyId)
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
+
+      console.log(`📋 Encontradas ${solicitudesSnapshot.size} solicitudes de recolección`);
+
+      const solicitudesPromises = solicitudesSnapshot.docs.map(async (doc) => {
+        const solicitudData = doc.data();
+
+        // Obtener nombre del recolector si está asignada
+        let recolectorNombre = 'Sin asignar';
+        if (solicitudData.recolectorId) {
+          try {
+            const recolectorDoc = await db.collection('usuarios').doc(solicitudData.recolectorId).get();
+            if (recolectorDoc.exists) {
+              recolectorNombre = recolectorDoc.data().nombre;
+            }
+          } catch (err) {
+            console.warn(`⚠️ Error obteniendo recolector ${solicitudData.recolectorId}:`, err.message);
+          }
+        }
+
+        return {
+          id: doc.id,
+          nombre: `Solicitud de ${solicitudData.cliente?.nombre || 'Cliente'}`,
+          tipo: 'recoleccion',
+          estado: solicitudData.estado || 'pendiente',
+          repartidorId: solicitudData.recolectorId || null,
+          repartidorNombre,
+          numeroContenedor: null,
+          zona: solicitudData.ubicacion?.sector || '',
+          direccionCarga: solicitudData.ubicacion?.direccion || '',
+          fechaCreacion: solicitudData.createdAt,
+          fechaSalida: solicitudData.programacion?.fecha || null,
+          fechaCierre: null,
+          fechaFinalizacion: solicitudData.updatedAt,
+          facturas: [],
+          fotos: [],
+          historial: [],
+          notas: solicitudData.notas || '',
+          totalPaquetes: 0,
+          // ✅ Identificador especial para distinguirlas en el frontend
+          esSolicitud: true,
+          clienteNombre: solicitudData.cliente?.nombre || '',
+          clienteTelefono: solicitudData.cliente?.telefono || '',
+          horaPreferida: solicitudData.programacion?.hora || ''
+        };
+      });
+
+      const solicitudes = await Promise.all(solicitudesPromises);
+
+      // Combinar rutas y solicitudes, ordenar por fecha
+      const todosLosItems = [...rutas, ...solicitudes].sort((a, b) => {
+        const fechaA = new Date(a.fechaCreacion);
+        const fechaB = new Date(b.fechaCreacion);
+        return fechaB - fechaA; // Más recientes primero
+      });
+
+      console.log(`✅ Total combinado: ${todosLosItems.length} items (${rutas.length} rutas + ${solicitudes.length} solicitudes)`);
+
+      res.json({
+        success: true,
+        rutas: todosLosItems, // Nombre mantenido como 'rutas' para compatibilidad con frontend
+        total: todosLosItems.length
+      });
+    } catch (solicitudError) {
+      console.error('⚠️ Error cargando solicitudes, devolviendo solo rutas:', solicitudError);
+
+      // Fallback: si falla la carga de solicitudes, devolver solo rutas
+      res.json({
+        success: true,
+        rutas,
+        total: rutas.length
+      });
+    }
 
   } catch (error) {
     console.error('❌ Error obteniendo historial de rutas:', error);
