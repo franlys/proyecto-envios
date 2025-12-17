@@ -65,14 +65,14 @@ export const empleadoController = {
       // Validar roles según quien crea
       let validRoles = [];
       if (userData.rol === 'super_admin') {
-        // ✅ AÑADIDO 'cargador'
-        validRoles = ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
+        // ✅ Todos los roles incluyendo recolector, secretaria_usa, almacen_rd, almacen_usa, admin_general
+        validRoles = ['super_admin', 'propietario', 'admin_general', 'admin', 'secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador'];
       } else if (userData.rol === 'propietario' || userData.rol === 'admin_general') {
         // ✅ Propietario y admin_general pueden crear todos los roles excepto super_admin
-        validRoles = ['admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
-      } else if (userData.rol === 'admin' || userData.rol === 'admin_general') {
-        // ✅ AÑADIDO 'cargador' y 'admin_general'
-        validRoles = ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
+        validRoles = ['admin_general', 'admin', 'secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador'];
+      } else if (userData.rol === 'admin') {
+        // ✅ Admin puede crear roles operativos
+        validRoles = ['secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador'];
       } else {
         return res.status(403).json({
           success: false,
@@ -344,15 +344,15 @@ export const empleadoController = {
       if (whatsappPersonal !== undefined) updateData.whatsappPersonal = whatsappPersonal;
       if (whatsappFlota !== undefined) updateData.whatsappFlota = whatsappFlota;
       if (rol) {
-        // ✅ AÑADIDO 'cargador' y propietario
+        // ✅ Validar roles permitidos para actualizar según el rol del usuario
         const validRoles = (userData.rol === 'super_admin' || userData.rol === 'propietario')
-          ? ['super_admin', 'admin', 'secretaria', 'almacen', 'repartidor', 'empleado', 'cargador']
-          : ['secretaria', 'almacen', 'repartidor', 'empleado', 'cargador'];
+          ? ['super_admin', 'propietario', 'admin_general', 'admin', 'secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador']
+          : ['secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador'];
 
         if (!validRoles.includes(rol)) {
           return res.status(400).json({
             success: false,
-            error: 'Rol inválido'
+            error: `Rol inválido. Roles permitidos: ${validRoles.join(', ')}`
           });
         }
         updateData.rol = rol;
