@@ -8,7 +8,8 @@ import { Loader2, Package, MapPin, Upload, Search, ArrowRight, Calendar, Camera,
 import axios from 'axios';
 
 // Backend URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost/5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+console.log('PublicBooking using API_URL:', API_URL);
 
 export default function PublicBooking() {
     const { companyId } = useParams();

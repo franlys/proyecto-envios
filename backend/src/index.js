@@ -139,7 +139,8 @@ app.use('/api/whatsapp', whatsappRoutes); // ✅ Proxy Público (protegido por C
 // ⚠️ RUTAS OPERATIVAS - Requieren Plan Activo (mínimo Plan Operativo)
 // Estas rutas están protegidas por el middleware checkPlanActivo
 // IMPORTANTE: verifyToken debe ejecutarse ANTES de checkPlanActivo
-app.use('/api/companies', verifyToken, checkPlanActivo, companiesRoutes);
+// La autenticación se maneja internamente en companiesRoutes para permitir rutas públicas
+app.use('/api/companies', companiesRoutes);
 app.use('/api/empleados', verifyToken, checkPlanActivo, empleadosRoutes);
 app.use('/api/reportes', verifyToken, checkPlanActivo, reportesRoutes);
 app.use('/api/embarques', verifyToken, checkPlanActivo, embarquesRoutes);

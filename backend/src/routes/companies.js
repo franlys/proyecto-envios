@@ -1,39 +1,11 @@
 // backend/src/routes/companies.js
 import express from 'express';
-import { verifyToken, checkRole } from '../middleware/auth.js';
-import multer from 'multer';
-import { db } from '../config/firebase.js';
-import {
-  createCompany,
-  getAllCompanies,
-  getCompanyById,
-  getPublicCompanyInfo,
-  updateCompany,
-  updateMyCompany,
-  toggleCompany,
-  resetUserPassword,
-  deleteCompany,
-  uploadCompanyLogo,
-  updateCompanyNCFConfig
-} from '../controllers/companyController.js';
-import { getReporte606 } from '../controllers/reporteFiscalController.js';
+import { checkPlanActivo } from '../middleware/checkPlanActivo.js';
 
-// Configurar multer para almacenar archivos en memoria
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024 // Límite de 5MB
-  },
-  fileFilter: (req, file, cb) => {
-    // Solo permitir imágenes
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten archivos de imagen'));
-    }
-  }
-});
+// ... (imports)
 
+// Configurar multer...
+// ...
 const router = express.Router();
 
 /**
@@ -45,6 +17,7 @@ router.get('/public/:id', getPublicCompanyInfo);
 
 // Aplicar autenticación a todas las rutas siguientes
 router.use(verifyToken);
+router.use(checkPlanActivo); // ✅ Validar plan activo para rutas protegidas
 
 /**
  * GET /api/companies
