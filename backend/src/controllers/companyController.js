@@ -182,7 +182,45 @@ export const getAllCompanies = async (req, res) => {
   }
 };
 
-// Obtener compañía por ID
+// Obtener información pública de una compañía (sin autenticación)
+export const getPublicCompanyInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const companyDoc = await db.collection('companies').doc(id).get();
+
+    if (!companyDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Compañía no encontrada'
+      });
+    }
+
+    const companyData = companyDoc.data();
+
+    // Retornar solo información pública (no datos sensibles)
+    res.json({
+      success: true,
+      data: {
+        id: companyDoc.id,
+        nombre: companyData.nombre,
+        telefono: companyData.telefono,
+        supportPhone: companyData.supportPhone,
+        direccion: companyData.direccion,
+        activo: companyData.activo !== false,
+        invoiceDesign: companyData.invoiceDesign || {}
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo información pública de compañía:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// Obtener compañía por ID (requiere autenticación)
 export const getCompanyById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -547,6 +585,69 @@ export const uploadCompanyLogo = async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+};
+
+// Actualizar configuración de compañía (admin_general puede actualizar su propia compañía)
+export const updateMyCompany = async (req, res) => {
+  try {
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
+    if (!userDoc.exists) {
+      return res.status(403).json({ success: false, error: 'Usuario no encontrado' });
+    }
+
+    const userData = userDoc.data();
+    const companyId = userData.companyId;
+
+    if (!companyId) {
+      return res.status(403).json({ success: false, error: 'Usuario sin compañía asignada' });
+    }
+
+    // Validar que el usuario sea admin_general de su compañía
+    if (userData.rol !== 'admin_general' && userData.rol !== 'super_admin') {
+      return res.status(403).json({ success: false, error: 'Solo admin_general puede actualizar la configuración de la compañía' });
+    }
+
+    const { nombre, telefono, supportPhone, direccion, emailConfig, invoiceDesign } = req.body;
+
+    const updates = {};
+    if (nombre !== undefined) updates.nombre = nombre;
+    if (telefono !== undefined) updates.telefono = telefono;
+    if (supportPhone !== undefined) updates.supportPhone = supportPhone;
+    if (direccion !== undefined) updates.direccion = direccion;
+
+    // Actualización parcial de emailConfig
+    if (emailConfig !== undefined) {
+      updates.emailConfig = {
+        service: emailConfig.service || 'gmail',
+        user: emailConfig.user || '',
+        pass: emailConfig.pass || '',
+        from: emailConfig.from || emailConfig.user || ''
+      };
+    }
+
+    // Actualización parcial de invoiceDesign
+    if (invoiceDesign !== undefined) {
+      updates.invoiceDesign = {
+        logoUrl: invoiceDesign.logoUrl || '',
+        primaryColor: invoiceDesign.primaryColor || '#1976D2',
+        secondaryColor: invoiceDesign.secondaryColor || '#f5f5f5',
+        template: invoiceDesign.template || 'modern',
+        headerText: invoiceDesign.headerText || 'Gracias por su preferencia',
+        footerText: invoiceDesign.footerText || ''
+      };
+    }
+
+    updates.updatedAt = new Date().toISOString();
+
+    await db.collection('companies').doc(companyId).update(updates);
+
+    console.log(`✅ Compañía ${companyId} actualizada por admin_general ${userData.nombre}`);
+
+    res.json({ success: true, message: 'Compañía actualizada exitosamente' });
+  } catch (error) {
+    console.error('Error actualizando compañía:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

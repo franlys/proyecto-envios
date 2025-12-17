@@ -183,12 +183,12 @@ export const getSolicitudes = async (req, res) => {
         // Por seguridad fall-back, ordenamos en memoria si falla.
 
         try {
-            query = query.orderBy('createdAt', 'desc');
-            const snapshot = await query.get();
+            const queryConOrden = query.orderBy('createdAt', 'desc');
+            const snapshot = await queryConOrden.get();
             const solicitudes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             return res.json({ success: true, data: solicitudes });
         } catch (error) {
-            // Fallback sin order by
+            // Fallback sin order by (usa la query ORIGINAL sin .orderBy)
             const snapshot = await query.get();
             const solicitudes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             solicitudes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

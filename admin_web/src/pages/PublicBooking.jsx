@@ -49,19 +49,17 @@ export default function PublicBooking() {
     const fetchCompany = async () => {
         try {
             if (!companyId) return;
-            // In Client-SDK, accessing 'companies/{id}' usually requires Rules allowing read.
-            // Assuming public read is allowed for basic info, or we use a backend endpoint.
-            // Let's try direct SDK first. If it fails, we need a backend endpoint for getting public company info.
-            const docRef = doc(db, 'companies', companyId);
-            const snap = await getDoc(docRef);
-            if (snap.exists()) {
-                setCompany(snap.data());
+            // ✅ Usar endpoint público del backend en lugar de acceso directo a Firestore
+            const response = await axios.get(`${API_URL}/companies/public/${companyId}`);
+
+            if (response.data.success) {
+                setCompany(response.data.data);
             } else {
                 toast.error('Empresa no encontrada');
             }
         } catch (error) {
             console.error('Error fetching company:', error);
-            // Fallback: Show generic error
+            toast.error('No se pudo cargar la información de la empresa');
         } finally {
             setLoadingCompany(false);
         }

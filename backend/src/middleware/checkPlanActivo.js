@@ -48,7 +48,8 @@ export const checkPlanActivo = async (req, res, next) => {
     const companyData = companyDoc.data();
 
     // Verificar que la empresa esté activa
-    if (!companyData.active) {
+    // ✅ CORRECCIÓN: Usar 'activo' (español) en lugar de 'active' (inglés)
+    if (companyData.activo === false) {
       return res.status(403).json({
         success: false,
         message: 'La empresa está inactiva. Contacte al administrador.',

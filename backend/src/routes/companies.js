@@ -7,7 +7,9 @@ import {
   createCompany,
   getAllCompanies,
   getCompanyById,
+  getPublicCompanyInfo,
   updateCompany,
+  updateMyCompany,
   toggleCompany,
   resetUserPassword,
   deleteCompany,
@@ -34,7 +36,14 @@ const upload = multer({
 
 const router = express.Router();
 
-// Aplicar autenticación a todas las rutas
+/**
+ * GET /api/companies/public/:id
+ * Obtener información pública de una compañía (SIN autenticación)
+ * IMPORTANTE: Esta ruta debe ir ANTES de router.use(verifyToken)
+ */
+router.get('/public/:id', getPublicCompanyInfo);
+
+// Aplicar autenticación a todas las rutas siguientes
 router.use(verifyToken);
 
 /**
@@ -198,6 +207,12 @@ router.get('/:id', getCompanyById);
  * Crear nueva compañía (solo super_admin)
  */
 router.post('/', createCompany);
+
+/**
+ * PUT /api/companies/my-company
+ * Actualizar configuración de la propia compañía (admin_general)
+ */
+router.put('/my-company', updateMyCompany);
 
 /**
  * PUT /api/companies/:id
