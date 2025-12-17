@@ -1028,6 +1028,59 @@ export const actualizarRecoleccion = async (req, res) => {
     const docActualizado = await recoleccionRef.get();
     const dataActualizada = docActualizado.data();
 
+    // 🟢 NOTIFICACIÓN WHATSAPP cuando secretaria actualiza información
+    const remitenteTelefono = dataActualizada.remitente?.telefono;
+    if (remitenteTelefono && Object.keys(dataToUpdate).length > 1) { // > 1 porque siempre hay fechaActualizacion
+      const camposActualizadosTexto = Object.keys(dataToUpdate)
+        .filter(k => k !== 'fechaActualizacion' && k !== 'historial')
+        .map(campo => {
+          if (campo.includes('remitente.')) return campo.replace('remitente.', 'tu ');
+          if (campo.includes('destinatario.')) return campo.replace('destinatario.', 'destinatario ');
+          if (campo.includes('pago.')) return campo.replace('pago.', 'pago ');
+          if (campo.includes('facturacion.')) return campo.replace('facturacion.', 'facturación ');
+          return campo;
+        })
+        .join(', ');
+
+      let mensajeWhatsapp = `📝 *Actualización de Información*\n\nHola *${dataActualizada.remitente?.nombre}*,\n\nSe ha actualizado la información de tu envío:\n\n📦 *Tracking:* ${dataActualizada.codigoTracking}\n✏️ *Campos actualizados:* ${camposActualizadosTexto}\n\n`;
+
+      // Mostrar información relevante actualizada
+      if (dataToUpdate['destinatario.nombre'] || dataToUpdate['destinatario.telefono'] || dataToUpdate['destinatario.direccion']) {
+        mensajeWhatsapp += `👤 *Destinatario actualizado:*\n`;
+        mensajeWhatsapp += `   Nombre: ${dataActualizada.destinatario?.nombre}\n`;
+        if (dataToUpdate['destinatario.telefono']) {
+          mensajeWhatsapp += `   Teléfono: ${dataActualizada.destinatario?.telefono}\n`;
+        }
+        if (dataToUpdate['destinatario.direccion']) {
+          mensajeWhatsapp += `   Dirección: ${dataActualizada.destinatario?.direccion}\n`;
+        }
+        mensajeWhatsapp += '\n';
+      }
+
+      if (dataToUpdate['facturacion.total'] || dataToUpdate['pago.estado']) {
+        mensajeWhatsapp += `💰 *Información de pago:*\n`;
+        if (dataToUpdate['facturacion.total']) {
+          mensajeWhatsapp += `   Total: $${dataActualizada.facturacion?.total?.toFixed(2)}\n`;
+        }
+        if (dataToUpdate['pago.estado']) {
+          const estadoPago = dataActualizada.pago?.estado === 'pagada' ? 'Pagada ✅' :
+            dataActualizada.pago?.estado === 'parcial' ? 'Pago Parcial ⚠️' : 'Pendiente ⏳';
+          mensajeWhatsapp += `   Estado: ${estadoPago}\n`;
+        }
+        if (dataActualizada.pago?.montoPendiente && dataActualizada.pago.montoPendiente > 0) {
+          mensajeWhatsapp += `   Pendiente: $${dataActualizada.pago.montoPendiente.toFixed(2)}\n`;
+        }
+        mensajeWhatsapp += '\n';
+      }
+
+      mensajeWhatsapp += `📅 *Última actualización:* ${new Date().toLocaleString('es-DO')}\n\nGracias por confiar en nosotros.`;
+
+      // Enviar notificación de forma asíncrona
+      whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
+        .then(() => console.log(`✅ Notificación de actualización enviada a ${remitenteTelefono}`))
+        .catch(err => console.error(`❌ Error enviando notificación de actualización:`, err));
+    }
+
     res.json({
       success: true,
       message: 'Recolección actualizada exitosamente',
