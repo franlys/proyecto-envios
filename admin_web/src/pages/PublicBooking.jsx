@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '../services/firebase';
+import { db, storage } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
-import { Loader2, Package, MapPin, Upload, Search, ArrowRight, Calendar, Camera } from 'lucide-react';
+import { Loader2, Package, MapPin, Upload, Search, ArrowRight, Calendar, Camera, X } from 'lucide-react';
 import axios from 'axios';
 
 // Backend URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost/5000/api';
 
 export default function PublicBooking() {
     const { companyId } = useParams();
@@ -19,6 +20,7 @@ export default function PublicBooking() {
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [trackingCode, setTrackingCode] = useState('');
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
     // Form State - Simplified for customer pickup requests
     const [formData, setFormData] = useState({
@@ -87,6 +89,72 @@ export default function PublicBooking() {
             ...formData,
             items: formData.items.filter((_, i) => i !== index)
         });
+    };
+
+    const handlePhotoUpload = async (e) => {
+        const files = Array.from(e.target.files);
+
+        if (files.length === 0) return;
+
+        // Validar que no sean más de 5 fotos en total
+        if (formData.fotos.length + files.length > 5) {
+            toast.error('Máximo 5 fotos permitidas');
+            return;
+        }
+
+        // Validar tamaño (máximo 5MB por foto)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        for (const file of files) {
+            if (file.size > maxSize) {
+                toast.error(`La foto "${file.name}" es muy grande. Máximo 5MB por foto.`);
+                return;
+            }
+        }
+
+        setUploadingPhotos(true);
+        toast.info('Subiendo fotos...');
+
+        try {
+            const uploadPromises = files.map(async (file) => {
+                // Generar nombre único para la foto
+                const timestamp = Date.now();
+                const random = Math.floor(Math.random() * 10000);
+                const fileName = `solicitudes/${companyId}/${timestamp}-${random}-${file.name}`;
+
+                // Crear referencia en Firebase Storage
+                const storageRef = ref(storage, fileName);
+
+                // Subir archivo
+                await uploadBytes(storageRef, file);
+
+                // Obtener URL de descarga
+                const downloadURL = await getDownloadURL(storageRef);
+
+                return downloadURL;
+            });
+
+            const urls = await Promise.all(uploadPromises);
+
+            setFormData({
+                ...formData,
+                fotos: [...formData.fotos, ...urls]
+            });
+
+            toast.success(`${files.length} foto(s) subida(s) correctamente`);
+        } catch (error) {
+            console.error('Error uploading photos:', error);
+            toast.error('Error al subir las fotos. Intenta nuevamente.');
+        } finally {
+            setUploadingPhotos(false);
+        }
+    };
+
+    const handleRemovePhoto = (index) => {
+        setFormData({
+            ...formData,
+            fotos: formData.fotos.filter((_, i) => i !== index)
+        });
+        toast.success('Foto eliminada');
     };
 
     const handleSubmit = async (e) => {
@@ -392,11 +460,62 @@ export default function PublicBooking() {
                             <Camera className="w-5 h-5 text-[color:var(--primary)]" />
                             Fotos (Opcional)
                         </h3>
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[color:var(--primary)] transition-colors cursor-pointer">
-                            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600">Próximamente: Sube fotos de tus artículos</p>
-                            <p className="text-xs text-gray-400 mt-1">Esto ayudará a nuestros recolectores a prepararse mejor</p>
-                        </div>
+
+                        {/* Fotos ya subidas */}
+                        {formData.fotos.length > 0 && (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                                {formData.fotos.map((url, index) => (
+                                    <div key={index} className="relative group">
+                                        <img
+                                            src={url}
+                                            alt={`Foto ${index + 1}`}
+                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemovePhoto(index)}
+                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Input para subir fotos */}
+                        <label
+                            className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[color:var(--primary)] transition-colors cursor-pointer block ${uploadingPhotos ? 'opacity-50 pointer-events-none' : ''}`}
+                        >
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handlePhotoUpload}
+                                className="hidden"
+                                disabled={uploadingPhotos || formData.fotos.length >= 5}
+                            />
+                            {uploadingPhotos ? (
+                                <>
+                                    <Loader2 className="w-8 h-8 text-indigo-600 mx-auto mb-2 animate-spin" />
+                                    <p className="text-sm text-gray-600">Subiendo fotos...</p>
+                                </>
+                            ) : (
+                                <>
+                                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-600">
+                                        {formData.fotos.length >= 5
+                                            ? 'Máximo 5 fotos alcanzado'
+                                            : 'Toca para subir fotos de tus artículos'}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        {formData.fotos.length >= 5
+                                            ? 'Elimina algunas fotos para subir más'
+                                            : `Máximo 5 fotos, 5MB cada una (${formData.fotos.length}/5)`}
+                                    </p>
+                                </>
+                            )}
+                        </label>
                     </div>
 
                     {/* Notas Adicionales */}
