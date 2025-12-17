@@ -375,6 +375,9 @@ app.listen(PORT, () => {
   console.log(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 CORS configurado para Vercel`);
   console.log(`✅ Backend 100% Completo - v4.2.0 (CON VALIDACIÓN DE PLANES)`);
+
+  // ⏰ Inicializar trabajos programados (cron jobs)
+  initCronJobs();
   console.log('\n📋 Sistemas Activos:');
   console.log('   ✅ Sistema Base (Auth, Companies, Empleados, etc.)');
   console.log('   ✅ Sistema de Recolecciones (Fase 1)');

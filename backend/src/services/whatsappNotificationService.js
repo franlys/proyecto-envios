@@ -203,7 +203,13 @@ class WhatsAppNotificationService {
         }
       });
 
-      mensaje += `\n\n🔄 Estas entregas necesitan reasignación.\n💡 Contacta a los clientes para coordinar nueva entrega.`;
+      mensaje += `\n\n🔄 *Estas entregas necesitan reasignación.*\n\n`;
+      mensaje += `💬 *COMANDOS DISPONIBLES:*\n`;
+      mensaje += `• Escribe \`lista\` - Ver todas las fallidas\n`;
+      mensaje += `• Escribe \`info EMI-XXXX\` - Ver detalles\n`;
+      mensaje += `• Escribe \`reasignar EMI-XXXX\` - Reasignar una\n`;
+      mensaje += `• Escribe \`reasignar todo\` - Reasignar todas\n\n`;
+      mensaje += `📱 _Puedes gestionar todo desde WhatsApp._`;
 
       // Enviar a secretarias
       const secretarias = await this.getUsersByRole(companyId, ['secretaria', 'secretaria_usa']);
@@ -226,6 +232,105 @@ class WhatsAppNotificationService {
       }
     } catch (error) {
       console.error('❌ Error enviando reporte diario:', error);
+    }
+  }
+
+  /**
+   * 💰 Envía reporte financiero detallado al repartidor al cerrar ruta
+   * @param {string} companyId - ID de la compañía
+   * @param {string} repartidorId - ID del repartidor
+   * @param {Object} reporteData - Datos del reporte financiero
+   */
+  async sendFinancialReportOnRouteClose(companyId, repartidorId, reporteData) {
+    try {
+      const {
+        rutaCodigo,
+        montoAsignado,
+        gastos,
+        totalGastos,
+        facturasPagadas,
+        totalFacturasPagadas,
+        totalCobrado,
+        dineroAEntregar,
+        facturasEntregadas,
+        totalFacturas
+      } = reporteData;
+
+      // Obtener datos del repartidor
+      const repartidorDoc = await db.collection('usuarios').doc(repartidorId).get();
+      if (!repartidorDoc.exists) {
+        console.warn(`⚠️ Repartidor ${repartidorId} no encontrado`);
+        return;
+      }
+
+      const repartidorData = repartidorDoc.data();
+      const whatsappNumber = repartidorData.whatsappFlota || repartidorData.whatsapp;
+
+      if (!whatsappNumber) {
+        console.warn(`⚠️ Repartidor ${repartidorData.nombre} no tiene WhatsApp configurado`);
+        return;
+      }
+
+      // Construir mensaje de reporte financiero
+      let mensaje = `💼 *REPORTE FINANCIERO DE RUTA*\n\n`;
+      mensaje += `🚚 *Ruta:* ${rutaCodigo}\n`;
+      mensaje += `📅 *Fecha:* ${new Date().toLocaleDateString('es-DO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+      mensaje += `⏰ *Hora de cierre:* ${new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}\n\n`;
+
+      // Resumen de entregas
+      mensaje += `📦 *RESUMEN DE ENTREGAS*\n`;
+      mensaje += `   • Total de facturas: ${totalFacturas}\n`;
+      mensaje += `   • Facturas entregadas: ${facturasEntregadas}\n`;
+      mensaje += `   • Facturas pagadas: ${facturasPagadas}\n\n`;
+
+      // Detalle financiero
+      mensaje += `💰 *DETALLE FINANCIERO*\n\n`;
+      mensaje += `💵 *Monto asignado:* $${montoAsignado.toFixed(2)}\n\n`;
+
+      // Gastos detallados
+      if (gastos && gastos.length > 0) {
+        mensaje += `📝 *Gastos realizados:*\n`;
+        gastos.forEach((gasto, index) => {
+          mensaje += `   ${index + 1}. ${gasto.tipo}: $${gasto.monto.toFixed(2)}\n`;
+          if (gasto.descripcion) {
+            mensaje += `      _${gasto.descripcion}_\n`;
+          }
+        });
+        mensaje += `   ─────────────────\n`;
+        mensaje += `   *Total gastos:* $${totalGastos.toFixed(2)}\n\n`;
+      } else {
+        mensaje += `✅ *No se registraron gastos*\n\n`;
+      }
+
+      // Total cobrado
+      mensaje += `💵 *Total cobrado (facturas pagadas):* $${totalFacturasPagadas.toFixed(2)}\n\n`;
+
+      // Cálculo final
+      mensaje += `═══════════════════\n`;
+      mensaje += `🧮 *CÁLCULO FINAL*\n`;
+      mensaje += `   Cobrado: $${totalFacturasPagadas.toFixed(2)}\n`;
+      mensaje += `   Gastos: -$${totalGastos.toFixed(2)}\n`;
+      mensaje += `   ─────────────────\n`;
+
+      const dineroFinal = totalFacturasPagadas - totalGastos;
+      if (dineroFinal >= 0) {
+        mensaje += `💰 *Dinero a entregar:* $${dineroFinal.toFixed(2)}\n`;
+      } else {
+        mensaje += `⚠️ *Déficit:* $${Math.abs(dineroFinal).toFixed(2)}\n`;
+        mensaje += `   _(Gastos excedieron lo cobrado)_\n`;
+      }
+      mensaje += `═══════════════════\n\n`;
+
+      mensaje += `✅ *Ruta completada exitosamente*\n`;
+      mensaje += `📍 Pasa por la oficina para hacer entrega del dinero y revisar la ruta.\n\n`;
+      mensaje += `¡Excelente trabajo! 👏`;
+
+      // Enviar mensaje
+      await whatsappService.sendMessage(companyId, whatsappNumber, mensaje);
+      console.log(`✅ Reporte financiero enviado a repartidor ${repartidorData.nombre} (${whatsappNumber})`);
+
+    } catch (error) {
+      console.error('❌ Error enviando reporte financiero:', error);
     }
   }
 

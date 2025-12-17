@@ -20,6 +20,17 @@ export const initCronJobs = () => {
 
     // Log de inicio
     console.log('✅ Tarea Programada: Recordatorio de Pagos (09:00 AM)');
+
+    // 2. REPORTE DIARIO DE ENTREGAS FALLIDAS (Diario a las 8:00 PM)
+    // Sintaxis: '0 20 * * *' = Minuto 0, Hora 20 (8:00 PM), Cualquier día
+    cron.schedule('0 20 * * *', async () => {
+        console.log('⏰ Ejecutando Reporte Diario de Entregas Fallidas...');
+        await sendDailyFailedDeliveriesReport();
+    }, {
+        timezone: "America/Santo_Domingo"
+    });
+
+    console.log('✅ Tarea Programada: Reporte Diario de Entregas Fallidas (08:00 PM)');
 };
 
 // Lógica de Cobranza
@@ -77,5 +88,87 @@ const checkAndSendPaymentReminders = async () => {
 
     } catch (error) {
         console.error('❌ Error fatal en Cron de Cobranza:', error);
+    }
+};
+
+// ==========================================
+// REPORTE DIARIO DE ENTREGAS FALLIDAS
+// ==========================================
+const sendDailyFailedDeliveriesReport = async () => {
+    try {
+        console.log('📊 Generando reporte diario de entregas fallidas...');
+
+        // Obtener todas las compañías activas
+        const companiesSnapshot = await db.collection('companies').get();
+
+        if (companiesSnapshot.empty) {
+            console.log('⚠️ No hay compañías registradas');
+            return;
+        }
+
+        // Procesar cada compañía
+        for (const companyDoc of companiesSnapshot.docs) {
+            const companyId = companyDoc.id;
+            const companyData = companyDoc.data();
+
+            console.log(`📦 Procesando compañía: ${companyData.nombre || companyId}`);
+
+            // Obtener entregas fallidas de hoy
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            const mañana = new Date(hoy);
+            mañana.setDate(mañana.getDate() + 1);
+
+            // Buscar recolecciones con reporte de no entrega de hoy
+            const snapshot = await db.collection('recolecciones')
+                .where('companyId', '==', companyId)
+                .where('estado', '==', 'no_entregada')
+                .get();
+
+            if (snapshot.empty) {
+                console.log(`✅ ${companyData.nombre}: Sin entregas fallidas hoy`);
+                continue;
+            }
+
+            // Filtrar solo las del día de hoy
+            const entregasHoy = [];
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const reporteNoEntrega = data.reporteNoEntrega;
+
+                if (reporteNoEntrega && reporteNoEntrega.fecha) {
+                    const fechaReporte = new Date(reporteNoEntrega.fecha);
+                    if (fechaReporte >= hoy && fechaReporte < mañana) {
+                        entregasHoy.push({
+                            id: doc.id,
+                            codigoTracking: data.codigoTracking,
+                            rutaCodigo: data.rutaId || 'N/A',
+                            repartidorNombre: data.repartidorNombre || 'N/A',
+                            motivo: reporteNoEntrega.motivo || 'No especificado',
+                            evidencias: reporteNoEntrega.evidencias || null,
+                            clienteNombre: data.cliente || data.destinatario?.nombre || 'N/A',
+                            clienteTelefono: data.destinatario?.telefono || 'N/A'
+                        });
+                    }
+                }
+            });
+
+            if (entregasHoy.length === 0) {
+                console.log(`✅ ${companyData.nombre}: Sin entregas fallidas nuevas hoy`);
+                continue;
+            }
+
+            // Enviar reporte usando el servicio de notificaciones
+            const { default: whatsappNotificationService } = await import('./whatsappNotificationService.js');
+
+            await whatsappNotificationService.sendDailyFailedDeliveriesReport(companyId, entregasHoy);
+
+            console.log(`✅ Reporte enviado para ${companyData.nombre}: ${entregasHoy.length} entregas fallidas`);
+        }
+
+        console.log('🏁 Reporte diario de entregas fallidas completado');
+
+    } catch (error) {
+        console.error('❌ Error fatal en Reporte Diario de Entregas Fallidas:', error);
     }
 };
