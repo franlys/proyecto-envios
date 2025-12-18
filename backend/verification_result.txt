@@ -1,0 +1,30 @@
+
+ID: embarques_ivan
+Name: Embarques Ivan
+Active (activo field): true
+Active (active field): true
+InvoiceDesign: {
+  "logoUrl": "https://storage.googleapis.com/embarques-7ad6e.firebasestorage.app/logos/embarques_ivan_1764366134748.png",
+  "primaryColor": "#ffffff",
+  "secondaryColor": "#e3e60f",
+  "template": "modern",
+  "headerText": "Gracias por preferirnos",
+  "footerText": "Gracias"
+}
+Simulated Response:
+{
+  "id": "embarques_ivan",
+  "nombre": "Embarques Ivan",
+  "telefono": "8092328741",
+  "direccion": "Bani Republica Dominicana",
+  "activo": true,
+  "invoiceDesign": {
+    "logoUrl": "https://storage.googleapis.com/embarques-7ad6e.firebasestorage.app/logos/embarques_ivan_1764366134748.png",
+    "primaryColor": "#ffffff",
+    "secondaryColor": "#e3e60f",
+    "template": "modern",
+    "headerText": "Gracias por preferirnos",
+    "footerText": "Gracias"
+  }
+}
+        

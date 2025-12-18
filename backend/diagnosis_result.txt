@@ -1,0 +1,14 @@
+INICIO DIAGNOSTICO
+🔍 Iniciando diagnóstico...
+
+--- 🏢 BUSCANDO COMPAÑÍA ---
+✅ Encontrada coincidencia: ID=embarques_ivan, Nombre=Embarques Ivan
+
+📋 DATOS DE COMPAÑÍA (embarques_ivan):
+- active: undefined (Tipo: undefined)
+- plan: smart
+
+--- 🧪 SIMULANDO QUERY ---
+   ✅ Query simple OK: 0 docs
+   ⚠️ Query con OrderBy FALLÓ: 9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/embarques-7ad6e/firestore/indexes?create_composite=Cl9wcm9qZWN0cy9lbWJhcnF1ZXMtN2FkNmUvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3NvbGljaXR1ZGVzX3JlY29sZWNjaW9uL2luZGV4ZXMvXxABGg0KCWNvbXBhbnlJZBABGgoKBmVzdGFkbxABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI
+   ✅ Fallback Manual OK

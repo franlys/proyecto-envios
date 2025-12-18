@@ -158,7 +158,10 @@ export default function PublicBooking() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('🔵 [PublicBooking] handleSubmit iniciado');
+
         if (formData.items.length === 0) {
+            console.warn('⚠️ [PublicBooking] No hay items agregados');
             toast.error('Agrega al menos un artículo para recolectar');
             return;
         }
@@ -180,16 +183,23 @@ export default function PublicBooking() {
                 // Backend will handle destinatario, pricing, etc.
             };
 
+            console.log('📤 [PublicBooking] Enviando payload:', payload);
+            console.log('🌐 [PublicBooking] API URL:', `${API_URL}/solicitudes/public`);
+
             const res = await axios.post(`${API_URL}/solicitudes/public`, payload);
+
+            console.log('✅ [PublicBooking] Respuesta recibida:', res.data);
 
             if (res.data.success) {
                 setSuccess(true);
-                // Las solicitudes no tienen tracking code hasta que se completan
+                setTrackingCode(res.data.data?.id || 'N/A');
                 toast.success('¡Solicitud enviada exitosamente! Te contactaremos pronto.');
             }
         } catch (error) {
-            console.error('Submit Error:', error);
-            toast.error(error.response?.data?.message || 'Error enviando solicitud');
+            console.error('❌ [PublicBooking] Error completo:', error);
+            console.error('❌ [PublicBooking] Error response:', error.response?.data);
+            console.error('❌ [PublicBooking] Error status:', error.response?.status);
+            toast.error(error.response?.data?.error || error.response?.data?.message || 'Error enviando solicitud');
         } finally {
             setSubmitting(false);
         }
