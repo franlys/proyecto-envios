@@ -283,7 +283,7 @@ export const asignarSolicitud = async (req, res) => {
             const ubicacion = solicitudData.ubicacion || {};
             const programacion = solicitudData.programacion || {};
 
-            const mensajeWhatsapp = `📦 *Nueva Recolección Asignada*\n\nHola *${recolectorNombre}*,\n\nSe te ha asignado una nueva recolección:\n\n👤 *Cliente:* ${cliente.nombre}\n📞 *Teléfono:* ${cliente.telefono || 'No especificado'}\n📍 *Dirección:* ${ubicacion.direccion}\n🏘️ *Sector:* ${ubicacion.sector || 'No especificado'}\n📅 *Fecha programada:* ${programacion.fecha}\n🕐 *Hora:* ${programacion.hora}${ubicacion.referencia ? `\n🗺️ *Referencia:* ${ubicacion.referencia}` : ''}${solicitudData.notas ? `\n\n📝 *Notas:* ${solicitudData.notas}` : ''}\n\nAsignada por: *${asignadoPorNombre}*\n\n⏰ *IMPORTANTE:* Tienes 10 minutos para aceptar o rechazar esta recolección.\n\n✅ Acepta la recolección en el sistema para confirmar.`;
+            const mensajeWhatsapp = `📦 *Nueva Recolección Asignada*\n\nHola *${recolectorNombre}*,\n\nSe te ha asignado una nueva recolección:\n\n👤 *Cliente:* ${cliente.nombre}\n📞 *Teléfono:* ${cliente.telefono || 'No especificado'}\n📍 *Dirección:* ${ubicacion.direccion}\n🏘️ *Sector:* ${ubicacion.sector || 'No especificado'}\n📅 *Fecha programada:* ${programacion.fecha}\n🕐 *Hora:* ${programacion.hora}${ubicacion.referencia ? `\n🗺️ *Referencia:* ${ubicacion.referencia}` : ''}${solicitudData.notas ? `\n\n📝 *Notas:* ${solicitudData.notas}` : ''}\n\nAsignada por: *${asignadoPorNombre}*\n\n✅ *Ingresa al sistema para crear la recolección.*`;
 
             // Enviar WhatsApp (no bloqueante)
             whatsappService.sendMessage(companyId, recolectorTelefono, mensajeWhatsapp)
