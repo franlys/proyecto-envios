@@ -246,7 +246,8 @@ export const asignarSolicitud = async (req, res) => {
         }
         const userData = userDoc.data();
         const recolectorNombre = userData.nombre || 'Recolector';
-        const recolectorTelefono = userData.telefono;
+        // ✅ CORRECCIÓN: Usar whatsappFlota (número de la flota asignada) en lugar del teléfono personal
+        const recolectorTelefono = userData.whatsappFlota || userData.whatsappPersonal || userData.telefono;
 
         // Obtener nombre de quien asigna (para logs y notificaciones)
         const asignadoPor = req.userData.uid;
