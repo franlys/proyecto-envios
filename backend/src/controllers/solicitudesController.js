@@ -510,6 +510,60 @@ export const rechazarSolicitud = async (req, res) => {
 };
 
 // ============================================
+// ✅ COMPLETAR SOLICITUD (Recolector crea recolección)
+// ============================================
+/**
+ * El recolector completó la recolección y creó el registro
+ * - Cambia estado de asignada a completada
+ * - Guarda referencia al código de recolección
+ */
+export const completarSolicitud = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { codigoRecoleccion } = req.body;
+        const companyId = req.userData?.companyId;
+        const recolectorId = req.userData?.uid;
+
+        if (!companyId || !recolectorId) {
+            return res.status(403).json({ success: false, error: 'Usuario no autenticado' });
+        }
+
+        // Obtener solicitud
+        const solicitudDoc = await db.collection('solicitudes_recoleccion').doc(id).get();
+        if (!solicitudDoc.exists) {
+            return res.status(404).json({ success: false, error: 'Solicitud no encontrada' });
+        }
+
+        const solicitudData = solicitudDoc.data();
+
+        // Validar que esté asignada al recolector que completa
+        if (solicitudData.recolectorId !== recolectorId) {
+            return res.status(403).json({ success: false, error: 'Esta solicitud no te fue asignada' });
+        }
+
+        // Marcar como completada
+        await db.collection('solicitudes_recoleccion').doc(id).update({
+            estado: 'completada',
+            fechaCompletada: new Date().toISOString(),
+            codigoRecoleccion: codigoRecoleccion || null,
+            updatedAt: new Date().toISOString()
+        });
+
+        console.log(`✅ Solicitud ${id} completada por recolector ${solicitudData.recolectorNombre}`);
+
+        res.json({
+            success: true,
+            message: 'Solicitud marcada como completada exitosamente.',
+            data: { id, estado: 'completada', codigoRecoleccion }
+        });
+
+    } catch (error) {
+        console.error('❌ Error completando solicitud:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// ============================================
 // ✅ COMPLETAR SOLICITUD (Convertir a Recolección)
 // ============================================
 // Esta función se llamará cuando el recolector genere la factura real

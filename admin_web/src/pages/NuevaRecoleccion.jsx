@@ -2,7 +2,7 @@
 // ✅ INTEGRACIÓN COMPLETA CON SELECTOR DE SECTOR DINÁMICO Y SUBIDA DE FOTOS OPTIMIZADA
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ModuloFacturacion from '../components/ModuloFacturacion';
@@ -39,7 +39,11 @@ const SECTORES_POR_ZONA = {
 
 const NuevaRecoleccion = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userData } = useAuth();
+
+  // ✅ Obtener solicitud prellenada si viene del flujo de "Iniciar"
+  const solicitudPrellenada = location.state?.solicitud;
 
   // Estados del remitente
   const [remitente, setRemitente] = useState('');
@@ -76,6 +80,45 @@ const NuevaRecoleccion = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [solicitudId, setSolicitudId] = useState(null); // ✅ Guardar ID de solicitud para marcarla como completada
+
+  // ✅ Pre-llenar datos si viene una solicitud asignada
+  useEffect(() => {
+    if (solicitudPrellenada) {
+      console.log('📦 Prellenando datos de solicitud:', solicitudPrellenada);
+
+      // Guardar ID de solicitud
+      setSolicitudId(solicitudPrellenada.id);
+
+      // Llenar datos del remitente (cliente de la solicitud)
+      setRemitente(solicitudPrellenada.cliente?.nombre || '');
+      setRemitenteTelefono(solicitudPrellenada.cliente?.telefono || '');
+      setRemitenteEmail(solicitudPrellenada.cliente?.email || '');
+      setRemitenteDireccion(solicitudPrellenada.ubicacion?.direccion || solicitudPrellenada.cliente?.direccion || '');
+
+      // Llenar zona y sector si existen
+      if (solicitudPrellenada.ubicacion?.sector) {
+        setSector(solicitudPrellenada.ubicacion.sector);
+      }
+
+      // Llenar notas
+      if (solicitudPrellenada.notas) {
+        setNotas(solicitudPrellenada.notas);
+      }
+
+      // Llenar items si existen
+      if (solicitudPrellenada.items && solicitudPrellenada.items.length > 0) {
+        setItems(solicitudPrellenada.items.map((item, index) => ({
+          id: index + 1,
+          producto: item.descripcion || item.producto || '',
+          cantidad: item.cantidad || 1,
+          precio: item.precio || 0
+        })));
+      }
+
+      toast.success('Datos de la solicitud cargados. Completa la información del destinatario.');
+    }
+  }, [solicitudPrellenada]);
 
   // ✅ Actualizar sectores cuando cambia la zona
   useEffect(() => {
@@ -284,6 +327,20 @@ const NuevaRecoleccion = () => {
 
       if (response.data.success) {
         const codigoTracking = response.data.data?.codigoTracking || 'N/A';
+
+        // ✅ Si viene de una solicitud asignada, marcarla como completada
+        if (solicitudId) {
+          try {
+            await api.put(`/solicitudes/${solicitudId}/completar`, {
+              codigoRecoleccion: response.data.data?.id || null
+            });
+            console.log(`✅ Solicitud ${solicitudId} marcada como completada`);
+          } catch (error) {
+            console.error('⚠️ Error marcando solicitud como completada:', error);
+            // No bloqueamos el flujo si falla esto
+          }
+        }
+
         toast.success(`✅ Recolección creada: ${codigoTracking}`);
         navigate('/recolecciones');
       } else {
