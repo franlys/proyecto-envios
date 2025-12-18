@@ -220,8 +220,11 @@ export const empleadoController = {
           uid: data.uid || doc.id,
           nombre: data.nombre,
           email: data.email,
+          emailPersonal: data.emailPersonal || '',
           rol: data.rol,
           telefono: data.telefono || '',
+          whatsappPersonal: data.whatsappPersonal || '',
+          whatsappFlota: data.whatsappFlota || '',
           companyId: data.companyId,
           activo: data.activo !== false,
           createdAt: data.createdAt ?
