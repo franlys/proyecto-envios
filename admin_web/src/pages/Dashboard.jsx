@@ -84,7 +84,7 @@ const Dashboard = () => {
         navigate('/call-center');
         return;
       } else if (rol === 'recolector') {
-        navigate('/recolecciones');
+        navigate('/mis-solicitudes'); // ✅ REDIRECT: Recolector -> Mis Solicitudes Asignadas
         return;
       } else if (rol === 'repartidor') {
         navigate('/rutas');

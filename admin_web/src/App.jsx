@@ -41,6 +41,7 @@ import FinanzasDashboard from './pages/Finanzas/Dashboard';
 import DespachoUSA from './pages/DespachoUSA'; // 🆕 Call Center USA
 import PoolRecolecciones from './pages/PoolRecolecciones'; // 🆕 Bolsa de Cargas
 import GestionSolicitudes from './pages/GestionSolicitudes'; // 🆕 Gestión de Solicitudes (Secretaria)
+import MisSolicitudes from './pages/MisSolicitudes'; // 🆕 Vista de Recolector - Solicitudes Asignadas
 import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
 import Historial from './pages/Historial'; // 🆕 Historial de Rutas
 
@@ -190,6 +191,7 @@ function AppContent() {
             <Route path="/recolecciones" element={<Recolecciones />} />
             <Route path="/recolecciones/nueva" element={<NuevaRecoleccion />} />
             <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
+            <Route path="/mis-solicitudes" element={<MisSolicitudes />} /> {/* 🆕 Solicitudes Asignadas por Secretaria */}
           </>
         )}
 

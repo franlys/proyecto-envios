@@ -160,11 +160,12 @@ export default function PublicBooking() {
         e.preventDefault();
         console.log('🔵 [PublicBooking] handleSubmit iniciado');
 
-        if (formData.items.length === 0) {
-            console.warn('⚠️ [PublicBooking] No hay items agregados');
-            toast.error('Agrega al menos un artículo para recolectar');
-            return;
-        }
+        // ✅ VALIDACIÓN REMOVIDA: Permitir enviar sin items
+        // if (formData.items.length === 0) {
+        //     console.warn('⚠️ [PublicBooking] No hay items agregados');
+        //     toast.error('Agrega al menos un artículo para recolectar');
+        //     return;
+        // }
 
         setSubmitting(true);
         try {

@@ -1,0 +1,216 @@
+// admin_web/src/pages/MisSolicitudes.jsx
+// Vista para recolectores: Ver solicitudes asignadas por secretaria_usa
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    MapPin,
+    Calendar,
+    Clock,
+    User,
+    CheckCircle,
+    Package,
+    Phone,
+    Mail,
+    AlertCircle,
+    Loader2
+} from 'lucide-react';
+import api from '../services/api';
+import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
+
+const MisSolicitudes = () => {
+    const { userData } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [solicitudes, setSolicitudes] = useState([]);
+    const [processingId, setProcessingId] = useState(null);
+
+    useEffect(() => {
+        fetchMisSolicitudes();
+
+        // Polling cada 15 segundos para mantener la lista fresca
+        const interval = setInterval(fetchMisSolicitudes, 15000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchMisSolicitudes = async () => {
+        try {
+            // Obtener solicitudes asignadas a este recolector con estado 'asignada'
+            const res = await api.get(`/solicitudes?recolectorId=${userData.uid}&estado=asignada`);
+            if (res.data.success) {
+                setSolicitudes(res.data.data);
+            }
+        } catch (error) {
+            console.error('Error cargando mis solicitudes:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAceptar = async (id) => {
+        if (!confirm('¿Confirmas que puedes realizar esta recolección?')) return;
+
+        setProcessingId(id);
+        try {
+            const res = await api.put(`/solicitudes/${id}/aceptar`);
+            if (res.data.success) {
+                toast.success('¡Solicitud aceptada! Dirígete a la dirección indicada.');
+                // Quitar de la lista local
+                setSolicitudes(prev => prev.filter(s => s.id !== id));
+            }
+        } catch (error) {
+            console.error('Error aceptando solicitud:', error);
+            toast.error(error.response?.data?.error || 'Error al aceptar la solicitud');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleRechazar = async (id) => {
+        const motivo = prompt('¿Por qué no puedes realizar esta recolección?');
+        if (!motivo) return;
+
+        setProcessingId(id);
+        try {
+            const res = await api.put(`/solicitudes/${id}/rechazar`, { motivo });
+            if (res.data.success) {
+                toast.success('Solicitud rechazada. Se notificará a la secretaria.');
+                // Quitar de la lista local
+                setSolicitudes(prev => prev.filter(s => s.id !== id));
+            }
+        } catch (error) {
+            console.error('Error rechazando solicitud:', error);
+            toast.error(error.response?.data?.error || 'Error al rechazar la solicitud');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    return (
+        <div className="p-6 max-w-7xl mx-auto">
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Package className="text-indigo-500" />
+                        Mis Solicitudes Asignadas
+                    </h1>
+                    <p className="text-slate-500">Recolecciones que la secretaria te ha asignado</p>
+                </div>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                    <span className="text-indigo-700 dark:text-indigo-300 font-bold text-lg">
+                        {solicitudes.length}
+                    </span>
+                    <span className="text-indigo-600 dark:text-indigo-400 text-sm ml-2">asignadas</span>
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="flex justify-center py-20">
+                    <Loader2 className="animate-spin w-12 h-12 text-indigo-500" />
+                </div>
+            ) : solicitudes.length === 0 ? (
+                <div className="text-center py-20 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700">
+                    <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">No tienes solicitudes asignadas</h3>
+                    <p className="text-slate-500 mt-2">Cuando la secretaria te asigne una recolección, aparecerá aquí.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <AnimatePresence>
+                        {solicitudes.map((sol) => (
+                            <motion.div
+                                key={sol.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-shadow"
+                            >
+                                {/* Header con countdown si existe */}
+                                {sol.fechaLimiteAceptacion && (
+                                    <div className="bg-amber-500 text-white text-center py-2 text-xs font-bold">
+                                        ⏰ Responder antes de: {new Date(sol.fechaLimiteAceptacion).toLocaleString('es-DO')}
+                                    </div>
+                                )}
+
+                                <div className="p-5">
+                                    <div className="flex items-start gap-3 mb-4">
+                                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400">
+                                            <MapPin size={24} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-lg text-slate-800 dark:text-white line-clamp-2">
+                                                {sol.ubicacion?.direccion || sol.cliente?.direccion}
+                                            </h3>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                {sol.ubicacion?.sector || 'Sin sector'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 mb-6">
+                                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                            <User size={16} className="text-slate-400" />
+                                            <span className="font-medium">{sol.cliente?.nombre}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                            <Phone size={16} className="text-slate-400" />
+                                            <span>{sol.cliente?.telefono || 'Sin teléfono'}</span>
+                                        </div>
+                                        {sol.cliente?.email && (
+                                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                                <Mail size={16} className="text-slate-400" />
+                                                <span className="text-xs">{sol.cliente.email}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                            <Calendar size={16} className="text-slate-400" />
+                                            <span>{sol.programacion?.fecha}</span>
+                                            <Clock size={16} className="text-slate-400 ml-2" />
+                                            <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                                                {sol.programacion?.hora || 'Flexible'}
+                                            </span>
+                                        </div>
+                                        {sol.notas && (
+                                            <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                                                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                                                <span>{sol.notas}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Botones de Acción */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => handleAceptar(sol.id)}
+                                            disabled={processingId === sol.id}
+                                            className="py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
+                                        >
+                                            {processingId === sol.id ? (
+                                                <Loader2 className="animate-spin w-4 h-4" />
+                                            ) : (
+                                                <>
+                                                    <CheckCircle size={18} />
+                                                    Aceptar
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={() => handleRechazar(sol.id)}
+                                            disabled={processingId === sol.id}
+                                            className="py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-400 text-white font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
+                                        >
+                                            Rechazar
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default MisSolicitudes;
