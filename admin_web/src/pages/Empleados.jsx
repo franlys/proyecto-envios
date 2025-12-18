@@ -172,6 +172,8 @@ export default function Empleados() {
         emailPersonal: nuevoEmpleado.emailPersonal,
         password: nuevoEmpleado.password,
         telefono: nuevoEmpleado.telefono || null,
+        whatsappPersonal: nuevoEmpleado.whatsappPersonal || null,
+        whatsappFlota: nuevoEmpleado.whatsappFlota || null,
         rol: nuevoEmpleado.rol,
         companyId: userData.rol === 'super_admin' ? nuevoEmpleado.companyId : (userData.companyId || null),
         // ✅ Payroll Fields
