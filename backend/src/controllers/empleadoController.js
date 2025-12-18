@@ -315,7 +315,7 @@ export const empleadoController = {
   async updateEmpleado(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, telefono, rol, activo, cedula, banco, cuentaBanco, whatsappPersonal, whatsappFlota } = req.body;
+      const { nombre, telefono, emailPersonal, rol, activo, cedula, banco, cuentaBanco, whatsappPersonal, whatsappFlota } = req.body;
 
       console.log('🔄 Actualizando empleado:', id);
 
@@ -344,6 +344,7 @@ export const empleadoController = {
 
       if (nombre) updateData.nombre = nombre;
       if (telefono !== undefined) updateData.telefono = telefono;
+      if (emailPersonal !== undefined) updateData.emailPersonal = emailPersonal;
       if (whatsappPersonal !== undefined) updateData.whatsappPersonal = whatsappPersonal;
       if (whatsappFlota !== undefined) updateData.whatsappFlota = whatsappFlota;
       if (rol) {
