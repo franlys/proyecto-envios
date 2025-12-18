@@ -564,29 +564,6 @@ export const completarSolicitud = async (req, res) => {
 };
 
 // ============================================
-// ✅ COMPLETAR SOLICITUD (Convertir a Recolección)
-// ============================================
-// Esta función se llamará cuando el recolector genere la factura real
-export const completarSolicitud = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { recoleccionRealId } = req.body; // ID de la factura creada
-
-        await db.collection('solicitudes_recoleccion').doc(id).update({
-            estado: 'completada',
-            recoleccionRealId: recoleccionRealId || null,
-            updatedAt: new Date().toISOString()
-        });
-
-        res.json({ success: true, message: 'Solicitud marcada como completada' });
-
-    } catch (error) {
-        console.error('❌ Error completando solicitud:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-};
-
-// ============================================
 // 🔄 VERIFICAR SOLICITUDES EXPIRADAS (Cron Job)
 // ============================================
 /**
