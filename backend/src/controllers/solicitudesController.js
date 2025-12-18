@@ -72,23 +72,26 @@ export const createSolicitudPublica = async (req, res) => {
 
         const docRef = await db.collection('solicitudes_recoleccion').add(nuevaSolicitud);
 
+        // Generar código de rastreo corto y amigable (últimos 8 caracteres del ID)
+        const codigoRastreo = docRef.id.substring(docRef.id.length - 8).toUpperCase();
+
         // Enviar confirmación por WhatsApp al cliente
         if (remitenteTelefono) {
             const companyData = companyDoc.data();
             const companyName = companyData.nombre || 'Nuestra empresa';
 
-            const mensajeConfirmacion = `✅ *Solicitud de Recolección Confirmada*\n\nHola *${remitenteNombre}*,\n\nTu solicitud de recolección ha sido recibida exitosamente.\n\n📅 *Fecha solicitada:* ${nuevaSolicitud.programacion.fecha}\n🕐 *Hora:* ${nuevaSolicitud.programacion.hora}\n📍 *Dirección:* ${remitenteDireccion}\n\nPronto un recolector se pondrá en contacto contigo.\n\nGracias por confiar en *${companyName}*.`;
+            const mensajeConfirmacion = `✅ *Solicitud de Recolección Confirmada*\n\nHola *${remitenteNombre}*,\n\nTu solicitud de recolección ha sido recibida exitosamente.\n\n📦 *Código de rastreo:* ${codigoRastreo}\n📅 *Fecha solicitada:* ${nuevaSolicitud.programacion.fecha}\n🕐 *Hora:* ${nuevaSolicitud.programacion.hora}\n📍 *Dirección:* ${remitenteDireccion}\n\nPronto un recolector se pondrá en contacto contigo.\n\nGracias por confiar en *${companyName}*.`;
 
             whatsappService.sendMessage(companyId, remitenteTelefono, mensajeConfirmacion)
                 .catch(err => console.error('❌ Error enviando confirmación al cliente:', err));
         }
 
-        console.log(`✅ Solicitud pública creada: ${docRef.id} para ${remitenteNombre}`);
+        console.log(`✅ Solicitud pública creada: ${docRef.id} (código: ${codigoRastreo}) para ${remitenteNombre}`);
 
         res.status(201).json({
             success: true,
             message: 'Solicitud creada exitosamente. Te contactaremos pronto.',
-            data: { id: docRef.id, ...nuevaSolicitud }
+            data: { id: docRef.id, codigoRastreo, ...nuevaSolicitud }
         });
 
     } catch (error) {
@@ -287,7 +290,13 @@ export const asignarSolicitud = async (req, res) => {
 
             // Enviar WhatsApp (no bloqueante)
             whatsappService.sendMessage(companyId, recolectorTelefono, mensajeWhatsapp)
-                .then(() => console.log(`📲 Notificación WhatsApp enviada a recolector: ${recolectorNombre} (${recolectorTelefono})`))
+                .then(success => {
+                    if (success) {
+                        console.log(`📲 Notificación WhatsApp enviada a recolector: ${recolectorNombre} (${recolectorTelefono})`);
+                    } else {
+                        console.error(`❌ Falló envío de WhatsApp a recolector: ${recolectorNombre} (${recolectorTelefono})`);
+                    }
+                })
                 .catch(error => console.error('❌ Error enviando WhatsApp a recolector:', error));
 
             console.log(`✅ Asignación MANUAL: Secretaria ${asignadoPorNombre} asignó solicitud ${id} a recolector ${recolectorNombre} (límite: 10 min)`);

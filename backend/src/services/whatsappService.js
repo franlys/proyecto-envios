@@ -136,7 +136,7 @@ class WhatsappService {
             // 3. Enviar mensaje
             console.log(`📨 Enviando WhatsApp desde ${instanceName} a ${whatsappNumber}...`);
 
-            const sendResponse = await axios.post(`${EVOLUTION_URL}/message/sendText/${instanceName}`, {
+            const payload = {
                 number: whatsappNumber,
                 options: {
                     delay: 1000,
@@ -146,7 +146,11 @@ class WhatsappService {
                 textMessage: {
                     text: text
                 }
-            }, {
+            };
+
+            console.log(`📤 Payload completo:`, JSON.stringify(payload, null, 2));
+
+            const sendResponse = await axios.post(`${EVOLUTION_URL}/message/sendText/${instanceName}`, payload, {
                 headers: { 'apikey': EVOLUTION_KEY }
             });
 
@@ -156,7 +160,7 @@ class WhatsappService {
         } catch (error) {
             console.error('❌ Error WhatsappService:', error.message);
             if (error.response) {
-                console.error('Detalles API:', error.response.data);
+                console.error('Detalles API:', JSON.stringify(error.response.data, null, 2));
             }
             return false;
         }

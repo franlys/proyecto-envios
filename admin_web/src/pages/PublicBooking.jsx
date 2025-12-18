@@ -193,7 +193,8 @@ export default function PublicBooking() {
 
             if (res.data.success) {
                 setSuccess(true);
-                setTrackingCode(res.data.data?.id || 'N/A');
+                // Usar código corto si está disponible, sino usar el ID completo
+                setTrackingCode(res.data.data?.codigoRastreo || res.data.data?.id || 'N/A');
                 toast.success('¡Solicitud enviada exitosamente! Te contactaremos pronto.');
             }
         } catch (error) {
