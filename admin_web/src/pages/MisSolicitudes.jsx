@@ -13,17 +13,19 @@ import {
     Phone,
     Mail,
     AlertCircle,
-    Loader2
+    Loader2,
+    Navigation
 } from 'lucide-react';
 import api from '../services/api';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const MisSolicitudes = () => {
     const { userData } = useAuth();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [solicitudes, setSolicitudes] = useState([]);
-    const [processingId, setProcessingId] = useState(null);
 
     useEffect(() => {
         fetchMisSolicitudes();
@@ -47,43 +49,14 @@ const MisSolicitudes = () => {
         }
     };
 
-    const handleAceptar = async (id) => {
-        if (!confirm('¿Confirmas que puedes realizar esta recolección?')) return;
-
-        setProcessingId(id);
-        try {
-            const res = await api.put(`/solicitudes/${id}/aceptar`);
-            if (res.data.success) {
-                toast.success('¡Solicitud aceptada! Dirígete a la dirección indicada.');
-                // Quitar de la lista local
-                setSolicitudes(prev => prev.filter(s => s.id !== id));
-            }
-        } catch (error) {
-            console.error('Error aceptando solicitud:', error);
-            toast.error(error.response?.data?.error || 'Error al aceptar la solicitud');
-        } finally {
-            setProcessingId(null);
-        }
+    const handleIniciarRecoleccion = (solicitud) => {
+        // Redirigir a la página de nueva recolección con datos prellenados
+        navigate('/recolecciones/nueva', { state: { solicitud } });
     };
 
-    const handleRechazar = async (id) => {
-        const motivo = prompt('¿Por qué no puedes realizar esta recolección?');
-        if (!motivo) return;
-
-        setProcessingId(id);
-        try {
-            const res = await api.put(`/solicitudes/${id}/rechazar`, { motivo });
-            if (res.data.success) {
-                toast.success('Solicitud rechazada. Se notificará a la secretaria.');
-                // Quitar de la lista local
-                setSolicitudes(prev => prev.filter(s => s.id !== id));
-            }
-        } catch (error) {
-            console.error('Error rechazando solicitud:', error);
-            toast.error(error.response?.data?.error || 'Error al rechazar la solicitud');
-        } finally {
-            setProcessingId(null);
-        }
+    const openGoogleMaps = (direccion) => {
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`;
+        window.open(url, '_blank');
     };
 
     return (
@@ -126,12 +99,10 @@ const MisSolicitudes = () => {
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-shadow"
                             >
-                                {/* Header con countdown si existe */}
-                                {sol.fechaLimiteAceptacion && (
-                                    <div className="bg-amber-500 text-white text-center py-2 text-xs font-bold">
-                                        ⏰ Responder antes de: {new Date(sol.fechaLimiteAceptacion).toLocaleString('es-DO')}
-                                    </div>
-                                )}
+                                {/* Header con badge de asignada */}
+                                <div className="bg-indigo-600 text-white text-center py-2 text-xs font-bold">
+                                    ✅ ASIGNADA - Lista para recolectar
+                                </div>
 
                                 <div className="p-5">
                                     <div className="flex items-start gap-3 mb-4">
@@ -182,25 +153,18 @@ const MisSolicitudes = () => {
                                     {/* Botones de Acción */}
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
-                                            onClick={() => handleAceptar(sol.id)}
-                                            disabled={processingId === sol.id}
-                                            className="py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
+                                            onClick={() => openGoogleMaps(sol.ubicacion?.direccion || sol.cliente?.direccion)}
+                                            className="py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
                                         >
-                                            {processingId === sol.id ? (
-                                                <Loader2 className="animate-spin w-4 h-4" />
-                                            ) : (
-                                                <>
-                                                    <CheckCircle size={18} />
-                                                    Aceptar
-                                                </>
-                                            )}
+                                            <Navigation size={18} />
+                                            Ver Mapa
                                         </button>
                                         <button
-                                            onClick={() => handleRechazar(sol.id)}
-                                            disabled={processingId === sol.id}
-                                            className="py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-400 text-white font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
+                                            onClick={() => handleIniciarRecoleccion(sol)}
+                                            className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
                                         >
-                                            Rechazar
+                                            <CheckCircle size={18} />
+                                            Iniciar
                                         </button>
                                     </div>
                                 </div>
