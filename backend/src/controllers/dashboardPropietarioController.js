@@ -240,14 +240,18 @@ async function getRutasMetrics(companyId) {
 
     // ✅ OPTIMIZACIÓN N+1: Batch query para todas las facturas
     // Firestore permite hasta 30 IDs por query con 'in', así que dividimos en batches
+    console.log(`📊 [Rutas] IDs de facturas encontrados: ${todasLasFacturasIds.length}`);
     if (todasLasFacturasIds.length > 0) {
       const BATCH_SIZE = 30;
       for (let i = 0; i < todasLasFacturasIds.length; i += BATCH_SIZE) {
         const batch = todasLasFacturasIds.slice(i, i + BATCH_SIZE);
+        console.log(`📊 [Rutas] Consultando batch ${i/BATCH_SIZE + 1}: ${batch.length} IDs`);
         try {
           const recoleccionesSnapshot = await db.collection('recolecciones')
             .where('__name__', 'in', batch)
             .get();
+
+          console.log(`📊 [Rutas] Documentos encontrados en batch: ${recoleccionesSnapshot.size}`);
 
           recoleccionesSnapshot.forEach(doc => {
             const recoleccionData = doc.data();
@@ -258,6 +262,7 @@ async function getRutasMetrics(companyId) {
 
             if (estadoGeneral === 'entregada' || estadoGeneral === 'entregado') {
               facturasEntregadas++;
+              console.log(`📊 [Rutas] Factura entregada encontrada: ${doc.id}`);
             }
           });
         } catch (error) {
@@ -265,6 +270,8 @@ async function getRutasMetrics(companyId) {
         }
       }
     }
+
+    console.log(`📊 [Rutas] RESUMEN: ${totalFacturasEnRutas} facturas en rutas, ${facturasEntregadas} entregadas`);
 
     const porcentajeEntrega = totalFacturasEnRutas > 0
       ? Math.round((facturasEntregadas / totalFacturasEnRutas) * 100)
