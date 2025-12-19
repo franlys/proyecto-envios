@@ -146,6 +146,10 @@ async function getContenedoresMetrics(companyId) {
       ? Math.round((contenedoresTrabajados / totalContenedores) * 100)
       : 0;
 
+    // 🔍 Debug: Resumen de métricas de contenedores
+    console.log(`📊 [Contenedores] Total facturas: ${totalFacturas}, Confirmadas: ${facturasConfirmadas}, Entregadas: ${facturasEntregadas}`);
+    console.log(`📊 [Contenedores] % Confirmación: ${porcentajeConfirmacion}%, % Entrega: ${porcentajeEntrega}%`);
+
     return {
       total: totalContenedores,
       enUSA: contenedoresUSA,
@@ -233,6 +237,12 @@ async function getRutasMetrics(companyId) {
             if (!recoleccionData || typeof recoleccionData !== 'object') return;
 
             const estadoGeneral = recoleccionData.estadoGeneral?.toLowerCase() || recoleccionData.estado?.toLowerCase();
+
+            // 🔍 Debug: Ver qué estados tienen las facturas
+            if (estadoGeneral) {
+              console.log(`📊 Factura ${doc.id}: estadoGeneral="${estadoGeneral}"`);
+            }
+
             if (estadoGeneral === 'entregada' || estadoGeneral === 'entregado') {
               facturasEntregadas++;
             }
@@ -246,6 +256,9 @@ async function getRutasMetrics(companyId) {
     const porcentajeEntrega = totalFacturasEnRutas > 0
       ? Math.round((facturasEntregadas / totalFacturasEnRutas) * 100)
       : 0;
+
+    // 🔍 Debug: Resumen de métricas de rutas
+    console.log(`📊 [Rutas] Total facturas en rutas: ${totalFacturasEnRutas}, Entregadas: ${facturasEntregadas}, Porcentaje: ${porcentajeEntrega}%`);
 
     return {
       total: totalRutas,
