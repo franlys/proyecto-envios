@@ -148,6 +148,30 @@ class WhatsAppNotificationService {
   }
 
   /**
+   * Notifica al cliente que su paquete fue cargado al camión
+   * @param {string} companyId - ID de la compañía
+   * @param {string} clienteTelefono - Teléfono del cliente
+   * @param {Object} paqueteData - Datos del paquete
+   */
+  async notifyClientePackageLoaded(companyId, clienteTelefono, paqueteData) {
+    try {
+      if (!clienteTelefono) {
+        console.log('⚠️ Cliente sin teléfono, no se puede notificar');
+        return;
+      }
+
+      const { tracking, repartidorNombre, zona, fechaSalida } = paqueteData;
+
+      const mensaje = `📦 *Tu Paquete Está en Camino*\n\n🔍 *Tracking:* ${tracking}\n🚚 *Repartidor:* ${repartidorNombre}\n📍 *Zona de entrega:* ${zona}\n📅 *Fecha de salida:* ${fechaSalida}\n\n✅ Tu paquete ha sido cargado al camión y está listo para ser entregado. ¡Pronto estará contigo!`;
+
+      await whatsappService.sendMessage(companyId, clienteTelefono, mensaje);
+      console.log(`✅ Notificación de carga enviada al cliente: ${clienteTelefono}`);
+    } catch (error) {
+      console.error('❌ Error notificando cliente sobre carga:', error);
+    }
+  }
+
+  /**
    * Notifica al encargado de almacén RD sobre contenedor en tránsito
    * @param {string} companyId - ID de la compañía
    * @param {Object} contenedorData - Datos del contenedor

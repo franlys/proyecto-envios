@@ -525,6 +525,24 @@ export const confirmarItemCargado = async (req, res) => {
             .then(() => console.log(`Notificacion enviada al REMITENTE: ${remitenteEmail} - Cargada`))
             .catch(err => console.error(`Error enviando notificacion al remitente:`, err.message));
         }
+
+        // 📱 NOTIFICAR AL CLIENTE POR WHATSAPP
+        const clienteTelefono = facturaData.remitente?.telefono || facturaData.destinatario?.telefono;
+        if (clienteTelefono) {
+          try {
+            await whatsappNotificationService.notifyClientePackageLoaded(companyId, clienteTelefono, {
+              tracking: facturaData.codigoTracking || 'N/A',
+              repartidorNombre: rutaData.repartidorNombre || 'Repartidor',
+              zona: rutaData.zona || 'Sin especificar',
+              fechaSalida: new Date().toLocaleDateString('es-DO')
+            });
+            console.log(`📲 Notificación WhatsApp enviada al cliente: ${clienteTelefono}`);
+          } catch (err) {
+            console.error(`❌ Error enviando WhatsApp al cliente:`, err.message);
+          }
+        } else {
+          console.log('⚠️ Cliente sin teléfono configurado, no se envió WhatsApp');
+        }
       }
     }
 
