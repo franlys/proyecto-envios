@@ -119,6 +119,18 @@ async function getContenedoresMetrics(companyId) {
       const facturas = contenedor?.facturas;
       if (facturas && Array.isArray(facturas)) {
         totalFacturas += facturas.length;
+
+        // 🔍 Debug: Ver estructura de la primera factura
+        if (facturas.length > 0 && totalFacturas <= 1) {
+          const primeraFactura = facturas[0];
+          console.log(`🔍 [DEBUG] Estructura de factura en contenedor:`, {
+            keys: Object.keys(primeraFactura || {}),
+            estadoGeneral: primeraFactura?.estadoGeneral,
+            estado: primeraFactura?.estado,
+            confirmada: primeraFactura?.confirmada
+          });
+        }
+
         facturasConfirmadas += facturas.filter(f => {
           // Validar que f existe y es un objeto
           if (!f || typeof f !== 'object') return false;
