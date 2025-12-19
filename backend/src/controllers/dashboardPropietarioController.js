@@ -120,29 +120,32 @@ async function getContenedoresMetrics(companyId) {
       if (facturas && Array.isArray(facturas)) {
         totalFacturas += facturas.length;
 
-        // 🔍 Debug: Ver estructura de la primera factura
-        if (facturas.length > 0 && totalFacturas <= 1) {
-          const primeraFactura = facturas[0];
-          console.log(`🔍 [DEBUG] Estructura de factura en contenedor:`, {
-            keys: Object.keys(primeraFactura || {}),
-            estadoGeneral: primeraFactura?.estadoGeneral,
-            estado: primeraFactura?.estado,
-            confirmada: primeraFactura?.confirmada
+        // ✅ CORRECCIÓN: Usar confirmadaPorSecretaria para contar confirmadas
+        facturasConfirmadas += facturas.filter(f => {
+          if (!f || typeof f !== 'object') return false;
+          return f.confirmadaPorSecretaria === true;
+        }).length;
+
+        // ✅ CORRECCIÓN: Para entregadas, recolectar los IDs y consultar recolecciones
+        const facturaIds = facturas
+          .filter(f => f && f.id)
+          .map(f => f.id);
+
+        // Consultar en lotes de 30 (límite de Firestore para operador 'in')
+        for (let i = 0; i < facturaIds.length; i += 30) {
+          const batch = facturaIds.slice(i, i + 30);
+          const recoleccionesSnapshot = await db.collection('recolecciones')
+            .where('id', 'in', batch)
+            .get();
+
+          recoleccionesSnapshot.forEach(recoleccionDoc => {
+            const data = recoleccionDoc.data();
+            const estadoGeneral = data.estadoGeneral?.toLowerCase() || data.estado?.toLowerCase();
+            if (estadoGeneral === 'entregada' || estadoGeneral === 'entregado') {
+              facturasEntregadas++;
+            }
           });
         }
-
-        facturasConfirmadas += facturas.filter(f => {
-          // Validar que f existe y es un objeto
-          if (!f || typeof f !== 'object') return false;
-          return f.confirmada === true;
-        }).length;
-        // ✅ Usar estadoGeneral o estado para contar entregadas
-        facturasEntregadas += facturas.filter(f => {
-          // Validar que f existe y es un objeto
-          if (!f || typeof f !== 'object') return false;
-          const estadoGeneral = f.estadoGeneral?.toLowerCase() || f.estado?.toLowerCase();
-          return estadoGeneral === 'entregada' || estadoGeneral === 'entregado';
-        }).length;
       }
     });
 
@@ -157,10 +160,6 @@ async function getContenedoresMetrics(companyId) {
     const porcentajeTrabajados = totalContenedores > 0
       ? Math.round((contenedoresTrabajados / totalContenedores) * 100)
       : 0;
-
-    // 🔍 Debug: Resumen de métricas de contenedores
-    console.log(`📊 [Contenedores] Total facturas: ${totalFacturas}, Confirmadas: ${facturasConfirmadas}, Entregadas: ${facturasEntregadas}`);
-    console.log(`📊 [Contenedores] % Confirmación: ${porcentajeConfirmacion}%, % Entrega: ${porcentajeEntrega}%`);
 
     return {
       total: totalContenedores,
@@ -250,11 +249,6 @@ async function getRutasMetrics(companyId) {
 
             const estadoGeneral = recoleccionData.estadoGeneral?.toLowerCase() || recoleccionData.estado?.toLowerCase();
 
-            // 🔍 Debug: Ver qué estados tienen las facturas
-            if (estadoGeneral) {
-              console.log(`📊 Factura ${doc.id}: estadoGeneral="${estadoGeneral}"`);
-            }
-
             if (estadoGeneral === 'entregada' || estadoGeneral === 'entregado') {
               facturasEntregadas++;
             }
@@ -268,9 +262,6 @@ async function getRutasMetrics(companyId) {
     const porcentajeEntrega = totalFacturasEnRutas > 0
       ? Math.round((facturasEntregadas / totalFacturasEnRutas) * 100)
       : 0;
-
-    // 🔍 Debug: Resumen de métricas de rutas
-    console.log(`📊 [Rutas] Total facturas en rutas: ${totalFacturasEnRutas}, Entregadas: ${facturasEntregadas}, Porcentaje: ${porcentajeEntrega}%`);
 
     return {
       total: totalRutas,
