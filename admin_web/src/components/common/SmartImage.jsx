@@ -50,7 +50,9 @@ const SmartImage = ({
   className = '',
   onClick = null,
   showOptimizedBadge = true,
-  showZoomIcon = true
+  showZoomIcon = true,
+  usePreview = false, // ✅ NUEVO: Si true, usa preview (1024px) en lugar de thumbnail (200px)
+  objectFit = 'cover' // ✅ NUEVO: 'cover' (recorta) o 'contain' (muestra completa)
 }) => {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,13 +85,16 @@ const SmartImage = ({
     }
   };
 
+  // ✅ Elegir qué URL usar: preview (1024px) para galería/lightbox, thumbnail (200px) para listas
+  const displayUrl = usePreview ? preview : thumbnail;
+
   return (
     <div className={`relative ${className} group`}>
-      {/* Imagen optimizada (thumbnail para carga rápida) */}
+      {/* Imagen optimizada (thumbnail para carga rápida, o preview para galería) */}
       <img
-        src={thumbnail}
+        src={displayUrl}
         alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${
+        className={`w-full h-full object-${objectFit} transition-opacity duration-300 ${
           isLoading ? 'opacity-0' : 'opacity-100'
         }`}
         onLoad={() => setIsLoading(false)}

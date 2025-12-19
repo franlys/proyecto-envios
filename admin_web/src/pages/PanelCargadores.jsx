@@ -818,9 +818,11 @@ const PanelCargadores = () => {
             <SmartImage
               src={fotosGaleria[fotoActual]}
               alt={`Foto ${fotoActual + 1}`}
-              className="max-h-[calc(90vh-120px)] max-w-full object-contain rounded-lg shadow-2xl"
+              className="max-h-[calc(90vh-120px)] max-w-full rounded-lg shadow-2xl"
               showOptimizedBadge={true}
               showZoomIcon={false}
+              usePreview={true}
+              objectFit="contain"
             />
 
             {fotosGaleria.length > 1 && (
