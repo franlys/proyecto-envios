@@ -91,9 +91,14 @@ export default function PublicBooking() {
     };
 
     const handlePhotoUpload = async (e) => {
+        console.log('📸 handlePhotoUpload iniciado');
         const files = Array.from(e.target.files);
+        console.log('📸 Archivos seleccionados:', files.length);
 
-        if (files.length === 0) return;
+        if (files.length === 0) {
+            console.log('⚠️ No se seleccionaron archivos');
+            return;
+        }
 
         // Validar que no sean más de 5 fotos en total
         if (formData.fotos.length + files.length > 5) {
@@ -134,25 +139,33 @@ export default function PublicBooking() {
 
             const urls = await Promise.all(uploadPromises);
 
-            setFormData({
-                ...formData,
-                fotos: [...formData.fotos, ...urls]
-            });
+            // ✅ FIXED: Usar función de actualización para evitar estado obsoleto
+            setFormData(prevData => ({
+                ...prevData,
+                fotos: [...prevData.fotos, ...urls]
+            }));
 
+            console.log('✅ Fotos subidas exitosamente:', urls);
             toast.success(`${files.length} foto(s) subida(s) correctamente`);
         } catch (error) {
-            console.error('Error uploading photos:', error);
-            toast.error('Error al subir las fotos. Intenta nuevamente.');
+            console.error('❌ Error uploading photos:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack
+            });
+            toast.error(`Error al subir las fotos: ${error.message || 'Intenta nuevamente'}`);
         } finally {
             setUploadingPhotos(false);
         }
     };
 
     const handleRemovePhoto = (index) => {
-        setFormData({
-            ...formData,
-            fotos: formData.fotos.filter((_, i) => i !== index)
-        });
+        // ✅ FIXED: Usar función de actualización para evitar estado obsoleto
+        setFormData(prevData => ({
+            ...prevData,
+            fotos: prevData.fotos.filter((_, i) => i !== index)
+        }));
         toast.success('Foto eliminada');
     };
 
