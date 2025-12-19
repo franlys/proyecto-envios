@@ -143,7 +143,7 @@ async function getContenedoresMetrics(companyId) {
       for (let i = 0; i < todasLasFacturasIds.length; i += 30) {
         const batch = todasLasFacturasIds.slice(i, i + 30);
         const recoleccionesSnapshot = await db.collection('recolecciones')
-          .where('id', 'in', batch)
+          .where('__name__', 'in', batch)
           .get();
 
         recoleccionesSnapshot.forEach(recoleccionDoc => {
