@@ -100,6 +100,9 @@ async function getContenedoresMetrics(companyId) {
     let facturasConfirmadas = 0;
     let facturasEntregadas = 0; // ✅ Facturas entregadas en contenedores
 
+    // Recolectar todos los IDs de facturas de todos los contenedores
+    const todasLasFacturasIds = [];
+
     contenedoresSnap.forEach(doc => {
       const contenedor = doc.data();
       totalContenedores++;
@@ -126,28 +129,32 @@ async function getContenedoresMetrics(companyId) {
           return f.confirmadaPorSecretaria === true;
         }).length;
 
-        // ✅ CORRECCIÓN: Para entregadas, recolectar los IDs y consultar recolecciones
-        const facturaIds = facturas
-          .filter(f => f && f.id)
-          .map(f => f.id);
-
-        // Consultar en lotes de 30 (límite de Firestore para operador 'in')
-        for (let i = 0; i < facturaIds.length; i += 30) {
-          const batch = facturaIds.slice(i, i + 30);
-          const recoleccionesSnapshot = await db.collection('recolecciones')
-            .where('id', 'in', batch)
-            .get();
-
-          recoleccionesSnapshot.forEach(recoleccionDoc => {
-            const data = recoleccionDoc.data();
-            const estadoGeneral = data.estadoGeneral?.toLowerCase() || data.estado?.toLowerCase();
-            if (estadoGeneral === 'entregada' || estadoGeneral === 'entregado') {
-              facturasEntregadas++;
-            }
-          });
-        }
+        // ✅ Recolectar IDs de facturas para consulta posterior
+        facturas.forEach(f => {
+          if (f && f.id && typeof f.id === 'string') {
+            todasLasFacturasIds.push(f.id);
+          }
+        });
       }
     });
+
+    // ✅ CORRECCIÓN: Consultar recolecciones en lotes DESPUÉS del forEach
+    if (todasLasFacturasIds.length > 0) {
+      for (let i = 0; i < todasLasFacturasIds.length; i += 30) {
+        const batch = todasLasFacturasIds.slice(i, i + 30);
+        const recoleccionesSnapshot = await db.collection('recolecciones')
+          .where('id', 'in', batch)
+          .get();
+
+        recoleccionesSnapshot.forEach(recoleccionDoc => {
+          const data = recoleccionDoc.data();
+          const estadoGeneral = data.estadoGeneral?.toLowerCase() || data.estado?.toLowerCase();
+          if (estadoGeneral === 'entregada' || estadoGeneral === 'entregado') {
+            facturasEntregadas++;
+          }
+        });
+      }
+    }
 
     const porcentajeConfirmacion = totalFacturas > 0
       ? Math.round((facturasConfirmadas / totalFacturas) * 100)
