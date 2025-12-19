@@ -816,13 +816,12 @@ export const finalizarCarga = async (req, res) => {
       const totalFacturas = data.facturas?.length || 0;
       const facturasCompletas = totalFacturas - facturasIncompletas.length;
 
-      await whatsappNotificationService.notifySecretariasContenedorReady(data.companyId, {
+      await whatsappNotificationService.notifySecretariasRutaReady(data.companyId, {
         rutaCodigo: data.nombre || rutaId,
         repartidorNombre: data.repartidorNombre || 'Repartidor',
         zona: data.zona || 'No especificada',
         totalFacturas: facturasCompletas,
-        facturasIncompletas: facturasIncompletas.length,
-        fechaCarga: new Date().toISOString()
+        facturasIncompletas: facturasIncompletas.length
       });
       console.log(`✅ Notificación de ruta lista enviada a secretarias`);
     } catch (err) {

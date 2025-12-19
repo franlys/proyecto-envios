@@ -118,6 +118,36 @@ class WhatsAppNotificationService {
   }
 
   /**
+   * Notifica a secretarias sobre ruta lista para entrega
+   * @param {string} companyId - ID de la compañía
+   * @param {Object} rutaData - Datos de la ruta
+   */
+  async notifySecretariasRutaReady(companyId, rutaData) {
+    try {
+      const secretarias = await this.getUsersByRole(companyId, ['secretaria', 'secretaria_usa']);
+      if (secretarias.length === 0) {
+        console.log('⚠️ No se encontraron secretarias para notificar');
+        return;
+      }
+
+      const { rutaCodigo, repartidorNombre, zona, totalFacturas, facturasIncompletas } = rutaData;
+
+      const mensaje = `🚚 *Ruta Lista para Entrega*\n\n📦 *Ruta:* ${rutaCodigo}\n👤 *Repartidor:* ${repartidorNombre}\n📍 *Zona:* ${zona}\n✅ *Facturas completas:* ${totalFacturas}\n${facturasIncompletas > 0 ? `⚠️ *Facturas incompletas:* ${facturasIncompletas}` : ''}\n\n📋 La ruta ha sido cargada y está lista para salir a entrega.`;
+
+      for (const secretaria of secretarias) {
+        if (secretaria.whatsappFlota) {
+          await whatsappService.sendMessage(companyId, secretaria.whatsappFlota, mensaje);
+          console.log(`✅ Notificación de ruta enviada a secretaria: ${secretaria.nombre}`);
+        } else {
+          console.log(`⚠️ Secretaria ${secretaria.nombre} sin WhatsApp de flota configurado`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error notificando secretarias sobre ruta:', error);
+    }
+  }
+
+  /**
    * Notifica al encargado de almacén RD sobre contenedor en tránsito
    * @param {string} companyId - ID de la compañía
    * @param {Object} contenedorData - Datos del contenedor
