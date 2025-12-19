@@ -14,7 +14,9 @@ import {
     Mail,
     AlertCircle,
     Loader2,
-    Navigation
+    Navigation,
+    Camera,
+    Image as ImageIcon
 } from 'lucide-react';
 import api from '../services/api';
 import { toast } from 'sonner';
@@ -149,6 +151,38 @@ const MisSolicitudes = () => {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Fotos del Cliente */}
+                                    {sol.fotos && sol.fotos.length > 0 && (
+                                        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mt-3">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Camera size={16} className="text-indigo-600" />
+                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                                    Fotos del Cliente ({sol.fotos.length})
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {sol.fotos.slice(0, 3).map((foto, idx) => (
+                                                    <div key={idx} className="relative group">
+                                                        <img
+                                                            src={foto}
+                                                            alt={`Foto ${idx + 1}`}
+                                                            className="w-full h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                                            onClick={() => window.open(foto, '_blank')}
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                                            <ImageIcon className="text-white" size={20} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {sol.fotos.length > 3 && (
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    +{sol.fotos.length - 3} foto(s) más (verás todas al iniciar)
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Botones de Acción */}
                                     <div className="grid grid-cols-2 gap-2">

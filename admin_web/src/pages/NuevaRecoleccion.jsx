@@ -116,6 +116,18 @@ const NuevaRecoleccion = () => {
         })));
       }
 
+      // ✅ NUEVO: Pre-llenar fotos del cliente si existen
+      if (solicitudPrellenada.fotos && solicitudPrellenada.fotos.length > 0) {
+        console.log('📸 Prellenando fotos del cliente:', solicitudPrellenada.fotos.length);
+
+        // Guardar las URLs directamente en fotoPreviews para visualización
+        // Marcar estas fotos como prellenadas usando un prefijo especial
+        const fotosCliente = solicitudPrellenada.fotos.map(url => `PRELLENADA::${url}`);
+        setFotoPreviews(fotosCliente);
+
+        toast.info(`${solicitudPrellenada.fotos.length} foto(s) del cliente cargadas`);
+      }
+
       toast.success('Datos de la solicitud cargados. Completa la información del destinatario.');
     }
   }, [solicitudPrellenada]);
@@ -284,12 +296,26 @@ const NuevaRecoleccion = () => {
         precio: parseFloat(item.precio) || 0
       }));
 
-      // 1. Subir fotos primero (si hay)
+      // 1. Subir fotos primero (si hay nuevas) y combinar con fotos prellenadas
       let fotosUrls = [];
+
+      // Incluir fotos prellenadas del cliente (ya son URLs)
+      const fotosPrellenadas = fotoPreviews
+        .filter(preview => preview.startsWith('PRELLENADA::'))
+        .map(preview => preview.replace('PRELLENADA::', ''));
+
+      if (fotosPrellenadas.length > 0) {
+        console.log(`📸 Incluyendo ${fotosPrellenadas.length} foto(s) del cliente`);
+        fotosUrls = [...fotosPrellenadas];
+      }
+
+      // Subir fotos nuevas del recolector (si hay)
       if (fotos.length > 0) {
-        fotosUrls = await subirArchivosAFirebase(fotos);
-        if (fotosUrls.length === 0) {
-          toast.warning('No se pudieron subir las fotos, pero se creará la recolección.');
+        const nuevasFotosUrls = await subirArchivosAFirebase(fotos);
+        if (nuevasFotosUrls.length === 0) {
+          toast.warning('No se pudieron subir las fotos nuevas, pero se incluirán las del cliente.');
+        } else {
+          fotosUrls = [...fotosUrls, ...nuevasFotosUrls];
         }
       }
 
@@ -638,23 +664,35 @@ const NuevaRecoleccion = () => {
                 {fotoPreviews.length} foto(s) seleccionada(s)
               </p>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {fotoPreviews.map((previewUrl, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={previewUrl}
-                      alt={`Vista previa ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-600"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhoto(index)}
-                      className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      title="Eliminar foto"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+                {fotoPreviews.map((previewUrl, index) => {
+                  // Detectar si es foto prellenada
+                  const isPrellenada = previewUrl.startsWith('PRELLENADA::');
+                  const displayUrl = isPrellenada ? previewUrl.replace('PRELLENADA::', '') : previewUrl;
+
+                  return (
+                    <div key={index} className="relative group">
+                      <img
+                        src={displayUrl}
+                        alt={`Vista previa ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-600"
+                      />
+                      {/* Badge para fotos del cliente */}
+                      {isPrellenada && (
+                        <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded font-medium">
+                          Cliente
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(index)}
+                        className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                        title="Eliminar foto"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
