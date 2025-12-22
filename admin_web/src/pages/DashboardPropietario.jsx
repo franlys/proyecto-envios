@@ -65,6 +65,9 @@ const DashboardPropietario = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [contenedores, setContenedores] = useState([]);
+  const [selectedContenedor, setSelectedContenedor] = useState(null);
+  const [contenedorStats, setContenedorStats] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -162,6 +165,47 @@ const DashboardPropietario = () => {
     }
   }, [userData, authLoading]);
 
+  // Cargar lista de contenedores
+  useEffect(() => {
+    const fetchContenedores = async () => {
+      if (!userData) return;
+
+      try {
+        const response = await api.get('/contenedores');
+        if (response.data.success) {
+          setContenedores(response.data.data);
+        }
+      } catch (err) {
+        console.error('Error cargando contenedores:', err);
+      }
+    };
+
+    if (!authLoading && userData) {
+      fetchContenedores();
+    }
+  }, [userData, authLoading]);
+
+  // Cargar stats de contenedor específico
+  useEffect(() => {
+    const fetchContenedorStats = async () => {
+      if (!selectedContenedor) {
+        setContenedorStats(null);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/dashboard/contenedor/${selectedContenedor}`);
+        if (response.data.success) {
+          setContenedorStats(response.data.data);
+        }
+      } catch (err) {
+        console.error('Error cargando stats de contenedor:', err);
+      }
+    };
+
+    fetchContenedorStats();
+  }, [selectedContenedor]);
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -249,38 +293,65 @@ const DashboardPropietario = () => {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
-          <Package className="w-6 h-6 mr-2 text-indigo-600" />
-          Contenedores
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
+            <Package className="w-6 h-6 mr-2 text-indigo-600" />
+            Contenedores
+          </h2>
+
+          {/* Selector de Contenedor */}
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedContenedor || ''}
+              onChange={(e) => setSelectedContenedor(e.target.value || null)}
+              className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            >
+              <option value="">📊 Todos los contenedores</option>
+              {contenedores.map((cont) => (
+                <option key={cont.id} value={cont.id}>
+                  📦 {cont.codigo} - {cont.estado}
+                </option>
+              ))}
+            </select>
+            {selectedContenedor && (
+              <button
+                onClick={() => setSelectedContenedor(null)}
+                className="px-3 py-2 text-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                Ver todos
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <MetricCard
-            title="Total Contenedores"
-            value={stats.totalContenedores}
-            total={stats.totalContenedores}
+            title={selectedContenedor ? "Facturas en Contenedor" : "Total Contenedores"}
+            value={contenedorStats ? contenedorStats.totalFacturas : stats.totalContenedores}
+            total={contenedorStats ? contenedorStats.totalFacturas : stats.totalContenedores}
             icon={Package}
             gradient="from-indigo-500 to-purple-500"
             delay={0.1}
           />
           <MetricCard
-            title="En USA"
-            value={stats.contenedoresUSA}
-            total={stats.totalContenedores}
-            icon={Warehouse}
+            title={selectedContenedor ? "Confirmadas" : "En USA"}
+            value={contenedorStats ? contenedorStats.facturasConfirmadas : stats.contenedoresUSA}
+            total={contenedorStats ? contenedorStats.totalFacturas : stats.totalContenedores}
+            icon={contenedorStats ? CheckCircle2 : Warehouse}
             gradient="from-blue-500 to-cyan-500"
             delay={0.2}
           />
           <MetricCard
-            title="En RD"
-            value={stats.contenedoresRD}
-            total={stats.totalContenedores}
+            title={selectedContenedor ? "Entregadas" : "En RD"}
+            value={contenedorStats ? contenedorStats.facturasEntregadas : stats.contenedoresRD}
+            total={contenedorStats ? contenedorStats.totalFacturas : stats.totalContenedores}
             icon={CheckCircle2}
             gradient="from-emerald-500 to-teal-500"
             delay={0.3}
           />
           <MetricCard
-            title="% Entrega Contenedores"
-            value={stats.porcentajeEntregaContenedores || 0}
+            title="% Entrega"
+            value={contenedorStats ? contenedorStats.porcentajeEntrega : stats.porcentajeEntregaContenedores || 0}
             total={100}
             icon={TrendingUp}
             gradient="from-emerald-500 to-green-500"
@@ -289,7 +360,7 @@ const DashboardPropietario = () => {
           />
           <MetricCard
             title="% Confirmación"
-            value={stats.porcentajeConfirmacion}
+            value={contenedorStats ? contenedorStats.porcentajeConfirmacion : stats.porcentajeConfirmacion}
             total={100}
             icon={CheckCircle2}
             gradient="from-purple-500 to-pink-500"
