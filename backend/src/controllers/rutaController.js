@@ -469,16 +469,18 @@ export const finalizarRuta = async (req, res) => {
         }
       }
 
+      const montoAsignado = parseFloat(rutaData.montoAsignado) || 0;
       const reporteData = {
         rutaCodigo: rutaId,
         rutaNombre: rutaData.nombre || rutaId,
-        montoAsignado: parseFloat(rutaData.montoAsignado) || 0,
+        montoAsignado: montoAsignado,
         gastos: gastos,
         totalGastos: totalGastos,
         facturasPagadas: facturasPagadas,
         totalFacturasPagadas: totalFacturasPagadas,
         totalCobrado: totalFacturasPagadas,
-        dineroAEntregar: totalFacturasPagadas - totalGastos,
+        // ✅ CORRECCIÓN: dineroAEntregar = montoAsignado + cobros - gastos
+        dineroAEntregar: montoAsignado + totalFacturasPagadas - totalGastos,
         facturasEntregadas: facturasEntregadasCount,
         totalFacturas: facturasEnRuta.length
       };
@@ -763,16 +765,18 @@ export const cerrarRuta = async (req, res) => {
         }
       }
 
+      const montoAsignado = parseFloat(rutaData.montoAsignado) || 0;
       const reporteData = {
         rutaCodigo: rutaId,
         rutaNombre: rutaData.nombre || rutaId,
-        montoAsignado: parseFloat(rutaData.montoAsignado) || 0,
+        montoAsignado: montoAsignado,
         gastos: gastos,
         totalGastos: totalGastos,
         facturasPagadas: facturasPagadas,
         totalFacturasPagadas: totalFacturasPagadas,
         totalCobrado: totalFacturasPagadas,
-        dineroAEntregar: totalFacturasPagadas - totalGastos,
+        // ✅ CORRECCIÓN: dineroAEntregar = montoAsignado + cobros - gastos
+        dineroAEntregar: montoAsignado + totalFacturasPagadas - totalGastos,
         facturasEntregadas: facturasEnRuta.length,
         totalFacturas: facturasEnRuta.length
       };

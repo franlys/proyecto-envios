@@ -362,16 +362,18 @@ class WhatsAppNotificationService {
       // Cálculo final
       mensaje += `═══════════════════\n`;
       mensaje += `🧮 *CÁLCULO FINAL*\n`;
-      mensaje += `   Cobrado: $${totalFacturasPagadas.toFixed(2)}\n`;
+      mensaje += `   Monto asignado: $${montoAsignado.toFixed(2)}\n`;
+      mensaje += `   Cobrado: +$${totalFacturasPagadas.toFixed(2)}\n`;
       mensaje += `   Gastos: -$${totalGastos.toFixed(2)}\n`;
       mensaje += `   ─────────────────\n`;
 
-      const dineroFinal = totalFacturasPagadas - totalGastos;
+      // ✅ CORRECCIÓN: dineroFinal = montoAsignado + cobrado - gastos
+      const dineroFinal = montoAsignado + totalFacturasPagadas - totalGastos;
       if (dineroFinal >= 0) {
         mensaje += `💰 *Dinero a entregar:* $${dineroFinal.toFixed(2)}\n`;
       } else {
         mensaje += `⚠️ *Déficit:* $${Math.abs(dineroFinal).toFixed(2)}\n`;
-        mensaje += `   _(Gastos excedieron lo cobrado)_\n`;
+        mensaje += `   _(Gastos excedieron el total disponible)_\n`;
       }
       mensaje += `═══════════════════\n\n`;
 
