@@ -125,11 +125,6 @@ const DashboardPropietario = () => {
           porcentajeReincidencia: dashboardData.noEntregadas?.porcentajeReincidencia || 0,
           motivosNoEntrega: dashboardData.noEntregadas?.motivos || [],
 
-          // Recolecciones
-          recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0,
-          recoleccionesCompletadas: dashboardData.recolecciones?.hoy?.completadas || 0,
-          recoleccionesPendientes: dashboardData.recolecciones?.hoy?.pendientes || 0,
-
           // Solicitudes
           solicitudesTotal: dashboardData.solicitudes?.total || 0,
           solicitudesPendientes: dashboardData.solicitudes?.pendientes || 0,
@@ -147,7 +142,6 @@ const DashboardPropietario = () => {
 
           // Compatibilidad con métricas antiguas
           embarquesActivos: 0,
-          // recoleccionesHoy: dashboardData.recolecciones?.hoy?.total || 0, // Removed duplicate
           rutasEnCurso: dashboardData.rutas?.activas || 0,
           totalEmbarques: 0,
           empresa: null
@@ -665,45 +659,6 @@ const DashboardPropietario = () => {
           )}
         </motion.div>
       )}
-
-      {/* 📦 Recolecciones de Hoy */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="mb-8"
-      >
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
-          <ShoppingCart className="w-6 h-6 mr-2 text-purple-600" />
-          Recolecciones de Hoy
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <MetricCard
-            title="Total Hoy"
-            value={stats.recoleccionesHoy}
-            total={stats.recoleccionesHoy}
-            icon={ShoppingCart}
-            gradient="from-purple-500 to-pink-500"
-            delay={0.1}
-          />
-          <MetricCard
-            title="Completadas"
-            value={stats.recoleccionesCompletadas}
-            total={stats.recoleccionesHoy}
-            icon={CheckCircle2}
-            gradient="from-emerald-500 to-teal-500"
-            delay={0.2}
-          />
-          <MetricCard
-            title="Pendientes"
-            value={stats.recoleccionesPendientes}
-            total={stats.recoleccionesHoy}
-            icon={Clock}
-            gradient="from-amber-500 to-orange-500"
-            delay={0.3}
-          />
-        </div>
-      </motion.div>
 
       {/* 💰 Resumen Financiero del Mes */}
       <motion.div

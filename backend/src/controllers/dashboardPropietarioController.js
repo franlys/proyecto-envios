@@ -43,11 +43,6 @@ export const getDashboardPropietario = async (req, res) => {
     const noEntregadasMetrics = await getNoEntregadasMetrics(companyId);
 
     // ====================================
-    // 📦 MÉTRICAS DE RECOLECCIONES
-    // ====================================
-    const recoleccionesMetrics = await getRecoleccionesMetrics(companyId);
-
-    // ====================================
     // 📅 MÉTRICAS DE SOLICITUDES
     // ====================================
     const solicitudesMetrics = await getSolicitudesMetrics(companyId);
@@ -67,7 +62,6 @@ export const getDashboardPropietario = async (req, res) => {
         rutas: rutasMetrics,
         facturas: facturasMetrics,
         noEntregadas: noEntregadasMetrics,
-        recolecciones: recoleccionesMetrics,
         solicitudes: solicitudesMetrics,
         finanzas: financialMetrics
       }
@@ -446,77 +440,6 @@ async function getNoEntregadasMetrics(companyId) {
   } catch (error) {
     console.error('Error obteniendo métricas de no entregadas:', error);
     return null;
-  }
-}
-
-// ====================================
-// 📦 RECOLECCIONES - Resumen
-// ====================================
-async function getRecoleccionesMetrics(companyId) {
-  try {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    // ✅ Simplificar query para evitar índice compuesto
-    // Solo filtrar por companyId, luego filtrar por fecha en memoria
-    const recoleccionesSnap = await db.collection('recolecciones')
-      .where('companyId', '==', companyId)
-      .get();
-
-    let totalHoy = 0;
-    let completadas = 0;
-    let pendientes = 0;
-
-    recoleccionesSnap.forEach(doc => {
-      const recoleccion = doc.data();
-
-      // ✅ CORRECCIÓN: Verificar múltiples campos de fecha posibles
-      let fechaRecoleccion = null;
-
-      // Intentar obtener fecha de diferentes campos
-      if (recoleccion.fechaCreacion && typeof recoleccion.fechaCreacion.toDate === 'function') {
-        fechaRecoleccion = recoleccion.fechaCreacion.toDate();
-      } else if (recoleccion.fecha && typeof recoleccion.fecha.toDate === 'function') {
-        fechaRecoleccion = recoleccion.fecha.toDate();
-      } else if (recoleccion.createdAt && typeof recoleccion.createdAt.toDate === 'function') {
-        fechaRecoleccion = recoleccion.createdAt.toDate();
-      } else if (recoleccion.fecha && typeof recoleccion.fecha === 'string') {
-        fechaRecoleccion = new Date(recoleccion.fecha);
-      } else if (recoleccion.fechaCreacion && typeof recoleccion.fechaCreacion === 'string') {
-        fechaRecoleccion = new Date(recoleccion.fechaCreacion);
-      }
-
-      // Si encontramos una fecha válida y es de hoy o posterior
-      if (fechaRecoleccion && fechaRecoleccion >= hoy) {
-        totalHoy++;
-
-        const estado = recoleccion.estado?.toLowerCase() || recoleccion.estadoGeneral?.toLowerCase();
-        if (estado === 'completada' || estado === 'entregada' || estado === 'entregado') {
-          completadas++;
-        } else {
-          pendientes++;
-        }
-      }
-    });
-
-    console.log(`📊 Recolecciones HOY: ${totalHoy} (Completadas: ${completadas}, Pendientes: ${pendientes})`);
-
-    return {
-      hoy: {
-        total: totalHoy,
-        completadas,
-        pendientes
-      }
-    };
-  } catch (error) {
-    console.error('Error obteniendo métricas de recolecciones:', error);
-    return {
-      hoy: {
-        total: 0,
-        completadas: 0,
-        pendientes: 0
-      }
-    };
   }
 }
 
