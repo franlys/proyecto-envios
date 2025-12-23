@@ -470,17 +470,36 @@ async function getRecoleccionesMetrics(companyId) {
     recoleccionesSnap.forEach(doc => {
       const recoleccion = doc.data();
 
-      // Filtrar por fecha en memoria
-      if (recoleccion.fecha && recoleccion.fecha.toDate() >= hoy) {
+      // ✅ CORRECCIÓN: Verificar múltiples campos de fecha posibles
+      let fechaRecoleccion = null;
+
+      // Intentar obtener fecha de diferentes campos
+      if (recoleccion.fechaCreacion && typeof recoleccion.fechaCreacion.toDate === 'function') {
+        fechaRecoleccion = recoleccion.fechaCreacion.toDate();
+      } else if (recoleccion.fecha && typeof recoleccion.fecha.toDate === 'function') {
+        fechaRecoleccion = recoleccion.fecha.toDate();
+      } else if (recoleccion.createdAt && typeof recoleccion.createdAt.toDate === 'function') {
+        fechaRecoleccion = recoleccion.createdAt.toDate();
+      } else if (recoleccion.fecha && typeof recoleccion.fecha === 'string') {
+        fechaRecoleccion = new Date(recoleccion.fecha);
+      } else if (recoleccion.fechaCreacion && typeof recoleccion.fechaCreacion === 'string') {
+        fechaRecoleccion = new Date(recoleccion.fechaCreacion);
+      }
+
+      // Si encontramos una fecha válida y es de hoy o posterior
+      if (fechaRecoleccion && fechaRecoleccion >= hoy) {
         totalHoy++;
 
-        if (recoleccion.estado === 'completada') {
+        const estado = recoleccion.estado?.toLowerCase() || recoleccion.estadoGeneral?.toLowerCase();
+        if (estado === 'completada' || estado === 'entregada' || estado === 'entregado') {
           completadas++;
         } else {
           pendientes++;
         }
       }
     });
+
+    console.log(`📊 Recolecciones HOY: ${totalHoy} (Completadas: ${completadas}, Pendientes: ${pendientes})`);
 
     return {
       hoy: {
