@@ -435,7 +435,7 @@ export const finalizarRuta = async (req, res) => {
 
     await batch.commit();
 
-    // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR
+    // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR Y ADMIN_GENERAL
     try {
       const { default: whatsappNotificationService } = await import('../services/whatsappNotificationService.js');
 
@@ -471,6 +471,7 @@ export const finalizarRuta = async (req, res) => {
 
       const reporteData = {
         rutaCodigo: rutaId,
+        rutaNombre: rutaData.nombre || rutaId,
         montoAsignado: parseFloat(rutaData.montoAsignado) || 0,
         gastos: gastos,
         totalGastos: totalGastos,
@@ -484,13 +485,40 @@ export const finalizarRuta = async (req, res) => {
 
       // Obtener companyId del usuario que cierra la ruta
       const userData = await getUserDataSafe(req.user?.uid || req.userData?.uid);
-      if (userData?.companyId && rutaData.repartidorId) {
-        await whatsappNotificationService.sendFinancialReportOnRouteClose(
-          userData.companyId,
-          rutaData.repartidorId,
-          reporteData
-        );
-        console.log('✅ Reporte financiero enviado al repartidor');
+
+      if (userData?.companyId) {
+        // 1. Enviar reporte al repartidor
+        if (rutaData.repartidorId) {
+          await whatsappNotificationService.sendFinancialReportOnRouteClose(
+            userData.companyId,
+            rutaData.repartidorId,
+            reporteData
+          );
+          console.log('✅ Reporte financiero enviado al repartidor');
+        }
+
+        // 2. Enviar reporte al admin_general
+        try {
+          const adminSnapshot = await db.collection('usuarios')
+            .where('companyId', '==', userData.companyId)
+            .where('rol', '==', 'admin_general')
+            .limit(1)
+            .get();
+
+          if (!adminSnapshot.empty) {
+            const adminDoc = adminSnapshot.docs[0];
+            await whatsappNotificationService.sendFinancialReportOnRouteClose(
+              userData.companyId,
+              adminDoc.id,
+              reporteData
+            );
+            console.log('✅ Reporte financiero enviado al admin_general');
+          } else {
+            console.log('⚠️ No se encontró admin_general para enviar reporte');
+          }
+        } catch (adminError) {
+          console.error('⚠️ Error enviando reporte al admin_general:', adminError);
+        }
       }
     } catch (error) {
       console.error('⚠️ Error enviando reporte financiero:', error);
@@ -707,7 +735,7 @@ export const cerrarRuta = async (req, res) => {
       facturasNoEntregadas: 0
     });
 
-    // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR
+    // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR Y ADMIN_GENERAL
     try {
       const { default: whatsappNotificationService } = await import('../services/whatsappNotificationService.js');
 
@@ -737,6 +765,7 @@ export const cerrarRuta = async (req, res) => {
 
       const reporteData = {
         rutaCodigo: rutaId,
+        rutaNombre: rutaData.nombre || rutaId,
         montoAsignado: parseFloat(rutaData.montoAsignado) || 0,
         gastos: gastos,
         totalGastos: totalGastos,
@@ -749,13 +778,40 @@ export const cerrarRuta = async (req, res) => {
       };
 
       const userData = await getUserDataSafe(req.userData.uid);
-      if (userData?.companyId && rutaData.repartidorId) {
-        await whatsappNotificationService.sendFinancialReportOnRouteClose(
-          userData.companyId,
-          rutaData.repartidorId,
-          reporteData
-        );
-        console.log('✅ Reporte financiero enviado al repartidor');
+
+      if (userData?.companyId) {
+        // 1. Enviar reporte al repartidor
+        if (rutaData.repartidorId) {
+          await whatsappNotificationService.sendFinancialReportOnRouteClose(
+            userData.companyId,
+            rutaData.repartidorId,
+            reporteData
+          );
+          console.log('✅ Reporte financiero enviado al repartidor');
+        }
+
+        // 2. Enviar reporte al admin_general
+        try {
+          const adminSnapshot = await db.collection('usuarios')
+            .where('companyId', '==', userData.companyId)
+            .where('rol', '==', 'admin_general')
+            .limit(1)
+            .get();
+
+          if (!adminSnapshot.empty) {
+            const adminDoc = adminSnapshot.docs[0];
+            await whatsappNotificationService.sendFinancialReportOnRouteClose(
+              userData.companyId,
+              adminDoc.id,
+              reporteData
+            );
+            console.log('✅ Reporte financiero enviado al admin_general');
+          } else {
+            console.log('⚠️ No se encontró admin_general para enviar reporte');
+          }
+        } catch (adminError) {
+          console.error('⚠️ Error enviando reporte al admin_general:', adminError);
+        }
       }
     } catch (error) {
       console.error('⚠️ Error enviando reporte financiero:', error);

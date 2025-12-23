@@ -741,18 +741,6 @@ const DashboardPropietario = () => {
       </motion.div>
 
       {/* 📦 Estadísticas de Contenedores */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.7 }}
-      >
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-          <Package className="w-6 h-6 text-indigo-600" />
-          Monitoreo de Contenedores
-        </h2>
-        <ContenedorStatsCard />
-      </motion.div>
-
       {/* Accesos Rápidos Mejorados */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
