@@ -726,7 +726,7 @@ const DashboardPropietario = () => {
               <div className="flex-1">
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Cobros</p>
                 <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                  <AnimatedNumber value={stats.cobrosFinanzas} prefix="RD$ " />
+                  <AnimatedNumber value={stats.cobrosFinanzas} prefix="USD$ " />
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
                   Ingresos del mes
@@ -748,7 +748,7 @@ const DashboardPropietario = () => {
               <div className="flex-1">
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Gastos</p>
                 <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400">
-                  <AnimatedNumber value={stats.gastosFinanzas} prefix="RD$ " />
+                  <AnimatedNumber value={stats.gastosFinanzas} prefix="USD$ " />
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
                   Egresos del mes
@@ -770,7 +770,7 @@ const DashboardPropietario = () => {
               <div className="flex-1">
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Balance</p>
                 <h3 className={`text-3xl font-bold ${stats.balanceFinanzas >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                  <AnimatedNumber value={stats.balanceFinanzas} prefix="RD$ " />
+                  <AnimatedNumber value={stats.balanceFinanzas} prefix="USD$ " />
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
                   {stats.balanceFinanzas >= 0 ? 'Ganancia' : 'Pérdida'}
