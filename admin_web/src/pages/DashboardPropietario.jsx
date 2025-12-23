@@ -199,7 +199,8 @@ const DashboardPropietario = () => {
       try {
         const response = await api.get(`/dashboard/contenedor/${selectedContenedor}`);
         if (response.data.success) {
-          setContenedorStats(response.data.data);
+          // ✅ El backend devuelve los datos en response.data.contenedor
+          setContenedorStats(response.data.contenedor);
         }
       } catch (err) {
         console.error('Error cargando stats de contenedor:', err);
