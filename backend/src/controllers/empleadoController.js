@@ -348,10 +348,21 @@ export const empleadoController = {
       if (whatsappPersonal !== undefined) updateData.whatsappPersonal = whatsappPersonal;
       if (whatsappFlota !== undefined) updateData.whatsappFlota = whatsappFlota;
       if (rol) {
+        // ✅ CORRECCIÓN: Permitir que usuarios editen su propio rol (mantenerlo igual)
+        const isEditingSelf = req.userData.uid === id;
+
         // ✅ Validar roles permitidos para actualizar según el rol del usuario
         const validRoles = (userData.rol === 'super_admin' || userData.rol === 'propietario')
           ? ['super_admin', 'propietario', 'admin_general', 'admin', 'secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador']
-          : ['secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador'];
+          : ['admin_general', 'secretaria', 'secretaria_usa', 'almacen', 'almacen_rd', 'almacen_usa', 'repartidor', 'recolector', 'empleado', 'cargador'];
+
+        // Si está editando su propio perfil, solo permitir mantener el mismo rol
+        if (isEditingSelf && rol !== userData.rol) {
+          return res.status(400).json({
+            success: false,
+            error: 'No puedes cambiar tu propio rol. Contacta a un administrador.'
+          });
+        }
 
         if (!validRoles.includes(rol)) {
           return res.status(400).json({
