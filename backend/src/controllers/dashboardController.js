@@ -675,3 +675,164 @@ export const getContenedorStats = async (req, res) => {
     });
   }
 };
+
+/**
+ * 🚚 Obtener estadísticas detalladas de una ruta específica
+ * Incluye: eficiencia, entregas, facturas pendientes, estados
+ */
+export const getRutaStats = async (req, res) => {
+  try {
+    const { rutaId } = req.params;
+    const { companyId, rol } = req.userData;
+
+    console.log(`🚚 Obteniendo estadísticas de la ruta: ${rutaId}`);
+
+    // Obtener datos de la ruta
+    const rutaDoc = await db.collection('rutas').doc(rutaId).get();
+
+    if (!rutaDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ruta no encontrada'
+      });
+    }
+
+    const rutaData = rutaDoc.data();
+
+    // Verificar permisos (solo si no es super_admin)
+    if (rol !== 'super_admin' && rutaData.companyId !== companyId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para ver esta ruta'
+      });
+    }
+
+    // Obtener IDs de facturas en la ruta
+    const facturasIds = rutaData.facturas || [];
+    console.log(`📦 Facturas en ruta: ${facturasIds.length}`);
+
+    // Obtener todas las facturas (en batches de 30)
+    const facturas = [];
+    const BATCH_SIZE = 30;
+
+    for (let i = 0; i < facturasIds.length; i += BATCH_SIZE) {
+      const batch = facturasIds.slice(i, i + BATCH_SIZE);
+      const facturasSnapshot = await db.collection('recolecciones')
+        .where('__name__', 'in', batch)
+        .get();
+
+      facturasSnapshot.forEach(doc => {
+        facturas.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+    }
+
+    // Calcular estadísticas
+    const totalFacturas = facturas.length;
+
+    // Contar por estado
+    let facturasEntregadas = 0;
+    let facturasPendientes = 0;
+    let facturasNoEntregadas = 0;
+    let facturasEnRuta = 0;
+
+    facturas.forEach(f => {
+      const estado = f.estadoGeneral?.toLowerCase() || f.estado?.toLowerCase();
+
+      if (estado === 'entregada' || estado === 'entregado') {
+        facturasEntregadas++;
+      } else if (estado === 'no_entregada' || estado === 'no_entregado') {
+        facturasNoEntregadas++;
+      } else if (estado === 'en_ruta' || estado === 'en_ruta_entrega') {
+        facturasEnRuta++;
+      } else {
+        facturasPendientes++;
+      }
+    });
+
+    // Calcular porcentajes
+    const porcentajeEntrega = totalFacturas > 0
+      ? Math.round((facturasEntregadas / totalFacturas) * 100)
+      : 0;
+
+    const porcentajeNoEntregadas = totalFacturas > 0
+      ? Math.round((facturasNoEntregadas / totalFacturas) * 100)
+      : 0;
+
+    const eficiencia = porcentajeEntrega;
+
+    // Calcular valor total
+    const valorTotal = facturas.reduce((sum, f) => {
+      const precioTotal = (f.items || []).reduce((itemSum, item) => {
+        return itemSum + (parseFloat(item.precio) || 0);
+      }, 0);
+      return sum + precioTotal;
+    }, 0);
+
+    // Determinar estado de la ruta
+    let estadoRuta = rutaData.estado || 'pendiente';
+    let progresoRuta = 0;
+
+    if (totalFacturas > 0) {
+      progresoRuta = porcentajeEntrega;
+    }
+
+    // Respuesta completa
+    res.json({
+      success: true,
+      data: {
+        // Información de la ruta
+        id: rutaId,
+        nombre: rutaData.nombre,
+        tipo: rutaData.tipo,
+        estado: estadoRuta,
+        fechaCreacion: rutaData.createdAt,
+        fechaInicio: rutaData.fechaInicio,
+        fechaFin: rutaData.fechaFin,
+        repartidorId: rutaData.repartidorId,
+        repartidorNombre: rutaData.repartidorNombre,
+        zona: rutaData.zona,
+
+        // Totales
+        totalFacturas,
+        valorTotal,
+        progresoRuta,
+
+        // Estadísticas por estado
+        facturasEntregadas,
+        facturasPendientes,
+        facturasNoEntregadas,
+        facturasEnRuta,
+
+        // Porcentajes y eficiencia
+        porcentajeEntrega,
+        porcentajeNoEntregadas,
+        eficiencia,
+
+        // Notas
+        notas: rutaData.notas
+      },
+
+      // Lista de facturas para análisis detallado
+      facturas: facturas.map(f => ({
+        id: f.id,
+        codigoTracking: f.codigoTracking,
+        estadoGeneral: f.estadoGeneral,
+        destinatario: f.destinatario?.nombre || f.cliente?.nombre,
+        direccion: f.destinatario?.direccion || f.cliente?.direccion,
+        telefono: f.destinatario?.telefono || f.cliente?.telefono,
+        valorItems: (f.items || []).reduce((sum, item) => sum + (parseFloat(item.precio) || 0), 0)
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de la ruta:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas de la ruta',
+      error: error.message
+    });
+  }
+};

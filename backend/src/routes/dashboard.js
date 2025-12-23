@@ -4,7 +4,8 @@ import {
   getStatsSuperAdmin,
   getStatsAdminGeneral,
   getStatsPublic,
-  getContenedorStats
+  getContenedorStats,
+  getRutaStats
 } from '../controllers/dashboardController.js';
 import { getDashboardPropietario } from '../controllers/dashboardPropietarioController.js';
 import { verifyToken, checkRole } from '../middleware/auth.js';
@@ -132,6 +133,17 @@ router.get('/contenedor/:contenedorId',
   verifyToken,
   checkRole('admin_general', 'propietario', 'almacen_rd', 'super_admin'),
   getContenedorStats
+);
+
+/**
+ * @route   GET /api/dashboard/ruta/:rutaId
+ * @desc    Obtener estadísticas detalladas de una ruta específica
+ * @access  Private (admin_general, propietario, repartidor)
+ */
+router.get('/ruta/:rutaId',
+  verifyToken,
+  checkRole('admin_general', 'propietario', 'repartidor', 'super_admin'),
+  getRutaStats
 );
 
 export default router;

@@ -68,6 +68,9 @@ const DashboardPropietario = () => {
   const [contenedores, setContenedores] = useState([]);
   const [selectedContenedor, setSelectedContenedor] = useState(null);
   const [contenedorStats, setContenedorStats] = useState(null);
+  const [rutas, setRutas] = useState([]);
+  const [selectedRuta, setSelectedRuta] = useState(null);
+  const [rutaStats, setRutaStats] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -205,6 +208,47 @@ const DashboardPropietario = () => {
 
     fetchContenedorStats();
   }, [selectedContenedor]);
+
+  // Cargar lista de rutas
+  useEffect(() => {
+    const fetchRutas = async () => {
+      if (!userData) return;
+
+      try {
+        const response = await api.get('/rutas');
+        if (response.data.success) {
+          setRutas(response.data.data);
+        }
+      } catch (err) {
+        console.error('Error cargando rutas:', err);
+      }
+    };
+
+    if (!authLoading && userData) {
+      fetchRutas();
+    }
+  }, [userData, authLoading]);
+
+  // Cargar stats de ruta específica
+  useEffect(() => {
+    const fetchRutaStats = async () => {
+      if (!selectedRuta) {
+        setRutaStats(null);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/dashboard/ruta/${selectedRuta}`);
+        if (response.data.success) {
+          setRutaStats(response.data.data);
+        }
+      } catch (err) {
+        console.error('Error cargando stats de ruta:', err);
+      }
+    };
+
+    fetchRutaStats();
+  }, [selectedRuta]);
 
   if (authLoading || loading) {
     return (
@@ -377,31 +421,55 @@ const DashboardPropietario = () => {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="mb-8"
       >
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
-          <Truck className="w-6 h-6 mr-2 text-emerald-600" />
-          Rutas y Entregas
-        </h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
+            <Truck className="w-6 h-6 mr-2 text-emerald-600" />
+            Rutas y Entregas
+          </h2>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedRuta || ''}
+              onChange={(e) => setSelectedRuta(e.target.value || null)}
+              className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+            >
+              <option value="">📊 Todas las rutas</option>
+              {rutas.map((ruta) => (
+                <option key={ruta.id} value={ruta.id}>
+                  🚚 {ruta.nombre || ruta.id} - {ruta.estado}
+                </option>
+              ))}
+            </select>
+            {selectedRuta && (
+              <button
+                onClick={() => setSelectedRuta(null)}
+                className="px-3 py-2 text-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                Ver todas
+              </button>
+            )}
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
-            title="Rutas Activas"
-            value={stats.rutasActivas}
-            total={stats.totalRutas}
+            title={selectedRuta ? "Facturas en Ruta" : "Rutas Activas"}
+            value={rutaStats ? rutaStats.totalFacturas : stats.rutasActivas}
+            total={rutaStats ? rutaStats.totalFacturas : stats.totalRutas}
             icon={Truck}
             gradient="from-emerald-500 to-teal-500"
             delay={0.1}
-            onClick={() => navigate('/reportes')}
+            onClick={() => !rutaStats && navigate('/reportes')}
           />
           <MetricCard
-            title="Completadas"
-            value={stats.rutasCompletadas}
-            total={stats.totalRutas}
+            title={selectedRuta ? "Entregadas" : "Completadas"}
+            value={rutaStats ? rutaStats.facturasEntregadas : stats.rutasCompletadas}
+            total={rutaStats ? rutaStats.totalFacturas : stats.totalRutas}
             icon={CheckCircle2}
             gradient="from-blue-500 to-indigo-500"
             delay={0.2}
           />
           <MetricCard
             title="% Entrega"
-            value={stats.porcentajeEntregaRutas}
+            value={rutaStats ? rutaStats.porcentajeEntrega : stats.porcentajeEntregaRutas}
             total={100}
             icon={TrendingUp}
             gradient="from-indigo-500 to-purple-500"
@@ -410,8 +478,8 @@ const DashboardPropietario = () => {
           />
           <MetricCard
             title="Facturas Pendientes"
-            value={stats.facturasPendientes}
-            total={stats.totalFacturas}
+            value={rutaStats ? rutaStats.facturasPendientes : stats.facturasPendientes}
+            total={rutaStats ? rutaStats.totalFacturas : stats.totalFacturas}
             icon={Clock}
             gradient="from-amber-500 to-orange-500"
             delay={0.4}
