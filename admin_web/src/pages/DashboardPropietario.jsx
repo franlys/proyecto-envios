@@ -309,7 +309,7 @@ const DashboardPropietario = () => {
               <option value="">📊 Todos los contenedores</option>
               {contenedores.map((cont) => (
                 <option key={cont.id} value={cont.id}>
-                  📦 {cont.codigo} - {cont.estado}
+                  📦 {cont.numeroContenedor} - {cont.estado}
                 </option>
               ))}
             </select>

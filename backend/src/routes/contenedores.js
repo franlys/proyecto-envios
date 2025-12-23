@@ -305,50 +305,32 @@ router.get('/disponibles', async (req, res) => {
 
 /**
  * GET /api/contenedores
- * Listar contenedores disponibles
+ * Listar contenedores de la colección real 'contenedores'
  */
 router.get('/', async (req, res) => {
   try {
-    const { embarqueId, companyId } = req.query;
+    const { companyId, estado } = req.query;
 
-    // ✅ CORRECCIÓN: Usar 'recolecciones' en lugar de 'facturas'
-    let query = db.collection('recolecciones');
-
-    if (embarqueId) {
-      query = query.where('embarqueId', '==', embarqueId);
-    }
+    // ✅ CORRECCIÓN: Consultar la colección 'contenedores' real
+    let query = db.collection('contenedores');
 
     if (companyId) {
       query = query.where('companyId', '==', companyId);
     }
 
-    const snapshot = await query.get();
+    if (estado) {
+      query = query.where('estado', '==', estado);
+    }
 
-    const contenedoresMap = new Map();
+    const snapshot = await query.orderBy('fechaCreacion', 'desc').get();
 
-    snapshot.forEach(doc => {
-      const factura = doc.data();
-      const contenedor = factura.contenedor || 'Sin asignar';
-
-      if (!contenedoresMap.has(contenedor)) {
-        contenedoresMap.set(contenedor, {
-          numeroContenedor: contenedor,
-          facturas: [],
-          totalMonto: 0,
-          totalFacturas: 0
-        });
-      }
-
-      const contenedorData = contenedoresMap.get(contenedor);
-      contenedorData.facturas.push({
-        id: doc.id,
-        ...factura
-      });
-      contenedorData.totalMonto += factura.monto || 0;
-      contenedorData.totalFacturas += 1;
-    });
-
-    const contenedores = Array.from(contenedoresMap.values());
+    const contenedores = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      fechaCreacion: doc.data().fechaCreacion?.toDate?.() || null,
+      fechaCierre: doc.data().fechaCierre?.toDate?.() || null,
+      fechaActualizacion: doc.data().fechaActualizacion?.toDate?.() || null
+    }));
 
     res.json({
       success: true,
