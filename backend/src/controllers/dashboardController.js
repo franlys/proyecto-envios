@@ -708,8 +708,23 @@ export const getRutaStats = async (req, res) => {
     }
 
     // Obtener IDs de facturas en la ruta
-    const facturasIds = rutaData.facturas || [];
-    console.log(`📦 Facturas en ruta: ${facturasIds.length}`);
+    const facturasData = rutaData.facturas || [];
+    console.log(`📦 Facturas en ruta: ${facturasData.length}`);
+
+    // ✅ CORRECCIÓN: Extraer IDs de los objetos (puede ser un array de strings o de objetos)
+    const facturasIds = facturasData.map(item => {
+      // Si es un string, es un ID directo
+      if (typeof item === 'string') {
+        return item;
+      }
+      // Si es un objeto, extraer el ID
+      if (typeof item === 'object' && item !== null) {
+        return item.id || item.facturaId;
+      }
+      return null;
+    }).filter(id => id !== null && typeof id === 'string');
+
+    console.log(`📦 IDs válidos extraídos: ${facturasIds.length}`);
 
     // Obtener todas las facturas (en batches de 30)
     const facturas = [];
