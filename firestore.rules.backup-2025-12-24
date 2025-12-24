@@ -1,0 +1,141 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // 🔐 FUNCIONES HELPER DE SEGURIDAD
+    // =========================================================
+
+    // Obtener datos del usuario actual
+    function getUserData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    // Verificar si el usuario pertenece a la misma compañía que el documento
+    function isSameCompany(resourceData) {
+      let userData = getUserData();
+      return userData.companyId == resourceData.companyId;
+    }
+
+    // Verificar si el usuario es Super Admin
+    function isSuperAdmin() {
+      let userData = getUserData();
+      return userData.rol == 'super_admin';
+    }
+
+    // Verificar si el usuario tiene uno de los roles permitidos
+    function hasRole(allowedRoles) {
+      let userData = getUserData();
+      return userData.rol in allowedRoles || userData.rol == 'super_admin'; // Super admin siempre tiene acceso
+    }
+
+    // Verificar que el documento nuevo tenga el mismo companyId que el usuario
+    function assignToSameCompany() {
+      let userData = getUserData();
+      return request.resource.data.companyId == userData.companyId;
+    }
+    
+    // =========================================================
+    // 👤 USUARIOS Y EMPLEADOS
+    // =========================================================
+
+    // Usuarios: Cada uno lee/escribe su propio perfil. Admin lee todos de su empresa.
+    match /usuarios/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId || 
+        (isSameCompany(resource.data) && hasRole(['admin_general', 'propietario'])) ||
+        isSuperAdmin()
+      );
+      allow create: if request.auth != null; // Registro inicial
+      allow update: if request.auth != null && (
+        request.auth.uid == userId || 
+        isSuperAdmin()
+      );
+    }
+
+    // Empleados: Similar a usuarios
+    match /empleados/{empleadoId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == empleadoId || 
+        (isSameCompany(resource.data) && hasRole(['admin_general', 'propietario', 'rrhh']))
+      );
+      allow update: if request.auth != null && (
+        request.auth.uid == empleadoId ||
+        (isSameCompany(resource.data) && hasRole(['admin_general', 'rrhh']))
+      );
+      allow create: if request.auth != null && hasRole(['admin_general', 'propietario', 'rrhh']);
+    }
+
+    // =========================================================
+    // 📦 OPERACIONES LOGÍSTICAS (Multi-Tenant)
+    // =========================================================
+
+    // Recolecciones (Facturas)
+    match /recolecciones/{docId} {
+      allow read: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+      allow create: if request.auth != null && assignToSameCompany();
+      allow update, delete: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+    }
+
+    // Contenedores
+    match /contenedores/{docId} {
+      allow read: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+      allow create: if request.auth != null && assignToSameCompany(); // Cualquier rol puede crear por ahora, o restringir a admin/almacen
+      allow update: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+    }
+
+    // Embarques
+    match /embarques/{docId} {
+      allow read: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+      allow write: if request.auth != null && (
+        (request.resource.data.companyId == getUserData().companyId) || 
+        (resource != null && isSameCompany(resource.data)) ||
+        isSuperAdmin()
+      );
+    }
+
+    // Rutas
+    match /rutas/{docId} {
+      allow read: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+      allow write: if request.auth != null && (isSameCompany(resource.data) || assignToSameCompany() || isSuperAdmin());
+    }
+
+    // =========================================================
+    // 💰 FINANZAS Y OTROS
+    // =========================================================
+
+    match /gastos/{docId} {
+      allow read: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+      allow write: if request.auth != null && (
+        hasRole(['admin_general', 'propietario', 'secretaria']) && 
+        (isSameCompany(resource.data) || assignToSameCompany())
+      );
+    }
+
+    match /companies/{companyId} {
+      // Solo super_admin crea companies. Usuarios leen su propia company.
+      allow read: if request.auth != null && (
+        getUserData().companyId == companyId || isSuperAdmin()
+      );
+      allow write: if request.auth != null && isSuperAdmin();
+    }
+
+    // =========================================================
+    // 🏭 ALMACENES Y OPERACIONES
+    // =========================================================
+
+    match /contenedores_usa/{docId} {
+      allow read, write: if request.auth != null && (isSameCompany(resource.data) || assignToSameCompany() || isSuperAdmin());
+    }
+
+    match /historial_reasignaciones/{docId} {
+      allow read: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+    }
+    
+    // Regla default segura para colecciones no listadas explícitamente pero críticas
+    match /{path=**}/items_inventario/{docId} {
+      allow read, write: if request.auth != null && (isSameCompany(resource.data) || isSuperAdmin());
+    }
+  }
+}

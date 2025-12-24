@@ -278,47 +278,6 @@ service cloud.firestore {
     }
 
     // ========================================
-    // COLECCIONES LEGACY (compatibilidad)
-    // ========================================
-
-    // Empleados
-    match /empleados/{empleadoId} {
-      allow read: if isAuthenticated()
-                  && (isOwner(empleadoId) || (belongsToCompany(resource.data.companyId) && hasAnyRole(['admin_general', 'propietario', 'rrhh'])));
-
-      allow update: if isAuthenticated()
-                    && (isOwner(empleadoId) || (belongsToCompany(resource.data.companyId) && hasAnyRole(['admin_general', 'rrhh'])));
-
-      allow create: if isAuthenticated() && hasAnyRole(['admin_general', 'propietario', 'rrhh']);
-    }
-
-    // Gastos (legacy)
-    match /gastos/{docId} {
-      allow read: if belongsToCompany(resource.data.companyId);
-      allow write: if belongsToCompany(resource.data.companyId)
-                   && hasAnyRole(['admin_general', 'propietario', 'secretaria']);
-    }
-
-    // Contenedores USA (legacy)
-    match /contenedores_usa/{docId} {
-      allow read, write: if isAuthenticated()
-                         && (belongsToCompany(resource.data.companyId)
-                         || request.resource.data.companyId == request.auth.token.companyId);
-    }
-
-    // Historial reasignaciones (legacy)
-    match /historial_reasignaciones/{docId} {
-      allow read: if belongsToCompany(resource.data.companyId);
-    }
-
-    // Items inventario (legacy wildcard)
-    match /{path=**}/items_inventario/{docId} {
-      allow read, write: if isAuthenticated()
-                         && (belongsToCompany(resource.data.companyId)
-                         || request.resource.data.companyId == request.auth.token.companyId);
-    }
-
-    // ========================================
     // DENEGAR TODO LO DEMÁS
     // ========================================
     // Cualquier otra ruta NO especificada: DENEGAR
