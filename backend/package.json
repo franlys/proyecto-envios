@@ -8,7 +8,8 @@
     "start": "node -r dotenv/config src/index.js",
     "dev": "nodemon -r dotenv/config src/index.js",
     "create-admin": "node -r dotenv/config scripts/createInitialAdmin.js",
-    "migrate:rutas-cargadores": "node -r dotenv/config scripts/migrateRutasCargadores.js"
+    "migrate:rutas-cargadores": "node -r dotenv/config scripts/migrateRutasCargadores.js",
+    "test": "vitest"
   },
   "keywords": [
     "logistics",
@@ -24,6 +25,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
     "express-validator": "^7.2.1",
     "firebase": "^12.6.0",
     "firebase-admin": "^12.7.0",
@@ -41,6 +43,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }

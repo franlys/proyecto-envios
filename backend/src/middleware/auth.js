@@ -10,16 +10,13 @@ export const verifyToken = async (req, res, next) => {
   try {
     // ✅ CORRECCIÓN CRÍTICA: Obtener token del header Authorization
     const authHeader = req.headers.authorization;
-    
+
     // ✅ Validar que existe el header y tiene el formato correcto
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
-        error: 'Token no proporcionado',
-        hint: 'Envía el header Authorization: Bearer <token>',
-        receivedHeaders: {
-          authorization: authHeader || 'undefined',
-          'content-type': req.headers['content-type']
-        }
+      return res.status(401).json({
+        error: 'No autorizado',
+        message: 'Credenciales de autenticación inválidas'
+        // ✅ SEGURIDAD: NO exponer receivedHeaders
       });
     }
 
@@ -59,15 +56,9 @@ export const verifyToken = async (req, res, next) => {
         details: verifyError.message 
       });
     }
-    
-    // ✅ Verificar expiración del token
-    const now = Math.floor(Date.now() / 1000);
-    if (decodedToken.exp < now) {
-      return res.status(401).json({ 
-        error: 'Token expirado',
-        hint: 'Por favor, vuelve a iniciar sesión'
-      });
-    }
+
+    // ✅ SEGURIDAD: Firebase SDK ya validó expiración en verifyIdToken
+    // NO necesitamos validar exp manualmente (evita doble validación)
 
     req.user = decodedToken;
     
@@ -135,10 +126,10 @@ export const checkRole = (...allowedRoles) => {
     const hasPermission = allowedRoles.includes(userRole);
 
     if (!hasPermission) {
-      return res.status(403).json({ 
-        error: 'No tienes permisos para realizar esta acción',
-        requiredRoles: allowedRoles,
-        yourRole: userRole
+      return res.status(403).json({
+        error: 'Acceso denegado',
+        message: 'No tienes permisos suficientes para realizar esta acción'
+        // ✅ SEGURIDAD: NO exponer requiredRoles ni yourRole
       });
     }
 
@@ -189,9 +180,9 @@ export const requireFinancialAccess = (req, res, next) => {
 
   if (!hasAccess) {
     return res.status(403).json({
-      error: 'Acceso denegado al módulo financiero',
-      hint: 'Solo el propietario de la empresa puede ver datos financieros',
-      yourRole: userRole
+      error: 'Acceso denegado',
+      message: 'No tienes permisos suficientes'
+      // ✅ SEGURIDAD: NO exponer hint específico ni yourRole
     });
   }
 

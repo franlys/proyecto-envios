@@ -75,7 +75,10 @@
       "Bash(📍 *Zona de entrega:* [zona])",
       "Bash(📅 *Fecha de salida:* [fecha])",
       "Bash(✅ Tu paquete ha sido cargado al camión y está listo para ser entregado.\"\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+      "Bash(timeout 10 node:*)",
+      "Bash(firebase deploy:*)"
     ],
     "deny": [],
     "ask": []
