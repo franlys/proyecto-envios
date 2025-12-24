@@ -1,0 +1,156 @@
+=================================================================
+🚀 COMANDOS RÁPIDOS PARA AUDITAR CON GEMINI
+=================================================================
+
+📖 GUÍA COMPLETA: .security-audit/INSTRUCCIONES-GEMINI.md
+
+=================================================================
+AUDITORÍA 1: RACE CONDITIONS (30 min)
+=================================================================
+
+1. Abrir AnythingLLM o https://aistudio.google.com
+
+2. Copiar prompt:
+   cat .security-audit/prompt-race-condition-audit.md
+
+3. Pegar TODO en Gemini, esperar confirmación
+
+4. Copiar código a auditar:
+   cat backend/src/controllers/cargadoresController.js
+
+5. Pegar en Gemini, esperar reporte
+
+6. Guardar reporte en:
+   .security-audit/reportes/cargadores-race-condition-2025-12-24.md
+
+7. Repetir para:
+   cat backend/src/controllers/almacenUsaController.js
+   cat backend/src/controllers/rutaController.js
+
+=================================================================
+AUDITORÍA 2: RATE LIMITING (45 min)
+=================================================================
+
+1. NUEVO CHAT en Gemini
+
+2. Copiar prompt:
+   cat .security-audit/prompt-rate-limiting-audit.md
+
+3. Pegar en Gemini, esperar confirmación
+
+4. Copiar rutas:
+   cat backend/src/routes/contenedores.js
+   cat backend/src/routes/usuarios.js
+
+5. Pegar UNA POR UNA en Gemini
+
+6. Guardar reportes
+
+7. Implementar rate limiting:
+   npm install express-rate-limit
+   [Usar código que Gemini sugiera]
+
+=================================================================
+AUDITORÍA 3: FIRESTORE RULES (60 min)
+=================================================================
+
+1. Ir a: https://console.firebase.google.com
+   -> Firestore Database -> Rules
+   -> Copiar TODAS las reglas
+
+2. NUEVO CHAT en Gemini
+
+3. Copiar prompt:
+   cat .security-audit/prompt-firestore-rules-audit.md
+
+4. Pegar en Gemini, esperar confirmación
+
+5. Pegar reglas de Firestore en Gemini
+
+6. Gemini genera reglas seguras COMPLETAS
+
+7. Probar en Firebase Rules Playground
+
+8. Publicar en Firebase Console
+
+=================================================================
+ARCHIVOS DISPONIBLES
+=================================================================
+
+PROMPTS:
+  .security-audit/prompt-race-condition-audit.md
+  .security-audit/prompt-rate-limiting-audit.md
+  .security-audit/prompt-firestore-rules-audit.md
+  .security-audit/prompt-auth-audit.md
+  .security-audit/prompt-injection-audit.md
+  .security-audit/prompt-business-logic-audit.md
+
+GUÍAS:
+  .security-audit/INSTRUCCIONES-GEMINI.md (PASO A PASO)
+  .security-audit/QUICK-START.md
+  .security-audit/RESUMEN-PROMPTS-DISPONIBLES.md
+  .security-audit/GUIA-PROMPTS-SIGUIENTES-PASOS.md
+
+REPORTES:
+  .security-audit/reportes/race-condition-fix-2025-12-24.md
+  .security-audit/RESUMEN-FINAL-SEGURIDAD.md
+  .security-audit/CHANGELOG-SECURITY.md
+
+=================================================================
+TEMPLATE: CUALQUIER AUDITORÍA
+=================================================================
+
+1. NUEVO CHAT en Gemini
+2. cat .security-audit/prompt-[TIPO].md
+3. Copiar TODO, pegar en Gemini
+4. Esperar confirmación
+5. cat backend/src/[ARCHIVO].js
+6. Copiar, pegar en Gemini
+7. Esperar reporte (10-30 seg)
+8. Guardar reporte
+9. Implementar correcciones
+
+=================================================================
+ACCESO RÁPIDO A GEMINI
+=================================================================
+
+Opción 1: AnythingLLM (ya instalado)
+  - Abrir app
+  - Asegurar modelo = "Gemini Pro"
+
+Opción 2: Google AI Studio (más rápido)
+  - Ir a: https://aistudio.google.com/
+  - Create new chat
+
+=================================================================
+ESTADO ACTUAL
+=================================================================
+
+✅ CORREGIDO (Score: 90/100):
+  - NoSQL Injection
+  - XSS Almacenado
+  - Endpoints sin autenticación
+  - Validación de archivos
+  - Information disclosure
+  - Race condition en rutaController.js
+
+⏳ PENDIENTE (HACER HOY):
+  - Race conditions en cargadoresController.js
+  - Race conditions en almacenUsaController.js
+  - Rate limiting en TODAS las rutas
+  - Firestore Security Rules
+
+=================================================================
+PRÓXIMA ACCIÓN INMEDIATA
+=================================================================
+
+1. Abrir AnythingLLM AHORA
+2. Ejecutar: cat .security-audit/prompt-race-condition-audit.md
+3. Copiar TODO y pegar en Gemini
+4. Ejecutar: cat backend/src/controllers/cargadoresController.js
+5. Copiar TODO y pegar en Gemini
+6. Esperar reporte (30 seg)
+
+⏱️ Tiempo total: 5 minutos para primera auditoría
+
+=================================================================

@@ -704,37 +704,48 @@ export const cerrarRuta = async (req, res) => {
   try {
     const rutaId = req.params.id;
     const rutaRef = db.collection('rutas').doc(rutaId);
-    const rutaDoc = await rutaRef.get();
 
-    if (!rutaDoc.exists) {
-      return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
-    }
+    // ✅ SEGURIDAD FINANCIERA: Usar transacción para prevenir race conditions
+    // Esto previene que dos requests simultáneas cierren la misma ruta dos veces
+    let rutaData;
+    let facturasEnRuta;
 
-    const rutaData = rutaDoc.data();
-    const facturasEnRuta = Array.isArray(rutaData.facturas) ? rutaData.facturas : [];
+    await db.runTransaction(async (transaction) => {
+      const rutaDoc = await transaction.get(rutaRef);
 
-    // ✅ VALIDACIÓN: Verificar que todas las facturas estén entregadas
-    let facturasNoEntregadas = 0;
-    for (const facturaRuta of facturasEnRuta) {
-      if (facturaRuta && facturaRuta.estado !== 'entregada') {
-        facturasNoEntregadas++;
+      if (!rutaDoc.exists) {
+        throw new Error('Ruta no encontrada');
       }
-    }
 
-    // ❌ Si hay facturas sin entregar, rechazar el cierre automático
-    if (facturasNoEntregadas > 0) {
-      return res.status(400).json({
-        success: false,
-        error: `No se puede cerrar la ruta. Hay ${facturasNoEntregadas} factura(s) sin entregar. Use el endpoint /finalizar para cerrar con facturas pendientes.`,
-        facturasNoEntregadas
+      rutaData = rutaDoc.data();
+
+      // ✅ VALIDACIÓN CRÍTICA: Verificar que no esté ya cerrada (previene doble cierre)
+      if (rutaData.estado === 'completada') {
+        throw new Error('La ruta ya está cerrada. No se puede cerrar dos veces.');
+      }
+
+      facturasEnRuta = Array.isArray(rutaData.facturas) ? rutaData.facturas : [];
+
+      // ✅ VALIDACIÓN: Verificar que todas las facturas estén entregadas
+      let facturasNoEntregadas = 0;
+      for (const facturaRuta of facturasEnRuta) {
+        if (facturaRuta && facturaRuta.estado !== 'entregada') {
+          facturasNoEntregadas++;
+        }
+      }
+
+      // ❌ Si hay facturas sin entregar, rechazar el cierre automático
+      if (facturasNoEntregadas > 0) {
+        throw new Error(`No se puede cerrar la ruta. Hay ${facturasNoEntregadas} factura(s) sin entregar. Use el endpoint /finalizar para cerrar con facturas pendientes.`);
+      }
+
+      // ✅ Si todas están entregadas, proceder al cierre DENTRO de la transacción
+      // Esto garantiza atomicidad: o se cierra completo o no se cierra
+      transaction.update(rutaRef, {
+        estado: 'completada',
+        fechaCierre: new Date().toISOString(),
+        facturasNoEntregadas: 0
       });
-    }
-
-    // ✅ Si todas están entregadas, proceder al cierre
-    await rutaRef.update({
-      estado: 'completada',
-      fechaCierre: new Date().toISOString(),
-      facturasNoEntregadas: 0
     });
 
     // 💰 ENVIAR REPORTE FINANCIERO AL REPARTIDOR Y ADMIN_GENERAL
@@ -1063,3 +1074,43 @@ export const getHistorialRutas = async (req, res) => {
     });
   }
 };
+// ============================================================
+//  L�GICA FINANCIERA CENTRALIZADA
+// ============================================================
+export const calcularDineroAEntregar = (rutaData) => {
+  // 1. Calcular Gastos
+  const gastosArray = Array.isArray(rutaData.gastos) ? rutaData.gastos : [];
+  const totalGastos = gastosArray.reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
+
+  // 2. Calcular Cobros (Solo facturas entregadas y pagadas)
+  const facturas = Array.isArray(rutaData.facturas) ? rutaData.facturas : [];
+  let totalCobrado = 0;
+  let facturasPagadasCount = 0;
+
+  facturas.forEach(f => {
+    if (f.estado !== 'entregada') return;
+    
+    const pago = f.pago || {};
+    const montoPagado = parseFloat(pago.montoPagado) || 0;
+    const montoPendiente = parseFloat(pago.montoPendiente) || 0;
+    
+    totalCobrado += montoPagado;
+    
+    if (pago.estado === 'pagada' || (montoPagado > 0 && montoPendiente <= 0)) {
+        facturasPagadasCount++;
+    }
+  });
+
+  const montoAsignado = parseFloat(rutaData.montoAsignado) || 0;
+  const dineroAEntregar = montoAsignado + totalCobrado - totalGastos;
+
+  return {
+    totalGastos,
+    totalCobrado,
+    dineroAEntregar,
+    facturasPagadas: facturasPagadasCount,
+    esDeficit: dineroAEntregar < 0,
+    montoAsignado
+  };
+};
+

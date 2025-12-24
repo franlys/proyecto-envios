@@ -530,6 +530,9 @@ export const quitarFactura = async (req, res) => {
 // ========================================
 // CERRAR CONTENEDOR
 // ========================================
+// ==========================================================================
+// 🔴 CERRAR CONTENEDOR (Con Transacción Atómica - Anti Race Condition)
+// ==========================================================================
 export const cerrarContenedor = async (req, res) => {
   try {
     const { id: contenedorId } = req.params;
@@ -537,195 +540,157 @@ export const cerrarContenedor = async (req, res) => {
     const companyId = req.userData?.companyId;
     const usuarioId = req.userData?.uid;
 
+    console.log(`🔒 Intentando cerrar contenedor: ${contenedorId} (Transacción)`);
+
     const contenedorRef = db.collection('contenedores').doc(contenedorId);
-    const contenedorDoc = await contenedorRef.get();
+    let contenedorDataPostTransaction = null;
 
-    if (!contenedorDoc.exists) {
-      return res.status(404).json({ success: false, message: 'Contenedor no encontrado' });
-    }
-    const contenedor = contenedorDoc.data();
+    // ✅ EJECUTAR LÓGICA DE CIERRE EN TRANSACCIÓN
+    await db.runTransaction(async (transaction) => {
+      const contenedorDoc = await transaction.get(contenedorRef);
 
-    if (contenedor.companyId !== companyId) {
-      return res.status(403).json({ success: false, message: 'No tiene permisos' });
-    }
-    if (contenedor.estado !== ESTADOS_CONTENEDOR.ABIERTO) {
-      return res.status(400).json({ success: false, message: 'El contenedor no está abierto' });
-    }
-    if (!contenedor.facturas || contenedor.facturas.length === 0) {
-      return res.status(400).json({ success: false, message: 'No se puede cerrar un contenedor vacío' });
-    }
+      if (!contenedorDoc.exists) {
+        throw new Error('Contenedor no encontrado');
+      }
 
-    const facturasIncompletas = (contenedor.facturas || []).filter(
-      f => f.estadoItems === ESTADOS_ITEMS.INCOMPLETO || f.estadoItems === ESTADOS_ITEMS.PENDIENTE
-    );
-    if (facturasIncompletas.length > 0 && !forzarCierre) {
-      return res.status(400).json({
-        success: false,
-        message: 'Hay facturas con items sin marcar'
+      const contenedor = contenedorDoc.data();
+
+      // 1. Validaciones dentro de la transacción (Consistencia)
+      if (contenedor.companyId !== companyId) {
+        throw new Error('No tiene permisos para cerrar este contenedor');
+      }
+      if (contenedor.estado !== ESTADOS_CONTENEDOR.ABIERTO) {
+        throw new Error(`El contenedor no está abierto (Estado: ${contenedor.estado})`);
+      }
+      if (!contenedor.facturas || contenedor.facturas.length === 0) {
+        throw new Error('No se puede cerrar un contenedor vacío');
+      }
+
+      const facturasIncompletas = (contenedor.facturas || []).filter(
+        f => f.estadoItems === ESTADOS_ITEMS.INCOMPLETO || f.estadoItems === ESTADOS_ITEMS.PENDIENTE
+      );
+
+      if (facturasIncompletas.length > 0 && !forzarCierre) {
+        const error = new Error('Hay facturas con items sin marcar');
+        error.code = 'FACTURAS_INCOMPLETAS';
+        throw error;
+      }
+
+      const estadoFacturas = {
+        completas: (contenedor.facturas || []).filter(f => f.estadoItems === ESTADOS_ITEMS.COMPLETO).length,
+        incompletas: (contenedor.facturas || []).filter(f => f.estadoItems !== ESTADOS_ITEMS.COMPLETO).length,
+        total: (contenedor.facturas || []).length
+      };
+
+      const historialEntry = {
+        accion: 'cerrar_contenedor',
+        descripcion: `Contenedor cerrado en USA`,
+        facturasCompletas: estadoFacturas.completas,
+        facturasIncompletas: estadoFacturas.incompletas,
+        forzado: !!forzarCierre,
+        usuario: usuarioId,
+        fecha: new Date().toISOString()
+      };
+
+      // 2. Actualizar Contenedor
+      transaction.update(contenedorRef, {
+        estado: ESTADOS_CONTENEDOR.EN_TRANSITO,
+        estadoFacturas,
+        fechaCierre: FieldValue.serverTimestamp(),
+        fechaActualizacion: FieldValue.serverTimestamp(),
+        cerradoPor: usuarioId,
+        historial: FieldValue.arrayUnion(historialEntry)
       });
-    }
 
-    const estadoFacturas = {
-      completas: (contenedor.facturas || []).filter(f => f.estadoItems === ESTADOS_ITEMS.COMPLETO).length,
-      incompletas: (contenedor.facturas || []).filter(f => f.estadoItems !== ESTADOS_ITEMS.COMPLETO).length,
-      total: (contenedor.facturas || []).length
-    };
+      // 3. Actualizar Facturas
+      // Nota: Iteramos para actualizar cada doc individualmente en la transacción.
+      // Firestore tiene límite de 500 operaciones por tx. Asumimos < 500.
+      for (const factura of contenedor.facturas || []) {
+        if (!factura || !factura.id) continue;
+        const recoleccionRef = db.collection('recolecciones').doc(factura.id.trim());
 
-    const historialEntry = {
-      accion: 'cerrar_contenedor',
-      descripcion: `Contenedor cerrado en USA`,
-      facturasCompletas: estadoFacturas.completas,
-      facturasIncompletas: estadoFacturas.incompletas,
-      forzado: !!forzarCierre,
-      usuario: usuarioId,
-      fecha: new Date().toISOString()
-    };
+        transaction.update(recoleccionRef, {
+          estado: ESTADOS_FACTURA.EN_TRANSITO,
+          estadoGeneral: ESTADOS_FACTURA.EN_TRANSITO,
+          estadoItems: factura.estadoItems || ESTADOS_ITEMS.COMPLETO,
+          fechaActualizacion: FieldValue.serverTimestamp(),
+          historial: FieldValue.arrayUnion({
+            accion: 'contenedor_cerrado',
+            descripcion: `Contenedor ${contenedor.numeroContenedor} cerrado y en tránsito a RD`,
+            estadoItems: factura.estadoItems,
+            fecha: new Date().toISOString()
+          })
+        });
+      }
 
-    // 1. Actualizar el estado del contenedor
-    await contenedorRef.update({
-      estado: ESTADOS_CONTENEDOR.EN_TRANSITO,
-      estadoFacturas,
-      fechaCierre: FieldValue.serverTimestamp(),
-      fechaActualizacion: FieldValue.serverTimestamp(),
-      cerradoPor: usuarioId,
-      historial: FieldValue.arrayUnion(historialEntry)
+      // Guardamos datos para usar DESPUÉS de commitear (Notificaciones)
+      contenedorDataPostTransaction = { ...contenedor, estadoFacturas };
     });
 
-    const batch = db.batch();
-    let facturasActualizadas = 0;
-    let facturasConError = 0;
+    console.log(`✅ Transacción de cierre exitosa para ${contenedorId}`);
 
-    // 2. Actualizar el estado de CADA factura en la colección 'recolecciones'
-    if (contenedor.facturas && Array.isArray(contenedor.facturas)) {
-      for (const factura of contenedor.facturas) {
-        if (!factura || !factura.id || typeof factura.id !== 'string' || factura.id.trim() === '') {
-          console.warn(`⚠️ Factura sin ID válido en ${contenedorId}`);
-          facturasConError++;
-          continue;
-        }
+    // ==============================================================
+    // 📨 NOTIFICACIONES (FUERA DE LA TRANSACCIÓN)
+    // ==============================================================
+    // Solo llegamos aquí si la transacción fue exitosa (commit).
+    // Si falla, tira error y no envía spam.
 
-        try {
-          const recoleccionRef = db.collection('recolecciones').doc(factura.id.trim());
-          const recoleccionDoc = await recoleccionRef.get();
+    const contenedor = contenedorDataPostTransaction;
 
-          if (recoleccionDoc.exists) {
-            batch.update(recoleccionRef, {
-              estado: ESTADOS_FACTURA.EN_TRANSITO, // Se marca como EN_TRANSITO
-              estadoGeneral: ESTADOS_FACTURA.EN_TRANSITO, // ✅ Sincronizar estadoGeneral
-              estadoItems: factura.estadoItems || ESTADOS_ITEMS.COMPLETO,
-              fechaActualizacion: FieldValue.serverTimestamp(),
-              historial: FieldValue.arrayUnion({
-                accion: 'contenedor_cerrado',
-                descripcion: `Contenedor ${contenedor.numeroContenedor} cerrado y en tránsito a RD`,
-                estadoItems: factura.estadoItems,
-                fecha: new Date().toISOString()
-              })
-            });
-            facturasActualizadas++;
-          } else {
-            console.warn(`⚠️ Recolección ${factura.id.trim()} no existe`);
-            facturasConError++;
-          }
-        } catch (error) {
-          console.error(`❌ Error en factura ${factura.id.trim()}:`, error.message);
-          facturasConError++;
-        }
-      }
-    }
-
-    if (facturasActualizadas > 0) {
-      await batch.commit();
-    }
-
-    console.log(`✅ Contenedor ${contenedorId} cerrado: ${facturasActualizadas}/${(contenedor.facturas || []).length} facturas`);
-
-    // 📱 NOTIFICAR A ALMACÉN RD QUE EL CONTENEDOR ESTÁ EN TRÁNSITO
+    // 1. Notificar a Almacén RD
     try {
       const { default: whatsappNotificationService } = await import('../services/whatsappNotificationService.js');
-
       await whatsappNotificationService.notifyAlmacenRDContenedorEnTransito(companyId, {
         numeroContenedor: contenedor.numeroContenedor,
         totalFacturas: contenedor.facturas?.length || 0,
-        facturasCompletas: estadoFacturas.completas,
-        facturasIncompletas: estadoFacturas.incompletas,
+        facturasCompletas: contenedor.estadoFacturas.completas,
+        facturasIncompletas: contenedor.estadoFacturas.incompletas,
         fechaCierre: new Date().toISOString()
       });
-      console.log('✅ Notificación enviada a Almacén RD');
     } catch (error) {
-      console.error('⚠️ Error enviando notificación a Almacén RD:', error);
-      // No fallar el cierre por error de notificación
+      console.error('⚠️ Error notificando almacén RD (No crítico):', error.message);
     }
 
-    // ✅ ENVIAR NOTIFICACIÓN A TODOS LOS REMITENTES (en segundo plano)
+    // 2. Notificaciones a Clientes (Background)
     if (contenedor.facturas && Array.isArray(contenedor.facturas)) {
-      // Obtener configuración de la compañía
-      let companyConfig = null;
-      try {
-        const companyDoc = await db.collection('companies').doc(companyId).get();
-        if (companyDoc.exists) {
-          companyConfig = companyDoc.data();
-        }
-      } catch (error) {
-        console.error('⚠️ Error obteniendo configuración de compañía:', error.message);
-      }
-
-      for (const factura of contenedor.facturas) {
-        if (!factura || !factura.id) continue;
-
+      // Ejecutar en background sin await para no bloquear respuesta
+      (async () => {
+        let companyConfig = null;
         try {
-          const recoleccionDoc = await db.collection('recolecciones').doc(factura.id.trim()).get();
-          if (!recoleccionDoc.exists) continue;
+          const companyDoc = await db.collection('companies').doc(companyId).get();
+          if (companyDoc.exists) companyConfig = companyDoc.data();
+        } catch (e) { console.error('Error config company:', e); }
 
-          const facturaData = recoleccionDoc.data();
-          const remitenteEmail = facturaData.remitente?.email;
+        for (const factura of contenedor.facturas) {
+          if (!factura?.id) continue;
+          try {
+            const recDoc = await db.collection('recolecciones').doc(factura.id).get();
+            if (!recDoc.exists) continue;
+            const fData = recDoc.data();
 
-          if (remitenteEmail) {
-            const subject = `🚢 En Tránsito a República Dominicana - ${facturaData.codigoTracking}`;
-            const contentHTML = `
-              <h2 style="color: #2c3e50; margin-top: 0;">🚢 En Tránsito a República Dominicana</h2>
-              <p>Hola <strong>${facturaData.remitente?.nombre}</strong>,</p>
-              <p>Tu paquete está en camino hacia República Dominicana.</p>
-              
-              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Detalles del Envío</h3>
-                <p><strong>Código de Tracking:</strong> ${facturaData.codigoTracking}</p>
-                <p><strong>Contenedor:</strong> ${contenedor.numeroContenedor}</p>
-                <p><strong>Destinatario:</strong> ${facturaData.destinatario?.nombre}</p>
-                <p><strong>Dirección de Entrega:</strong> ${facturaData.destinatario?.direccion}</p>
-              </div>
+            // Email Remitente
+            if (fData.remitente?.email) {
+              const subject = `🚢 En Tránsito a República Dominicana - ${fData.codigoTracking}`;
+              const content = `<h2 style="color: #2c3e50;">🚢 En Tránsito a RD</h2><p>Tu paquete ${fData.codigoTracking} va en camino en el contenedor ${contenedor.numeroContenedor}.</p>`;
+              const html = generateBrandedEmailHTML(content, companyConfig, 'en_transito_rd', fData.codigoTracking);
+              sendEmail(fData.remitente.email, subject, html, [], companyConfig).catch(e => console.error(e));
+            }
 
-              <p>Te notificaremos cuando el paquete llegue a nuestro almacén en República Dominicana.</p>
-              <p>Gracias por confiar en nosotros.</p>
-            `;
+            // WhatsApps
+            if (fData.remitente?.telefono) {
+              const msg = `🚢 *En Tránsito a RD*: ${fData.codigoTracking}\n\nTu paquete va en camino en el contenedor *${contenedor.numeroContenedor}*.`;
+              whatsappService.sendMessage(companyId, fData.remitente.telefono, msg).catch(e => console.error(e));
+            }
+            if (fData.destinatario?.telefono) {
+              const msg = `🚢 *Paquete en Camino*: ${fData.codigoTracking}\n\nEl paquete de ${fData.remitente?.nombre} va en camino a RD.`;
+              whatsappService.sendMessage(companyId, fData.destinatario.telefono, msg).catch(e => console.error(e));
+            }
 
-            const brandedHTML = generateBrandedEmailHTML(contentHTML, companyConfig, 'en_transito_rd', facturaData.codigoTracking);
-
-            sendEmail(remitenteEmail, subject, brandedHTML, [], companyConfig)
-              .then(() => console.log(`📧 Notificación enviada a ${remitenteEmail} - Contenedor en tránsito`))
-              .catch(err => console.error(`❌ Error enviando notificación:`, err.message));
+          } catch (err) {
+            console.error(`Error notif factura ${factura.id}:`, err.message);
           }
-
-          // 🟢 NOTIFICACIÓN WHATSAPP AL REMITENTE (En Tránsito)
-          const remitenteTelefono = facturaData.remitente?.telefono;
-          if (remitenteTelefono) {
-            const mensajeWhatsapp = `🚢 *En Tránsito a RD*: ${facturaData.codigoTracking}\n\nHola *${facturaData.remitente?.nombre}*,\n\nTu paquete está en camino hacia República Dominicana.\n\n📦 *Contenedor:* ${contenedor.numeroContenedor}\n\nTe avisaremos cuando llegue. Gracias por elegirnos.`;
-
-            whatsappService.sendMessage(companyId, remitenteTelefono, mensajeWhatsapp)
-              .catch(e => console.error('Error enviando WA Remitente En Transito:', e));
-          }
-
-          // 📲 NOTIFICACIÓN WHATSAPP AL DESTINATARIO (En Tránsito) - NUEVO
-          const destinatarioTelefono = facturaData.destinatario?.telefono;
-          if (destinatarioTelefono) {
-            const mensajeWhatsapp = `🚢 *Tu paquete viene en camino*: ${facturaData.codigoTracking}\n\nHola *${facturaData.destinatario?.nombre}*,\n\nEl paquete que te envió *${facturaData.remitente?.nombre}* está en tránsito hacia República Dominicana.\n\n📦 *Contenedor:* ${contenedor.numeroContenedor}\n\nTe notificaremos cuando llegue a nuestro almacén. ¡Pronto lo tendrás!`;
-
-            whatsappService.sendMessage(companyId, destinatarioTelefono, mensajeWhatsapp)
-              .catch(e => console.error('Error enviando WA Destinatario En Transito:', e));
-          }
-        } catch (error) {
-          console.error(`❌ Error enviando notificación para factura ${factura.id}:`, error.message);
         }
-      }
+      })();
     }
 
     res.json({
@@ -735,15 +700,15 @@ export const cerrarContenedor = async (req, res) => {
         contenedorId,
         numeroContenedor: contenedor.numeroContenedor,
         estado: ESTADOS_CONTENEDOR.EN_TRANSITO,
-        estadoFacturas,
-        estadisticas: contenedor.estadisticas,
-        facturasActualizadas,
-        facturasConError
+        estadoFacturas: contenedor.estadoFacturas
       }
     });
 
   } catch (error) {
     console.error('❌ Error cerrando contenedor:', error);
+    if (error.code === 'FACTURAS_INCOMPLETAS') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     res.status(500).json({
       success: false,
       message: 'Error al cerrar el contenedor',

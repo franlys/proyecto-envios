@@ -42,6 +42,8 @@ import nominaRoutes from './routes/nomina.js'; // ✅ NUEVO - Módulo de Nómina
 import { checkPlanActivo } from './middleware/checkPlanActivo.js';
 // Importar middleware de autenticación
 import { verifyToken } from './middleware/auth.js';
+// Importar rate limiters (protección DoS y brute force)
+import { apiLimiter, loginLimiter, uploadLimiter, strictLimiter } from './config/rateLimiters.js';
 
 const app = express();
 
@@ -127,8 +129,12 @@ app.get('/api/health', (req, res) => {
 // =====================================================
 // RUTAS PRINCIPALES
 // =====================================================
+// Rate Limiting (Seguridad)
+// Aplicar limiter global a todas las rutas de la API
+app.use('/api', apiLimiter);
+
 // Rutas públicas (sin validación de plan)
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', loginLimiter, authRoutes);  // ✅ Rate limiter anti-brute force
 app.use('/api/tracking', trackingRoutes); // ✅ Tracking Público
 app.use('/api/facturacion', facturacionRoutes);
 app.use('/api/finanzas', finanzasRoutes); // ✅ Finanzas tiene su propia validación
