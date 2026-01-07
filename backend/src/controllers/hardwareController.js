@@ -17,10 +17,10 @@ export const getHardwareConfig = async (req, res) => {
     const { companyId } = req.params;
 
     // Verificar permisos (solo superadmin o admin de la company)
-    const userRole = req.userData?.role;
+    const userRole = req.userData?.rol;
     const userCompanyId = req.userData?.companyId;
 
-    if (userRole !== 'superadmin' && userCompanyId !== companyId) {
+    if (userRole !== 'super_admin' && userCompanyId !== companyId) {
       return res.status(403).json({
         success: false,
         message: 'No tienes permisos para ver esta configuración'
@@ -61,7 +61,7 @@ export const cambiarSistemaHardware = async (req, res) => {
     const { nuevoSistema, motivo } = req.body;
 
     // Solo superadmin puede cambiar sistema
-    if (req.userData?.role !== 'superadmin') {
+    if (req.userData?.rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo Super Admin puede cambiar el sistema de hardware'
@@ -128,7 +128,7 @@ export const agregarScanner = async (req, res) => {
     const scannerData = req.body;
 
     // Solo superadmin puede agregar hardware
-    if (req.userData?.role !== 'superadmin') {
+    if (req.userData?.rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo Super Admin puede agregar hardware'
@@ -213,7 +213,7 @@ export const agregarImpresora = async (req, res) => {
     const impresoraData = req.body;
 
     // Solo superadmin puede agregar hardware
-    if (req.userData?.role !== 'superadmin') {
+    if (req.userData?.rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo Super Admin puede agregar hardware'
@@ -292,7 +292,7 @@ export const eliminarDispositivo = async (req, res) => {
     const { tipo } = req.query; // 'scanner' o 'impresora'
 
     // Solo superadmin puede eliminar hardware
-    if (req.userData?.role !== 'superadmin') {
+    if (req.userData?.rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo Super Admin puede eliminar hardware'
@@ -378,7 +378,7 @@ export const actualizarConfigBarcode = async (req, res) => {
     const configData = req.body;
 
     // Solo superadmin puede actualizar config
-    if (req.userData?.role !== 'superadmin') {
+    if (req.userData?.rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo Super Admin puede actualizar configuración'
@@ -432,7 +432,7 @@ export const toggleSistemaHardware = async (req, res) => {
     const { enabled } = req.body;
 
     // Solo superadmin puede activar/desactivar
-    if (req.userData?.role !== 'superadmin') {
+    if (req.userData?.rol !== 'super_admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo Super Admin puede activar/desactivar el sistema'
