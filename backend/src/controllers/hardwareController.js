@@ -32,9 +32,46 @@ export const getHardwareConfig = async (req, res) => {
     const hardwareDoc = await hardwareRef.get();
 
     if (!hardwareDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        message: 'Configuración de hardware no encontrada'
+      console.log(`ℹ️ Configuración no encontrada para ${companyId}. Inicializando...`);
+
+      const defaultConfig = {
+        enabled: false,
+        sistemaActivo: 'barcode_manual_scanner',
+        barcodeManual: {
+          scanners: [],
+          impresoras: [],
+          configuracion: {
+            formatoCodigo: 'CODE128',
+            prefijo: 'ENV',
+            autoImprimir: true,
+            etiquetas: {
+              ancho: 4,
+              alto: 6
+            }
+          },
+          estadisticasGenerales: {
+            costoTotalInversion: 0
+          }
+        },
+        rfidZebra: {
+          readers: [],
+          antennas: [],
+          configuracion: {
+            potencia: 30,
+            filtroRSSI: -70
+          }
+        },
+        historialSistema: [],
+        creadoEn: new Date().toISOString(),
+        actualizadoEn: new Date().toISOString()
+      };
+
+      await hardwareRef.set(defaultConfig);
+
+      return res.json({
+        success: true,
+        data: defaultConfig,
+        message: 'Configuración inicializada correctamente'
       });
     }
 

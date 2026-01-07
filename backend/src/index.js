@@ -49,6 +49,9 @@ import { apiLimiter, loginLimiter, uploadLimiter, strictLimiter } from './config
 
 const app = express();
 
+// ✅ FIX: Confiar en el proxy (Vercel/Railway) para Rate Limit
+app.set('trust proxy', 1);
+
 // Servir archivos estáticos (uploads)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
