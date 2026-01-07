@@ -73,6 +73,7 @@ const Layout = ({ children }) => {
         { path: '/dashboard', label: 'Dashboard', icon: '📊' },
         { path: '/finanzas', label: 'Finanzas', icon: '💼' },
         { path: '/companies', label: 'Compañías', icon: '🏢' },
+        { path: '/hardware', label: 'Hardware', icon: '🖨️' }, // ✅ NUEVO
         { path: '/tickets-admin', label: 'Tickets', icon: '🎫' },
         { path: '/configuracion/whatsapp', label: 'WhatsApp Cloud', icon: '📱' }, // ✅ NUEVO
         { path: '/configuracion', label: 'Configuración', icon: '⚙️' },
