@@ -14,13 +14,12 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
-  PackagePlus, // ✅ NUEVO: Icono para Nueva Recolección
-  Calendar, // 🆕 Icono Citas
-  Map, // 🆕 Icono Pool
-  QrCode, // 🆕 Whatsapp Link
   ClipboardList, // 🆕 Icono Gestión Solicitudes
-  History // 🆕 Icono Historial
+  History, // 🆕 Icono Historial
+  Printer, // 🆕 Icono Hardware
+  ScanBarcode // 🆕 Icono Escane
 } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
@@ -55,6 +54,20 @@ const Sidebar = () => {
       path: '/companies',
       icon: Building2,
       roles: ['super_admin']
+    },
+    {
+      name: 'Hardware',
+      path: '/hardware',
+      icon: ScanBarcode,
+      roles: ['super_admin'],
+      badge: 'Nuevo'
+    },
+    {
+      name: 'Hardware',
+      path: '/hardware',
+      icon: ScanBarcode,
+      roles: ['super_admin'],
+      badge: 'Nuevo'
     },
     {
       name: 'Nueva Recolección', // ✅ NUEVO: Enlace para crear recolección
