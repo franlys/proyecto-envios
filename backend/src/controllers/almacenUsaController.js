@@ -334,11 +334,160 @@ export const agregarFactura = async (req, res) => {
 };
 
 // ========================================
-// MARCAR/DESMARCAR ITEM
+// MARCAR/DESMARCAR UNIDAD INDIVIDUAL
+// ========================================
+export const marcarUnidadIndividual = async (req, res) => {
+  try {
+    console.log('--- 🚀 MARCAR UNIDAD INDIVIDUAL ---');
+
+    const { contenedorId } = req.params;
+    const { facturaId, itemIndex, unidadIndex } = req.body;
+    const companyId = req.userData?.companyId;
+
+    const result = await db.runTransaction(async (transaction) => {
+      const contenedorRef = db.collection('contenedores').doc(contenedorId);
+      const contenedorDoc = await transaction.get(contenedorRef);
+
+      if (!contenedorDoc.exists) { throw new Error('CONTENEDOR_NO_ENCONTRADO'); }
+      const contenedor = contenedorDoc.data();
+
+      if (contenedor.companyId !== companyId) { throw new Error('SIN_PERMISOS'); }
+      if (contenedor.estado !== ESTADOS_CONTENEDOR.ABIERTO) { throw new Error('CONTENEDOR_NO_ABIERTO'); }
+
+      const facturaIndex = (contenedor.facturas || []).findIndex(f => f.id === facturaId);
+      if (facturaIndex === -1) { throw new Error('FACTURA_NO_ENCONTRADA'); }
+
+      const facturasActualizadas = JSON.parse(JSON.stringify(contenedor.facturas || []));
+      const factura = facturasActualizadas[facturaIndex];
+
+      if (!Array.isArray(factura.items) || itemIndex < 0 || itemIndex >= factura.items.length) {
+        throw new Error('ITEM_INVALIDO');
+      }
+
+      const item = factura.items[itemIndex];
+
+      // Inicializar estructura de unidades si no existe
+      if (!item.unidades || !Array.isArray(item.unidades)) {
+        item.unidades = [];
+        for (let i = 0; i < item.cantidad; i++) {
+          item.unidades.push({
+            numero: i + 1,
+            marcado: false,
+            fechaMarcado: null
+          });
+        }
+      }
+
+      // Validar índice de unidad
+      if (unidadIndex < 0 || unidadIndex >= item.unidades.length) {
+        throw new Error('UNIDAD_INVALIDA');
+      }
+
+      // Toggle marcado de la unidad
+      const unidad = item.unidades[unidadIndex];
+      unidad.marcado = !unidad.marcado;
+      unidad.fechaMarcado = unidad.marcado ? new Date().toISOString() : null;
+
+      // Contar unidades marcadas en este item
+      const unidadesMarcadasItem = item.unidades.filter(u => u.marcado).length;
+      item.marcado = unidadesMarcadasItem === item.cantidad; // Item completo solo si todas sus unidades están marcadas
+
+      // Calcular estadísticas a nivel de factura (UNIDADES FÍSICAS, no items)
+      let totalUnidadesFisicas = 0;
+      let unidadesMarcadas = 0;
+
+      factura.items.forEach(itm => {
+        const cantidadUnidades = itm.cantidad || 1;
+        totalUnidadesFisicas += cantidadUnidades;
+
+        if (itm.unidades && Array.isArray(itm.unidades)) {
+          unidadesMarcadas += itm.unidades.filter(u => u.marcado).length;
+        }
+      });
+
+      // Actualizar estadísticas de factura
+      factura.itemsTotal = factura.items.length; // Total de ITEMS (líneas)
+      factura.unidadesTotales = totalUnidadesFisicas; // Total de UNIDADES FÍSICAS
+      factura.itemsMarcados = factura.items.filter(i => i.marcado).length; // Items COMPLETOS
+      factura.unidadesMarcadas = unidadesMarcadas; // Unidades físicas marcadas
+
+      // Estado de factura basado en UNIDADES
+      if (unidadesMarcadas === 0) {
+        factura.estadoItems = ESTADOS_ITEMS.PENDIENTE;
+      } else if (unidadesMarcadas === totalUnidadesFisicas) {
+        factura.estadoItems = ESTADOS_ITEMS.COMPLETO;
+      } else {
+        factura.estadoItems = ESTADOS_ITEMS.INCOMPLETO;
+      }
+
+      // Calcular estadísticas globales del contenedor
+      const estadisticasActualizadas = {
+        totalFacturas: facturasActualizadas.length,
+        totalItems: facturasActualizadas.reduce((sum, f) => sum + (f.itemsTotal || 0), 0),
+        totalUnidades: facturasActualizadas.reduce((sum, f) => sum + (f.unidadesTotales || 0), 0),
+        itemsMarcados: facturasActualizadas.reduce((sum, f) => sum + (f.itemsMarcados || 0), 0),
+        unidadesMarcadas: facturasActualizadas.reduce((sum, f) => sum + (f.unidadesMarcadas || 0), 0),
+        montoTotal: facturasActualizadas.reduce((sum, f) => sum + (f.facturacion?.total || 0), 0)
+      };
+
+      // Actualizar contenedor
+      transaction.update(contenedorRef, {
+        facturas: facturasActualizadas,
+        estadisticas: estadisticasActualizadas,
+        fechaActualizacion: FieldValue.serverTimestamp()
+      });
+
+      // Sincronizar a recolecciones
+      const recoleccionRef = db.collection('recolecciones').doc(facturaId);
+      transaction.update(recoleccionRef, {
+        itemsMarcados: factura.itemsMarcados,
+        itemsTotal: factura.itemsTotal,
+        unidadesTotales: factura.unidadesTotales,
+        unidadesMarcadas: factura.unidadesMarcadas,
+        estadoItems: factura.estadoItems,
+        fechaActualizacion: FieldValue.serverTimestamp()
+      });
+
+      return {
+        facturaId,
+        itemIndex,
+        unidadIndex,
+        unidadMarcada: unidad.marcado,
+        unidadesMarcadasItem: unidadesMarcadasItem,
+        totalUnidadesItem: item.cantidad,
+        unidadesMarcadas: factura.unidadesMarcadas,
+        unidadesTotales: factura.unidadesTotales,
+        estadoItems: factura.estadoItems,
+        estadisticas: estadisticasActualizadas
+      };
+    });
+
+    res.json({
+      success: true,
+      message: result.unidadMarcada ? 'Unidad marcada' : 'Unidad desmarcada',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error marcando unidad:', error);
+    const errorMessages = {
+      'CONTENEDOR_NO_ENCONTRADO': 'Contenedor no encontrado',
+      'SIN_PERMISOS': 'No tiene permisos',
+      'CONTENEDOR_NO_ABIERTO': 'El contenedor no está abierto',
+      'FACTURA_NO_ENCONTRADA': 'Factura no encontrada en el contenedor',
+      'ITEM_INVALIDO': 'Índice de item inválido',
+      'UNIDAD_INVALIDA': 'Índice de unidad inválido'
+    };
+    const message = errorMessages[error.message] || 'Error al marcar la unidad';
+    res.status(400).json({ success: false, message, error: error.message });
+  }
+};
+
+// ========================================
+// MARCAR/DESMARCAR ITEM (Legacy - mantener para compatibilidad)
 // ========================================
 export const marcarItem = async (req, res) => {
   try {
-    console.log('--- 🚀 EJECUTANDO MARCAR ITEM ---');
+    console.log('--- 🚀 EJECUTANDO MARCAR ITEM (LEGACY) ---');
 
     const { contenedorId } = req.params;
     const { facturaId, itemIndex, marcado } = req.body;

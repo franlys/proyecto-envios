@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // COLECCIÓN: companies (Extendida con Hardware)
+    // ==========================================
+    match /companies/{companyId} {
+
+      // Funciones auxiliares
+      function isSuperAdmin() {
+        return request.auth != null &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.customClaims.role == 'super_admin';
+      }
+
+      function isAdminOfCompany() {
+        return request.auth != null &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.customClaims.role in ['admin_general', 'super_admin'];
+      }
+
+      function isUserOfCompany() {
+        return request.auth != null &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+      }
+
+      // Reglas de acceso a la empresa
+      allow read: if isUserOfCompany() || isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin() || isAdminOfCompany();
+      allow delete: if isSuperAdmin();
+
+      // ==========================================
+      // SUB-COLECCIÓN: hardware (Dispositivos)
+      // ==========================================
+      match /hardware/{deviceType} {
+        // deviceType puede ser: printers, readers, handhelds
+
+        // Super Admin: acceso total
+        allow read, write: if isSuperAdmin();
+
+        // Admin de empresa: solo lectura
+        allow read: if isAdminOfCompany();
+
+        // Usuarios de empresa: solo lectura
+        allow read: if isUserOfCompany();
+      }
+
+      // ==========================================
+      // SUB-COLECCIÓN: hardware_logs (Logs de Dispositivos)
+      // ==========================================
+      match /hardware_logs/{logId} {
+        // Logs de eventos de dispositivos (prints, reads, errors)
+
+        allow read: if isUserOfCompany() || isSuperAdmin();
+        allow create: if true; // Permitir creación desde backend
+        allow update, delete: if isSuperAdmin();
+      }
+
+      // ==========================================
+      // SUB-COLECCIÓN: hardware_stats (Estadísticas)
+      // ==========================================
+      match /hardware_stats/{statId} {
+        // Estadísticas agregadas por día/semana/mes
+
+        allow read: if isUserOfCompany() || isSuperAdmin();
+        allow write: if isSuperAdmin();
+      }
+    }
+
+    // ==========================================
+    // COLECCIÓN: device_events (Eventos Globales de Dispositivos)
+    // ==========================================
+    match /device_events/{eventId} {
+      // Eventos en tiempo real de todos los dispositivos
+      // Útil para monitoreo centralizado del Super Admin
+
+      allow read: if request.auth != null &&
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.customClaims.role == 'super_admin';
+      allow create: if true; // Backend puede crear eventos
+      allow update, delete: if false; // Solo lectura
+    }
+
+    // ==========================================
+    // COLECCIÓN: rfid_tags (Tags RFID Globales)
+    // ==========================================
+    match /rfid_tags/{tagId} {
+      // Catálogo global de tags RFID y su asociación con items
+
+      function isTagOwner() {
+        return request.auth != null &&
+               resource.data.companyId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId;
+      }
+
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if isTagOwner() ||
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.customClaims.role == 'super_admin';
+      allow delete: if isTagOwner() ||
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.customClaims.role == 'super_admin';
+    }
+  }
+}

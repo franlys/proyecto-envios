@@ -1,27 +1,60 @@
-// Página de Suscripciones - Gestión de planes y métodos de pago (Stripe)
+// Página de Suscripciones - Gestión de planes y métodos de pago (PayPal)
 import { CreditCard, Check } from 'lucide-react';
+import { useState } from 'react';
+import PayPalButton from '../../components/PayPalButton';
+import { toast } from 'sonner';
 
 const Suscripciones = () => {
+  const [planSeleccionado, setPlanSeleccionado] = useState(null);
+  const [mostrarPago, setMostrarPago] = useState(false);
+
   const planes = [
     {
+      id: 'basico',
       nombre: 'Básico',
       precio: 29,
       features: ['Hasta 100 facturas/mes', 'Soporte por email', '1 usuario'],
       actual: false
     },
     {
+      id: 'pro',
       nombre: 'Pro',
       precio: 79,
       features: ['Facturas ilimitadas', 'Soporte prioritario', '5 usuarios', 'API access'],
       actual: true
     },
     {
+      id: 'enterprise',
       nombre: 'Enterprise',
       precio: 199,
       features: ['Todo de Pro', 'Usuarios ilimitados', 'Soporte 24/7', 'Personalización'],
       actual: false
     }
   ];
+
+  const handleSeleccionarPlan = (plan) => {
+    if (plan.actual) return;
+    setPlanSeleccionado(plan);
+    setMostrarPago(true);
+  };
+
+  const handlePagoExitoso = (detallesPago) => {
+    console.log('Pago exitoso:', detallesPago);
+    toast.success(`¡Plan ${planSeleccionado.nombre} activado!`);
+    setMostrarPago(false);
+    setPlanSeleccionado(null);
+    // Aquí actualizar el estado del plan en Firestore
+  };
+
+  const handlePagoError = (error) => {
+    console.error('Error en pago:', error);
+    toast.error('Hubo un problema con el pago');
+  };
+
+  const handlePagoCancelado = () => {
+    setMostrarPago(false);
+    setPlanSeleccionado(null);
+  };
 
   return (
     <div className="h-full overflow-auto bg-slate-50">
@@ -64,6 +97,7 @@ const Suscripciones = () => {
               </ul>
               <button
                 disabled={plan.actual}
+                onClick={() => handleSeleccionarPlan(plan)}
                 className={`w-full mt-6 px-4 py-2 rounded-lg font-medium transition-colors ${
                   plan.actual
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -76,22 +110,71 @@ const Suscripciones = () => {
           ))}
         </div>
 
+        {/* Modal de Pago con PayPal */}
+        {mostrarPago && planSeleccionado && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">
+                Cambiar a Plan {planSeleccionado.nombre}
+              </h2>
+
+              <div className="bg-slate-50 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-slate-600">Plan {planSeleccionado.nombre}</span>
+                  <span className="font-bold text-slate-900">${planSeleccionado.precio}/mes</span>
+                </div>
+                <div className="text-sm text-slate-500">
+                  Cobro mensual recurrente
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-slate-700 mb-3">
+                  Pagar con PayPal:
+                </h3>
+                <PayPalButton
+                  amount={planSeleccionado.precio}
+                  currency="USD"
+                  description={`Suscripción Plan ${planSeleccionado.nombre}`}
+                  invoiceId={null}
+                  onSuccess={handlePagoExitoso}
+                  onError={handlePagoError}
+                  onCancel={handlePagoCancelado}
+                />
+              </div>
+
+              <button
+                onClick={handlePagoCancelado}
+                className="w-full py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Métodos de Pago */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Métodos de Pago</h2>
-          <div className="flex items-center gap-4 p-4 border-2 border-indigo-200 rounded-lg bg-indigo-50">
-            <CreditCard className="w-8 h-8 text-indigo-600" />
+
+          <div className="flex items-center gap-4 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#003087">
+              <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .76-.633h4.606a.64.64 0 0 1 .633.74l-3.107 16.878a.77.77 0 0 1-.76.632z"/>
+              <path d="M13.736 21.337H9.13a.641.641 0 0 1-.633-.74l3.107-16.878a.77.77 0 0 1 .76-.632h4.605a.64.64 0 0 1 .633.74l-3.106 16.877a.77.77 0 0 1-.76.633z"/>
+            </svg>
             <div className="flex-1">
-              <p className="font-medium text-slate-900">•••• •••• •••• 4242</p>
-              <p className="text-sm text-slate-600">Expira 12/25</p>
+              <p className="font-medium text-slate-900">PayPal</p>
+              <p className="text-sm text-slate-600">Método de pago configurado</p>
             </div>
             <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
-              Principal
+              Activo
             </span>
           </div>
-          <button className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">
-            + Agregar método de pago
-          </button>
+
+          <div className="mt-4 text-sm text-slate-600">
+            <p>Los pagos se procesan de forma segura a través de PayPal.</p>
+            <p className="mt-1">Puedes pagar con tu cuenta PayPal o con tarjeta de crédito/débito.</p>
+          </div>
         </div>
       </div>
     </div>

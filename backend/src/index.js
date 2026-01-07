@@ -36,6 +36,8 @@ import gastosRutaRoutes from './routes/gastosRuta.js'; // ✅ NUEVO - Gestión d
 import trackingRoutes from './routes/tracking.js'; // ✅ NUEVO - Tracking Público
 import finanzasRoutes from './routes/finanzas.js'; // ✅ NUEVO - Módulo Financiero (SaaS + Empresa)
 import nominaRoutes from './routes/nomina.js'; // ✅ NUEVO - Módulo de Nómina y Pagos
+import paymentsRoutes from './routes/payments.js'; // ✅ NUEVO - Pagos con PayPal
+import hardwareRoutes from './routes/hardware.js'; // ✅ NUEVO - Gestión de Hardware (Zebra RFID + Scanners Manuales)
 
 
 // Importar middleware de validación de plan
@@ -138,6 +140,8 @@ app.use('/api/auth', loginLimiter, authRoutes);  // ✅ Rate limiter anti-brute 
 app.use('/api/tracking', trackingRoutes); // ✅ Tracking Público
 app.use('/api/facturacion', facturacionRoutes);
 app.use('/api/finanzas', finanzasRoutes); // ✅ Finanzas tiene su propia validación
+app.use('/api/payments', paymentsRoutes); // ✅ PayPal (tiene auth interna donde necesario)
+app.use('/api/hardware', hardwareRoutes); // ✅ Gestión de Hardware (requiere auth)
 app.use('/api/solicitudes', solicitudesRoutes); // 🆕 Endpoint para despacho
 app.use('/api/dashboard', dashboardRoutes); // Dashboard tiene su propia lógica de permisos
 app.use('/api/whatsapp', whatsappRoutes); // ✅ Proxy Público (protegido por CORS interno y lógica del frontend)

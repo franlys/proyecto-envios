@@ -78,7 +78,9 @@
       "Bash(grep:*)",
       "Bash(echo:*)",
       "Bash(timeout 10 node:*)",
-      "Bash(firebase deploy:*)"
+      "Bash(firebase deploy:*)",
+      "Bash(cat:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

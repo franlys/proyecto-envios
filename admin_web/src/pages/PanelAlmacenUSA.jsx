@@ -32,8 +32,12 @@ import {
   Loader,
   Trash,
   CheckCircle,
-  History
+  History,
+  Printer
 } from 'lucide-react';
+import { toast } from 'sonner';
+import BarcodeScannerInput from '../components/common/BarcodeScannerInput';
+import ModalImpresionEtiquetas from '../components/modals/ModalImpresionEtiquetas';
 
 const PanelAlmacenUSA = () => {
   const navigate = useNavigate();
@@ -66,6 +70,7 @@ const PanelAlmacenUSA = () => {
   const [modalEliminar, setModalEliminar] = useState(null);
   const [modalQuitarFactura, setModalQuitarFactura] = useState(null);
   const [modalMarcarTrabajado, setModalMarcarTrabajado] = useState(null);
+  const [modalImpresion, setModalImpresion] = useState(null);
   const [facturasIncompletas, setFacturasIncompletas] = useState([]);
 
   // ========================================
@@ -271,7 +276,7 @@ const PanelAlmacenUSA = () => {
   };
 
   // ========================================
-  // MARCAR/DESMARCAR ITEM
+  // MARCAR/DESMARCAR ITEM (Legacy - for line items)
   // ========================================
   const handleMarcarItem = async (facturaId, itemIndex, marcado) => {
     try {
@@ -305,6 +310,44 @@ const PanelAlmacenUSA = () => {
     } catch (err) {
       console.error('Error marcando item:', err);
       setError(err.response?.data?.message || 'Error al marcar el item');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========================================
+  // MARCAR/DESMARCAR UNIDAD INDIVIDUAL
+  // ========================================
+  const handleMarcarUnidad = async (facturaId, itemIndex, unidadIndex) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.post(
+        `/almacen-usa/contenedores/${contenedorActivo.id}/unidades/marcar`,
+        {
+          facturaId,
+          itemIndex,
+          unidadIndex
+        }
+      );
+
+      if (response.data.success) {
+        await cargarContenedorActivo(contenedorActivo.id);
+
+        // Actualizar la factura seleccionada
+        if (facturaSeleccionada && facturaSeleccionada.id === facturaId) {
+          const facturaActualizada = contenedorActivo.facturas.find(
+            f => f.id === facturaId
+          );
+          if (facturaActualizada) {
+            setFacturaSeleccionada(facturaActualizada);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error marcando unidad:', err);
+      setError(err.response?.data?.message || 'Error al marcar la unidad');
     } finally {
       setLoading(false);
     }
@@ -435,6 +478,71 @@ const PanelAlmacenUSA = () => {
       return () => clearTimeout(timer);
     }
   }, [error, successMessage]);
+
+  // ========================================
+  // MANEJO DE ESCANEO (BARRAS / QR)
+  // ========================================
+  const handleScan = async (scannedCode) => {
+    if (!contenedorActivo) {
+      toast.error("Debes abrir un contenedor para escanear items");
+      return;
+    }
+
+    console.log("Escaneado:", scannedCode);
+
+    // Regex para código de unidad: TRACKING-ITEM-UNIT
+    // Ejemplo: EMI-2024-001-0-2
+    // Formato: [TRACKING]-[ITEM_IDX]-[UNIT_IDX]
+    // Usamos lastIndexOf para separar los índices de forma segura
+
+    // Regex flexible: captura todo hasta los últimos dos guiones
+    const unitMatch = scannedCode.match(/^(.*)-(\d+)-(\d+)$/);
+
+    if (unitMatch) {
+      // --- ES UN CÓDIGO DE UNIDAD ---
+      const [_, tracking, itemIdxStr, unitIdxStr] = unitMatch;
+      const itemIdx = parseInt(itemIdxStr);
+      const unitIdx = parseInt(unitIdxStr);
+
+      // Buscar factura en la lista del contenedor
+      const factura = contenedorActivo.facturas.find(f => f.codigoTracking === tracking);
+
+      if (factura) {
+        // Marcar la unidad
+        // Usamos la función existente handleMarcarUnidad
+        // Nota: handleMarcarUnidad ya actualiza el estado y hace reload
+        toast.promise(handleMarcarUnidad(factura.id, itemIdx, unitIdx), {
+          loading: 'Marcando unidad...',
+          success: `Item escaneado: ${tracking} [${unitIdx + 1}]`,
+          error: 'Error al marcar unidad'
+        });
+
+        // Auto-seleccionar la factura para ver el progreso
+        if (!facturaSeleccionada || facturaSeleccionada.id !== factura.id) {
+          setFacturaSeleccionada(factura);
+        }
+      } else {
+        toast.error(`Factura ${tracking} no encontrada en este contenedor`);
+      }
+    } else {
+      // --- ES UN TRACKING NUMBER (FACTURA COMPLETA) ---
+      // Buscar si ya está en el contenedor
+      const facturaEnContenedor = contenedorActivo.facturas.find(f => f.codigoTracking === scannedCode);
+
+      if (facturaEnContenedor) {
+        setFacturaSeleccionada(facturaEnContenedor);
+        toast.success("Factura localizada en el contenedor");
+      } else {
+        // Si no está, intentamos buscarla para agregar
+        // Llenamos el campo de búsqueda y disparamos
+        setBusquedaFactura(scannedCode);
+        toast.info("Factura no está en contenedor. Buscando...");
+
+        // Opcional: disparar búsqueda automáticamente
+        // Pero react updates might clash. User can just click "Buscar" or Enter logic
+      }
+    }
+  };
 
   // ========================================
   // RENDERS
@@ -623,9 +731,9 @@ const PanelAlmacenUSA = () => {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-600 dark:text-slate-400">Items:</span>
+                        <span className="text-slate-600 dark:text-slate-400">Unidades:</span>
                         <span className="font-semibold text-slate-900 dark:text-white">
-                          {contenedor.estadisticas?.itemsMarcados || 0} / {contenedor.estadisticas?.totalItems || 0}
+                          {contenedor.estadisticas?.unidadesMarcadas || contenedor.estadisticas?.itemsMarcados || 0} / {contenedor.estadisticas?.unidadesTotales || contenedor.estadisticas?.totalItems || 0}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -769,15 +877,15 @@ const PanelAlmacenUSA = () => {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                        {contenedorActivo.estadisticas?.totalItems || 0}
+                        {contenedorActivo.estadisticas?.unidadesTotales || contenedorActivo.estadisticas?.totalItems || 0}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Items</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Unidades</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-emerald-600">
-                        {contenedorActivo.estadisticas?.itemsMarcados || 0}
+                        {contenedorActivo.estadisticas?.unidadesMarcadas || contenedorActivo.estadisticas?.itemsMarcados || 0}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Marcados</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Marcadas</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-indigo-600">
@@ -901,7 +1009,7 @@ const PanelAlmacenUSA = () => {
                                 {factura.codigoTracking}
                               </h4>
                               <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Items: {factura.itemsMarcados || 0} / {factura.itemsTotal || 0}
+                                Unidades: {factura.unidadesMarcadas || factura.itemsMarcados || 0} / {factura.unidadesTotales || factura.itemsTotal || 0}
                               </p>
                             </div>
 
@@ -916,6 +1024,14 @@ const PanelAlmacenUSA = () => {
                                   factura.estadoItems === 'incompleto' ? 'Incompleta' :
                                     'Pendiente'}
                               </span>
+
+                              <button
+                                onClick={() => setModalImpresion(factura)}
+                                className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center gap-2"
+                                title="Imprimir Etiquetas"
+                              >
+                                <Printer size={18} />
+                              </button>
 
                               <button
                                 onClick={() => setFacturaSeleccionada(factura)}
@@ -963,74 +1079,118 @@ const PanelAlmacenUSA = () => {
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => setFacturaSeleccionada(null)}
-                      className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center gap-2"
-                    >
-                      <ArrowLeft size={20} />
-                      Volver
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setModalImpresion(facturaSeleccionada)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
+                      >
+                        <Printer size={20} />
+                        Imprimir Etiquetas
+                      </button>
+
+                      <button
+                        onClick={() => setFacturaSeleccionada(null)}
+                        className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center gap-2"
+                      >
+                        <ArrowLeft size={20} />
+                        Volver
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {facturaSeleccionada.items && facturaSeleccionada.items.length > 0 ? (
-                      facturaSeleccionada.items.map((item, index) => {
-                        const estaEscaneado = item.marcado;
+                      facturaSeleccionada.items.map((item, itemIndex) => {
+                        // Inicializar array de unidades si no existe
+                        const cantidad = item.cantidad || 1;
+                        const unidades = item.unidades || Array.from({ length: cantidad }, (_, i) => ({
+                          numero: i + 1,
+                          marcado: false,
+                          fechaMarcado: null
+                        }));
 
+                        // Si hay unidades, mostrar cada una individualmente
                         return (
-                          <div
-                            key={index}
-                            className={`border rounded-lg p-4 transition ${estaEscaneado
-                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                              : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                              }`}
-                          >
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                                    #{index + 1}
-                                  </span>
-                                  <h4 className="font-semibold text-slate-900 dark:text-white">
-                                    {item.descripcion || item.producto || 'Sin descripción'}
-                                  </h4>
-                                </div>
-                                <div className="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-400">
-                                  <span>Cantidad: {item.cantidad}</span>
-                                  <span>•</span>
-                                  <span>${item.precio}</span>
-                                </div>
-                              </div>
+                          <div key={itemIndex} className="border border-slate-300 dark:border-slate-600 rounded-lg p-4 bg-white dark:bg-slate-800">
+                            {/* Header del item */}
+                            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                Item #{itemIndex + 1}
+                              </span>
+                              <h4 className="font-semibold text-slate-900 dark:text-white flex-1">
+                                {item.descripcion || item.producto || 'Sin descripción'}
+                              </h4>
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                ${item.precio}
+                              </span>
+                            </div>
 
-                              {contenedorActivo.estado === 'abierto' ? (
-                                <button
-                                  onClick={() => handleMarcarItem(facturaSeleccionada.id, index, !estaEscaneado)}
-                                  disabled={loading}
-                                  className={`px-4 py-2 rounded-lg transition flex items-center gap-2 disabled:opacity-50 whitespace-nowrap ${estaEscaneado
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                    }`}
-                                >
-                                  {estaEscaneado ? (
-                                    <>
-                                      <Check size={18} />
-                                      Marcado
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Search size={18} />
-                                      Marcar
-                                    </>
-                                  )}
-                                </button>
-                              ) : (
-                                <span className={`px-4 py-2 rounded-lg text-sm font-medium ${estaEscaneado
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-slate-100 text-slate-800'
-                                  }`}>
-                                  {estaEscaneado ? 'Marcado' : 'Sin marcar'}
-                                </span>
-                              )}
+                            {/* Lista de unidades individuales */}
+                            <div className="space-y-2">
+                              {unidades.map((unidad, unidadIndex) => {
+                                const estaEscaneado = unidad.marcado;
+
+                                return (
+                                  <div
+                                    key={unidadIndex}
+                                    className={`border rounded-lg p-3 transition ${estaEscaneado
+                                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                      : 'border-slate-200 dark:border-slate-600 hover:border-indigo-300'
+                                      }`}
+                                  >
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className={`text-sm font-medium px-2 py-1 rounded ${estaEscaneado
+                                            ? 'bg-emerald-200 text-emerald-900'
+                                            : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                                            }`}>
+                                            Unidad {unidad.numero}/{cantidad}
+                                          </span>
+                                          {estaEscaneado && unidad.fechaMarcado && (
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                              {new Date(unidad.fechaMarcado).toLocaleTimeString('es-DO', {
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                              })}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {contenedorActivo.estado === 'abierto' ? (
+                                        <button
+                                          onClick={() => handleMarcarUnidad(facturaSeleccionada.id, itemIndex, unidadIndex)}
+                                          disabled={loading}
+                                          className={`px-4 py-2 rounded-lg transition flex items-center gap-2 disabled:opacity-50 whitespace-nowrap ${estaEscaneado
+                                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            }`}
+                                        >
+                                          {estaEscaneado ? (
+                                            <>
+                                              <Check size={18} />
+                                              Escaneado
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Search size={18} />
+                                              Escanear
+                                            </>
+                                          )}
+                                        </button>
+                                      ) : (
+                                        <span className={`px-4 py-2 rounded-lg text-sm font-medium ${estaEscaneado
+                                          ? 'bg-emerald-100 text-emerald-800'
+                                          : 'bg-slate-100 text-slate-800'
+                                          }`}>
+                                          {estaEscaneado ? 'Escaneado' : 'Pendiente'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );
@@ -1324,7 +1484,21 @@ const PanelAlmacenUSA = () => {
           </div>
         )
       }
-    </div >
+      {/* Modal de Impresión de Etiquetas */}
+      {modalImpresion && (
+        <ModalImpresionEtiquetas
+          factura={modalImpresion}
+          onClose={() => setModalImpresion(null)}
+        />
+      )}
+
+      {/* Componente de Escaneo Global (Invisible) */}
+      <BarcodeScannerInput
+        onScan={handleScan}
+        isActive={!!contenedorActivo && vistaActual === 'trabajar'}
+        minChars={3}
+      />
+    </div>
   );
 };
 

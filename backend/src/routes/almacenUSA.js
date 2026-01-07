@@ -11,6 +11,7 @@ import {
   agregarFactura,
   quitarFactura,
   marcarItem,
+  marcarUnidadIndividual,
   cerrarContenedor,
   marcarTrabajado,
   getEstadisticasAlmacen
@@ -49,5 +50,6 @@ router.delete('/contenedores/:contenedorId/facturas/:facturaId', quitarFactura);
 // ✅ CORRECCIÓN: Ruta /items/marcar agregada
 // ========================================
 router.post('/contenedores/:contenedorId/items/marcar', marcarItem);
+router.post('/contenedores/:contenedorId/unidades/marcar', marcarUnidadIndividual);
 
 export default router;

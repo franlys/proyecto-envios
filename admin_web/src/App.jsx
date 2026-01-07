@@ -44,6 +44,7 @@ import GestionSolicitudes from './pages/GestionSolicitudes'; // 🆕 Gestión de
 import MisSolicitudes from './pages/MisSolicitudes'; // 🆕 Vista de Recolector - Solicitudes Asignadas
 import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
 import Historial from './pages/Historial'; // 🆕 Historial de Rutas
+import GestionHardware from './pages/SuperAdmin/GestionHardware'; // ✅ NUEVO - Gestión de Hardware
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -119,6 +120,8 @@ function AppContent() {
             <Route path="/tickets-admin" element={<TicketsAdmin />} />
             {/* NUEVO GESTOR DE WHATSAPP CLOUD */}
             <Route path="/configuracion/whatsapp" element={<CloudWhatsApp />} />
+            {/* NUEVO GESTOR DE HARDWARE */}
+            <Route path="/hardware" element={<GestionHardware />} />
           </>
         )}
 
