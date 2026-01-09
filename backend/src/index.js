@@ -388,7 +388,7 @@ app.listen(PORT, () => {
   console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 CORS configurado para Vercel`);
-  console.log(`✅ Backend 100% Completo - v4.2.0 (CON VALIDACIÓN DE PLANES)`);
+  console.log(`✅ Backend 100% Completo - v4.3.0 (CON FEATURES PERSONALIZADAS)`);
 
   // ⏰ Inicializar trabajos programados (cron jobs)
   initCronJobs();
