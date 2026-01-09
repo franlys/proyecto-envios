@@ -45,7 +45,8 @@ import MisSolicitudes from './pages/MisSolicitudes'; // 🆕 Vista de Recolector
 import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
 import Historial from './pages/Historial'; // 🆕 Historial de Rutas
 import GestionHardware from './pages/SuperAdmin/GestionHardware'; // ✅ NUEVO - Gestión de Hardware
-import GestionFeaturesCompanias from './pages/SuperAdmin/GestionFeaturesCompañias'; // ✅ NUEVO - Gestión de Features por Compañía
+import GestionFeaturesCompanias from './pages/SuperAdmin/GestionFeaturesCompañías'; // ✅ NUEVO - Gestión de Features por Compañía
+import MisFeaturesCompania from './pages/MisFeaturesCompañia'; // ✅ NUEVO - Vista de Features para Propietario/Admin
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -151,6 +152,7 @@ function AppContent() {
             <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
             <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
             <Route path="/historial" element={<Historial />} /> {/* 🆕 Historial de Rutas */}
+            <Route path="/mis-features" element={<MisFeaturesCompania />} /> {/* ✅ Ver Features de mi compañía */}
 
           </>
         )}
@@ -186,6 +188,7 @@ function AppContent() {
             <Route path="/call-center" element={<DespachoUSA />} /> {/* 🆕 Call Center */}
             <Route path="/pool" element={<PoolRecolecciones />} /> {/* 🆕 Bolsa de Cargas */}
             <Route path="/historial" element={<Historial />} /> {/* 🆕 Historial de Rutas */}
+            <Route path="/mis-features" element={<MisFeaturesCompania />} /> {/* ✅ Ver Features de mi compañía */}
           </>
         )}
 
