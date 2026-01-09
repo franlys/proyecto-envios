@@ -1,17 +1,30 @@
-# 📘 Guía de Impresión Bluetooth con Phomemo M110
+# 📘 Guía de Impresión de Etiquetas - Sistema Prologix
 
-## 🎯 Cambios Implementados
+## ⚠️ ACTUALIZACIÓN IMPORTANTE (2026-01-09)
+
+**El sistema ha sido actualizado para usar `window.print()` en lugar de Web Bluetooth API.**
+
+**Razón del cambio:**
+- ❌ Web Bluetooth NO funciona en iOS/Safari
+- ❌ Phomemo M110 requiere app propietaria
+- ❌ Comandos ESC/POS varían entre modelos de impresoras
+- ✅ `window.print()` es universal y compatible con cualquier impresora instalada
+
+**📋 Ver nueva guía de impresoras recomendadas:** [GUIA_IMPRESORAS_COMPATIBLES.md](./GUIA_IMPRESORAS_COMPATIBLES.md)
+
+---
+
+## 🎯 Cambios Implementados (Actualizado)
 
 ### ✅ 1. Impresión Automática de Etiquetas al Crear Factura
 
 **Archivo modificado:** `admin_web/src/pages/NuevaRecoleccion.jsx`
 
-**Funcionalidad agregada:**
+**Funcionalidad actual:**
 - Modal automático después de crear una recolección
 - Generación de etiquetas individuales para cada unidad de cada item
-- Dos modos de impresión:
-  - **Bluetooth Directo**: Conexión directa a Phomemo via Web Bluetooth API
-  - **Impresión Normal**: Usa el diálogo del sistema (window.print)
+- Modo de impresión:
+  - **Impresión Universal (window.print)**: Compatible con cualquier impresora instalada en el sistema
 
 **Formato de etiquetas:**
 - Tamaño: 4x2 pulgadas (101.6mm x 50.8mm)
@@ -72,37 +85,45 @@
 
 ---
 
-### ✅ 4. Sistema de Impresión Bluetooth
+### ✅ 4. Sistema de Impresión Universal
 
-**Archivo creado:** `admin_web/src/utils/bluetoothPrinter.js`
+**Archivos modificados:**
+- `admin_web/src/pages/NuevaRecoleccion.jsx` - Eliminado código de Bluetooth
+- `admin_web/src/utils/bluetoothPrinter.js` - ❌ DEPRECADO (ya no se usa)
 
-**Características:**
-- Clase `BluetoothPrinter` para manejar conexión BLE
-- Compatible con Web Bluetooth API (Chrome/Edge Android)
-- Soporte para comandos ESC/POS
-- Filtros automáticos para detectar Phomemo (M110, M02S, M220)
-
-**UUIDs de servicio:**
-- Servicio principal: `000018f0-0000-1000-8000-00805f9b34fb`
-- Característica de escritura: `00002af1-0000-1000-8000-00805f9b34fb`
+**Características actuales:**
+- Usa `window.print()` estándar del navegador
+- Compatible con cualquier impresora instalada en el sistema
+- Funciona en Android, iOS, Windows, macOS, Linux
+- No requiere permisos especiales de Bluetooth
 
 ---
 
-## 🚀 Cómo Usar el Sistema
+## 🚀 Cómo Usar el Sistema (Actualizado)
 
-### Paso 1: Preparar el Dispositivo Android
+### Paso 1: Preparar tu Impresora
 
-1. **Emparejar la impresora Phomemo M110:**
-   - Enciende la impresora
-   - Ve al Kiosk Launcher → Toca 5 veces el título → PIN: 1234
-   - Selecciona "🔵 Configurar Bluetooth"
-   - Busca y empareja "Phomemo M110" o "M02S"
+1. **Conectar impresora al sistema:**
 
-2. **Verificar permisos:**
+   **Opción A - Impresora WiFi (Recomendado):**
+   - Conecta la impresora a tu red WiFi (ver manual de la impresora)
+   - Instala drivers si es necesario (Zebra, Brother, Dymo, etc.)
+   - La impresora aparecerá automáticamente en el diálogo de impresión
+
+   **Opción B - Impresora USB:**
+   - Conecta la impresora vía USB a tu PC/Mac
+   - Instala drivers si es necesario
+   - Comparte la impresora en red si quieres usarla desde otros dispositivos
+
+   **Opción C - AirPrint (iOS/macOS):**
+   - Conecta la impresora compatible con AirPrint a WiFi
+   - Se detectará automáticamente sin drivers
+
+2. **Verificar permisos de la app:**
    - La app solicitará permisos de:
-     - Bluetooth
      - Cámara (para escanear y tomar fotos)
      - Archivos multimedia (para subir fotos)
+   - ⚠️ NO requiere permisos de Bluetooth
 
 ### Paso 2: Crear una Factura/Recolección
 
@@ -121,74 +142,91 @@
 
 ### Paso 3: Imprimir Etiquetas
 
-Después de guardar, aparecerá un modal con 3 opciones:
+Después de guardar, aparecerá un modal con 2 opciones:
 
-#### Opción A: 🔵 Bluetooth Directo (Phomemo) ⭐ RECOMENDADO
-1. Presiona "🔵 Bluetooth Directo (Phomemo)"
-2. El navegador mostrará una lista de dispositivos Bluetooth
-3. Selecciona tu impresora Phomemo
-4. Las etiquetas se imprimirán automáticamente
-
-**Ventajas:**
-- No necesita drivers
-- Imprime directamente vía BLE
-- Más rápido y confiable
-- Formato optimizado para térmicas
-
-#### Opción B: 🖨️ Imprimir Normal (Menú Sistema)
-1. Presiona "🖨️ Imprimir Normal"
-2. Se abrirá el diálogo de impresión del sistema
-3. Selecciona tu impresora Phomemo desde la lista
-4. Ajusta configuraciones si es necesario
+#### Opción A: 🖨️ Imprimir Etiquetas (Recomendado)
+1. Presiona "Imprimir Etiquetas"
+2. Se abrirá el diálogo de impresión del sistema operativo
+3. **Selecciona tu impresora** de la lista
+4. **Configura el tamaño de página:**
+   - Tamaño: 4x2 pulgadas (101.6 x 50.8 mm)
+   - Orientación: Portrait (vertical)
+   - Márgenes: 0 o mínimos
 5. Presiona "Imprimir"
 
 **Ventajas:**
-- Compatible con cualquier impresora
-- Permite vista previa
-- Funciona en cualquier dispositivo
+- ✅ Compatible con cualquier impresora instalada
+- ✅ Funciona en Android, iOS, Windows, Mac
+- ✅ Permite vista previa antes de imprimir
+- ✅ Puedes seleccionar número de copias
+- ✅ Puedes guardar como PDF si quieres
 
-#### Opción C: Omitir (Imprimir después)
+**Configuración recomendada en el diálogo:**
+```
+Impresora: [Tu impresora de etiquetas]
+Tamaño: 4x2" / 101.6x50.8mm / Custom
+Orientación: Portrait
+Márgenes: 0mm
+Escala: 100%
+```
+
+#### Opción B: Imprimir Después
 - Guarda la factura sin imprimir
 - Puedes imprimir después desde el detalle de la recolección
+- Útil si no tienes la impresora conectada en ese momento
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Troubleshooting (Actualizado)
 
-### Problema 1: No se puede conectar a la impresora Bluetooth
+### Problema 1: No aparece mi impresora en el diálogo
 
 **Síntomas:**
-- Error: "No se encontró ninguna impresora"
-- El modal de selección no muestra dispositivos
+- Al presionar "Imprimir Etiquetas", no veo mi impresora en la lista
+- Solo aparece "Guardar como PDF" o impresoras que no son la mía
 
 **Soluciones:**
 
-1. **Verificar que la impresora esté encendida:**
-   ```
+1. **Verificar que la impresora esté encendida y conectada:**
    - LED de la impresora debe estar encendido
-   - Botón de encendido presionado
+   - Verificar cable USB conectado (si es USB)
+   - Verificar conexión WiFi (si es inalámbrica)
+
+2. **Instalar drivers de la impresora:**
+   - Zebra: https://www.zebra.com/us/en/support-downloads.html
+   - Brother: https://support.brother.com/
+   - Dymo: https://www.dymo.com/support
+   - Descarga e instala el driver para tu sistema operativo
+
+3. **Verificar que esté configurada como impresora del sistema:**
+
+   **Android:**
+   ```
+   Configuración → Dispositivos conectados → Preferencias de conexión
+   → Impresión → Agregar servicio
    ```
 
-2. **Verificar emparejamiento previo:**
+   **iOS:**
    ```
-   - Ir a Configuración → Bluetooth
-   - Debe aparecer "Phomemo M110" o similar
-   - Estado: "Conectado" o "Emparejado"
-   ```
-
-3. **Re-emparejar si es necesario:**
-   ```
-   - Olvidar dispositivo en Configuración
-   - Apagar y encender la impresora
-   - Volver a emparejar desde el Kiosk Launcher
+   Compatible con AirPrint automáticamente
+   No requiere configuración adicional
    ```
 
-4. **Verificar que el navegador soporte Bluetooth:**
-   ```javascript
-   // En la consola del navegador:
-   console.log('Bluetooth soportado:', 'bluetooth' in navigator);
-   // Debe retornar: true
+   **Windows:**
    ```
+   Configuración → Dispositivos → Impresoras y escáneres
+   Debe aparecer en la lista
+   ```
+
+   **macOS:**
+   ```
+   Preferencias del Sistema → Impresoras y Escáneres
+   Debe aparecer en la lista
+   ```
+
+4. **Probar impresión de prueba desde configuración del sistema:**
+   - Imprime una página de prueba desde la configuración del sistema
+   - Si funciona ahí, funcionará en Prologix
 
 ---
 
@@ -234,10 +272,30 @@ Después de guardar, aparecerá un modal con 3 opciones:
 - Sale papel en blanco
 - Texto cortado o ilegible
 - Código de barras no se ve
+- El tamaño no es correcto
 
 **Soluciones:**
 
-1. **Calibrar la impresora:**
+1. **Configurar tamaño de página correcto en el diálogo de impresión:**
+   ```
+   IMPORTANTE: Configurar ANTES de imprimir
+
+   - Tamaño de página: 4x2 pulgadas (101.6 x 50.8 mm)
+   - Si no aparece "4x2", buscar "Custom" o "Personalizado"
+   - Ingresar: Ancho: 101.6mm, Alto: 50.8mm
+   - Orientación: Portrait (Vertical)
+   - Márgenes: 0 mm o mínimos
+   ```
+
+2. **Verificar papel térmico:**
+   ```
+   - Asegúrate de que el papel esté puesto correctamente
+   - La cara térmica (brillante) debe estar hacia ARRIBA
+   - Prueba: Rasca con una uña → debe dejar marca negra
+   - Verifica que el rollo sea 4x2 pulgadas (no 4x6)
+   ```
+
+3. **Calibrar la impresora (solo impresoras térmicas):**
    ```
    - Apagar la impresora
    - Mantener presionado el botón FEED
@@ -246,14 +304,7 @@ Después de guardar, aparecerá un modal con 3 opciones:
    - La impresora calibrará automáticamente
    ```
 
-2. **Verificar papel térmico:**
-   ```
-   - Asegúrate de que el papel esté puesto correctamente
-   - La cara térmica (brillante) debe estar hacia ARRIBA
-   - Prueba: Rasca con una uña → debe dejar marca negra
-   ```
-
-3. **Limpiar cabezal de impresión:**
+4. **Limpiar cabezal de impresión (si es térmica):**
    ```
    - Apaga la impresora
    - Usa un bastoncillo con alcohol isopropílico
@@ -262,10 +313,11 @@ Después de guardar, aparecerá un modal con 3 opciones:
    - Enciende y prueba
    ```
 
-4. **Probar con modo de impresión Normal:**
-   - Si Bluetooth falla, usa "Imprimir Normal"
-   - Verifica que el tamaño de página sea 4x2 pulgadas
-   - Ajusta márgenes a 0
+5. **Guardar como PDF para revisar:**
+   - En el diálogo de impresión, selecciona "Guardar como PDF"
+   - Abre el PDF para ver cómo se ve la etiqueta
+   - Si se ve bien en PDF, el problema es configuración de impresora
+   - Si se ve mal en PDF, reportar bug
 
 ---
 

@@ -12,7 +12,6 @@ import { storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generateImageVariants, variantBlobToFile } from '../utils/thumbnailGenerator';
 import LabelPrinter from '../components/common/LabelPrinter';
-import bluetoothPrinter from '../utils/bluetoothPrinter';
 
 // ✅ CATÁLOGO DE SECTORES POR ZONA
 const SECTORES_POR_ZONA = {
@@ -247,45 +246,14 @@ const NuevaRecoleccion = () => {
     }, 100);
   };
 
-  // ✅ Función para imprimir vía Bluetooth (Phomemo)
-  const handleBluetoothPrint = async () => {
+  // ✅ Función para descargar etiquetas como PDF
+  const handleDownloadLabels = () => {
     if (labelsToPrint.length === 0) {
-      toast.warning('No hay etiquetas para imprimir');
+      toast.warning('No hay etiquetas para descargar');
       return;
     }
 
-    try {
-      // Verificar si el navegador soporta Bluetooth
-      if (!bluetoothPrinter.isSupported()) {
-        toast.error('Tu navegador no soporta Bluetooth. Usa la impresión estándar.');
-        return;
-      }
-
-      toast.loading('Conectando a impresora Bluetooth...', { id: 'bt-connect' });
-
-      // Conectar a la impresora
-      await bluetoothPrinter.connect();
-      toast.success('Conectado a la impresora', { id: 'bt-connect' });
-
-      // Imprimir todas las etiquetas
-      toast.loading(`Imprimiendo ${labelsToPrint.length} etiqueta(s)...`, { id: 'bt-print' });
-      await bluetoothPrinter.printLabels(labelsToPrint);
-      toast.success('Etiquetas impresas correctamente', { id: 'bt-print' });
-
-      // Desconectar
-      await bluetoothPrinter.disconnect();
-
-    } catch (error) {
-      console.error('Error en impresión Bluetooth:', error);
-
-      if (error.name === 'NotFoundError') {
-        toast.error('No se encontró ninguna impresora. Asegúrate de que esté encendida y emparejada.');
-      } else if (error.name === 'SecurityError') {
-        toast.error('Permiso denegado. El usuario canceló la selección de dispositivo.');
-      } else {
-        toast.error(`Error: ${error.message}`);
-      }
-    }
+    toast.info('Descarga de PDF estará disponible próximamente. Por ahora usa "Imprimir" y selecciona "Guardar como PDF"');
   };
 
   // ✅ Cleanup del timeout al desmontar
@@ -883,35 +851,14 @@ const NuevaRecoleccion = () => {
                 ¿Deseas imprimir las etiquetas ahora?
               </p>
 
-              <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 mb-4">
-                <p className="text-xs text-indigo-800 dark:text-indigo-200">
-                  💡 <strong>Tip:</strong> Si estás en Android con Phomemo M110, usa "Bluetooth Directo". Si no, usa "Imprimir Normal".
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 mb-4">
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  💡 <strong>Importante:</strong> Conecta tu impresora de etiquetas antes de imprimir. Compatible con impresoras térmicas, AirPrint, y cualquier impresora del sistema.
                 </p>
               </div>
 
               <div className="flex flex-col gap-2">
-                {/* Botón Bluetooth (prioritario para Android) */}
-                <button
-                  onClick={async () => {
-                    await handleBluetoothPrint();
-                    setTimeout(() => {
-                      setShowPrintModal(false);
-                      navigate('/recolecciones');
-                    }, 500);
-                  }}
-                  className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z" />
-                  </svg>
-                  🔵 Bluetooth Directo (Phomemo)
-                </button>
-
-                {/* Botón impresión estándar */}
+                {/* Botón impresión principal */}
                 <button
                   onClick={() => {
                     handlePrintLabels();
@@ -920,10 +867,10 @@ const NuevaRecoleccion = () => {
                       navigate('/recolecciones');
                     }, 500);
                   }}
-                  className="w-full px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
                 >
-                  <Printer size={18} />
-                  🖨️ Imprimir Normal (Menú Sistema)
+                  <Printer size={20} />
+                  Imprimir Etiquetas
                 </button>
 
                 {/* Botón omitir */}
@@ -934,7 +881,7 @@ const NuevaRecoleccion = () => {
                   }}
                   className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm"
                 >
-                  Omitir (Imprimir después)
+                  Imprimir Después
                 </button>
               </div>
             </div>

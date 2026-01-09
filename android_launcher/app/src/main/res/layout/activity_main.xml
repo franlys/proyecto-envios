@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#312e81"
     android:padding="16dp"
     tools:context=".MainActivity">
 
@@ -14,7 +15,21 @@
         android:text="Prologix Kiosk"
         android:textSize="24sp"
         android:textStyle="bold"
+        android:textColor="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 🖼️ FONDO DE PANTALLA (Watermark) -->
+    <ImageView
+        android:id="@+id/backgroundLogo"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:src="@drawable/prologix_logo"
+        android:alpha="0.15"
+        android:contentDescription="Logo Fondo"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
