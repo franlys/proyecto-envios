@@ -14,7 +14,6 @@ import {
   reportarFacturaIncompleta,
   getDetalleFactura,
   editarPago,
-  editarPago,
   getEstadisticasAlmacenRD,
   recibirItemRD
 } from '../controllers/almacenRDController.js';

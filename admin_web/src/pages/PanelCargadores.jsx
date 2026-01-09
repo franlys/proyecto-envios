@@ -17,7 +17,6 @@ import {
   MapPin,
   ArrowLeft,
   X,
-  X,
   Image as ImageIcon,
   Printer,
   Barcode
