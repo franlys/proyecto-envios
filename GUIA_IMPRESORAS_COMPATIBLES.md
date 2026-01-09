@@ -104,34 +104,93 @@ El sistema ahora usa **window.print()** que es compatible con:
 
 ---
 
-### 4. **Rollo X1040** 💸 OPCIÓN MUY ECONÓMICA (China)
+### 4. **MUNBYN IMP001** 💰 PORTÁTIL ANDROID - ECONÓMICA
 
-**Precio:** ~$60-80 USD
+**Precio:** ~$90-120 USD
 
-**Por qué es barata:**
-- ✅ **Bluetooth térmica** básica
-- ✅ **Compatible con Android/iOS** vía app genérica
-- ✅ **Etiquetas 4x2" estándar**
-- ✅ **Batería recargable** incluida
+**Por qué es buena opción portátil:**
+- ✅ **Bluetooth + USB-C** nativo Android
+- ✅ **Batería recargable** 2000mAh (8 horas)
+- ✅ **Portátil y compacta** (cabe en mochila)
+- ✅ **Compatible con Android Printing Service**
+- ✅ **Etiquetas 4x2" y 4x6"**
+- ✅ **203 DPI** calidad decente
 
 **Limitaciones:**
-- ⚠️ **Calidad de impresión media** (180 dpi)
-- ⚠️ **No driver nativo** para window.print()
-- ⚠️ **Durabilidad limitada** (uso ligero)
-- ⚠️ **Soporte técnico escaso**
+- ⚠️ Requiere configurar Android Printing Service una vez
+- ⚠️ No AirPrint nativo (iOS requiere app)
 
 **Dónde comprar:**
-- Amazon: Buscar "Rollo X1040 thermal printer"
-- AliExpress: ~$50 USD con envío lento
+- Amazon: https://www.amazon.com/MUNBYN-Bluetooth-Shipping-Portable-Compatible/dp/B0B1H3ZY7M
+- Costo aproximado: $95-120 USD
 
 **Compatibilidad Prologix:**
-- ⚠️ Android: Requiere app intermediaria (no window.print() directo)
-- ⚠️ iOS: App terceros necesaria
-- ❌ No es plug-and-play con nuestra solución actual
+- ✅ Android: Driver gratuito + window.print() funciona
+- ⚠️ iOS: Requiere app MUNBYN
+- ✅ Portátil (batería incluida)
+- ✅ Buena para recolectores móviles
 
 ---
 
-### 5. **Star Micronics TSP143IIIU** ⭐ OPCIÓN RETAIL PROFESIONAL
+### 5. **iDPRT SP410** 💸 PORTÁTIL MUY ECONÓMICA
+
+**Precio:** ~$70-90 USD
+
+**Por qué es la más barata portátil:**
+- ✅ **Bluetooth térmico** básico
+- ✅ **Batería recargable** 1500mAh
+- ✅ **Muy ligera** (400g)
+- ✅ **Driver Android** disponible
+- ✅ **Etiquetas 4x2"**
+
+**Limitaciones:**
+- ⚠️ **203 DPI** básico
+- ⚠️ **Velocidad lenta** 90mm/s
+- ⚠️ Requiere app intermediaria en algunos casos
+- ⚠️ Durabilidad media (no para uso industrial)
+
+**Dónde comprar:**
+- Amazon: Buscar "iDPRT SP410 portable thermal printer"
+- AliExpress: ~$60-70 USD con envío lento
+
+**Compatibilidad Prologix:**
+- ✅ Android: Driver oficial iDPRT
+- ⚠️ iOS: App terceros necesaria
+- ✅ Portátil y económica
+- ⚠️ Configuración inicial necesaria
+
+---
+
+### 6. **JADENS Label Printer** 💸💸 LA MÁS BARATA PORTÁTIL
+
+**Precio:** ~$50-70 USD
+
+**Por qué es tan barata:**
+- ✅ **Bluetooth básico**
+- ✅ **Batería pequeña** 1200mAh
+- ✅ **Ultra portátil**
+- ✅ **Compatible Android** vía app
+
+**Limitaciones:**
+- ❌ **No window.print()** directo (requiere app JADENS)
+- ⚠️ **Calidad muy básica** 180 DPI
+- ⚠️ **Durabilidad baja** (solo uso ocasional)
+- ⚠️ **Velocidad muy lenta** 60mm/s
+- ⚠️ Soporte técnico muy limitado
+
+**Dónde comprar:**
+- Amazon: Buscar "JADENS portable label printer"
+- AliExpress: ~$40-50 USD
+
+**Compatibilidad Prologix:**
+- ❌ **NO compatible directamente** con window.print()
+- ⚠️ Requiere app JADENS instalada
+- ⚠️ NO recomendada para producción
+- ✅ OK para pruebas o uso muy ocasional
+
+---
+
+### 7. **Star Micronics TSP143IIIU** ⭐ OPCIÓN RETAIL PROFESIONAL
 
 **Precio:** ~$200-250 USD
 
@@ -156,14 +215,29 @@ El sistema ahora usa **window.print()** que es compatible con:
 
 ## 📊 Comparativa Rápida
 
-| Modelo | Precio | Conectividad | AirPrint | Android | Velocidad | Recomendación |
-|--------|--------|--------------|----------|---------|-----------|---------------|
-| **Zebra ZD410** | $250-300 | USB/BT/WiFi/Eth | ✅ | ✅ | ⭐⭐⭐⭐⭐ | **🏆 Mejor profesional** |
-| **Brother QL-820NWB** | $180-220 | USB/BT/WiFi | ✅ | ✅ | ⭐⭐⭐⭐ | **🏆 Mejor precio/calidad** |
-| **Dymo LabelWriter 550** | $150-180 | USB | ❌ | ⚠️ | ⭐⭐⭐ | 💰 Económica (solo PC) |
-| **Rollo X1040** | $60-80 | BT | ❌ | ⚠️ | ⭐⭐ | 💸 Muy barata (calidad media) |
-| **Star TSP143IIIU** | $200-250 | USB/Eth/BT | ✅ | ✅ | ⭐⭐⭐⭐⭐ | ⭐ Retail profesional |
-| **Phomemo M110** | $40-60 | BT | ❌ | ❌ | ⭐⭐ | ❌ **NO compatible** |
+### Impresoras de Escritorio
+
+| Modelo | Precio | Conectividad | AirPrint | Android | Portátil | Recomendación |
+|--------|--------|--------------|----------|---------|----------|---------------|
+| **Zebra ZD410** | $250-300 | USB/BT/WiFi/Eth | ✅ | ✅ | ❌ | **🏆 Mejor profesional** |
+| **Brother QL-820NWB** | $180-220 | USB/BT/WiFi | ✅ | ✅ | ❌ | **🏆 Mejor calidad/precio** |
+| **Star TSP143IIIU** | $200-250 | USB/Eth/BT | ✅ | ✅ | ❌ | ⭐ Retail profesional |
+| **Dymo LabelWriter 550** | $150-180 | USB | ❌ | ⚠️ | ❌ | 💰 Económica (solo PC) |
+
+### Impresoras Portátiles (Con Batería)
+
+| Modelo | Precio | Batería | Android | window.print() | Recomendación |
+|--------|--------|---------|---------|----------------|---------------|
+| **MUNBYN IMP001** 🔋 | $90-120 | 8 horas | ✅ | ✅ | **🏆 Mejor portátil** |
+| **iDPRT SP410** 🔋 | $70-90 | 4-5 horas | ✅ | ⚠️ | 💰 Económica portátil |
+| **JADENS Label** 🔋 | $50-70 | 3 horas | ⚠️ | ❌ | 💸 Muy barata (básica) |
+
+### ❌ NO Compatibles
+
+| Modelo | Precio | Razón |
+|--------|--------|-------|
+| **Phomemo M110** | $40-60 | Requiere app propietaria, no window.print() |
+| **Rollo X1040** | $60-80 | No tiene driver estándar |
 
 ---
 
@@ -171,14 +245,42 @@ El sistema ahora usa **window.print()** que es compatible con:
 
 ### Para Prologix (uso móvil + web):
 
-1. **Si el presupuesto lo permite:**
-   - **Zebra ZD410** (WiFi version) → La más confiable y profesional
+#### 🚚 **Escenario 1: Recolectores Móviles** (Necesitan portátiles)
 
-2. **Si buscas balance precio/calidad:**
-   - **Brother QL-820NWB** → Excelente opción, muy versátil
+1. **MEJOR OPCIÓN - MUNBYN IMP001** ($90-120) 🏆
+   - ✅ Portátil con batería de 8 horas
+   - ✅ Compatible con window.print() en Android
+   - ✅ Driver Android oficial
+   - ✅ Buena calidad 203 DPI
+   - ✅ Perfecta para recolectores en campo
 
-3. **Si el presupuesto es limitado:**
-   - **Dymo LabelWriter 550** + laptop/PC conectada vía USB
+2. **ECONÓMICA - iDPRT SP410** ($70-90) 💰
+   - ✅ Portátil con batería 4-5 horas
+   - ⚠️ Requiere configuración inicial
+   - ✅ Driver Android disponible
+   - ✅ Muy ligera y compacta
+
+3. **MUY BARATA - JADENS** ($50-70) 💸
+   - ⚠️ NO compatible con window.print() directo
+   - ⚠️ Requiere app JADENS
+   - ⚠️ Solo para uso ocasional/pruebas
+   - ❌ NO recomendada para producción
+
+#### 🏢 **Escenario 2: Oficina/Almacén** (Impresoras de escritorio)
+
+1. **MEJOR PROFESIONAL - Zebra ZD410** ($250-300)
+   - ✅ La más confiable del mercado
+   - ✅ WiFi, AirPrint, Android
+   - ✅ Calidad industrial
+
+2. **MEJOR CALIDAD/PRECIO - Brother QL-820NWB** ($180-220)
+   - ✅ Excelente balance
+   - ✅ WiFi + Bluetooth
+   - ✅ Muy versátil
+
+3. **ECONÓMICA PC - Dymo LabelWriter 550** ($150-180)
+   - ✅ Solo USB (requiere PC conectada)
+   - ✅ Funciona bien para oficina fija
 
 ---
 
@@ -261,12 +363,73 @@ El sistema ahora usa **window.print()** que es compatible con:
 
 ---
 
+## 🔧 Configuración de Impresoras Portátiles en Android
+
+### MUNBYN IMP001 (Recomendada)
+
+1. **Emparejar vía Bluetooth:**
+   ```
+   - Enciende la impresora (botón power)
+   - Android → Configuración → Bluetooth
+   - Buscar dispositivos → Seleccionar "MUNBYN-IMP001"
+   - Emparejar
+   ```
+
+2. **Instalar Android Printing Service:**
+   ```
+   - Google Play Store → Buscar "MUNBYN Print Service"
+   - Instalar app oficial MUNBYN
+   - Abrir app → Activar "Print Service"
+   - Configuración → Dispositivos conectados → Preferencias de conexión
+     → Impresión → Activar "MUNBYN Print Service"
+   ```
+
+3. **Probar impresión:**
+   ```
+   - Abrir Prologix en Chrome
+   - Crear factura
+   - Click "Imprimir Etiquetas"
+   - Seleccionar "MUNBYN IMP001" en el diálogo
+   - Configurar tamaño: 4x2 pulgadas
+   - Imprimir
+   ```
+
+### iDPRT SP410
+
+1. **Emparejar Bluetooth:**
+   ```
+   - Enciende la impresora
+   - Android → Bluetooth → Buscar "iDPRT-SP410"
+   - Emparejar
+   ```
+
+2. **Instalar app iDPRT:**
+   ```
+   - Google Play Store → "iDPRT Print"
+   - Instalar y abrir
+   - Configurar impresora
+   - Activar Print Service en Android
+   ```
+
+3. **Nota importante:**
+   - Algunos modelos requieren usar la app iDPRT directamente
+   - Si window.print() no funciona, usar la app como intermediario
+
+---
+
 ## 🆘 Soporte
 
+### Fabricantes
 - **Zebra:** https://www.zebra.com/us/en/support-downloads.html
 - **Brother:** https://support.brother.com/
 - **Dymo:** https://www.dymo.com/support
 - **Star Micronics:** https://www.starmicronics.com/support/
+- **MUNBYN:** https://www.munbyn.com/pages/support
+- **iDPRT:** https://www.idprt.com/support
+
+### Apps Android
+- **MUNBYN Print Service:** https://play.google.com/store/apps/details?id=com.munbyn.print
+- **iDPRT Print:** https://play.google.com/store/apps/details?id=com.idprt.label
 
 ---
 
