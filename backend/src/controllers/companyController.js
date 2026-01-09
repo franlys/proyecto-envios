@@ -700,3 +700,211 @@ export const updateCompanyNCFConfig = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ==================================================================================
+// 🎛️ GESTIÓN DE FEATURES PERSONALIZADAS (SUPER ADMIN)
+// ==================================================================================
+
+/**
+ * Obtener features activas de una compañía
+ * Muestra tanto las del plan como los overrides personalizados
+ */
+export const getCompanyFeatures = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validar que el usuario sea super_admin
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
+    if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
+      return res.status(403).json({
+        error: 'Solo super admin puede ver features de compañías'
+      });
+    }
+
+    const companyDoc = await db.collection('companies').doc(id).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: 'Compañía no encontrada' });
+    }
+
+    const companyData = companyDoc.data();
+    const { getPlanFeatures } = require('../models/Company.js');
+
+    const planFeatures = getPlanFeatures(companyData.plan);
+    const customFeatures = companyData.customFeatures || {};
+
+    res.json({
+      success: true,
+      data: {
+        companyId: id,
+        companyName: companyData.nombre,
+        plan: companyData.plan,
+        planFeatures,           // Features del plan base
+        customFeatures,         // Overrides personalizados
+        effectiveFeatures: {    // Features finales (plan + overrides)
+          ...planFeatures,
+          ...customFeatures
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo features:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Activar/Desactivar una feature específica para una compañía
+ * Solo super admin puede hacer esto
+ */
+export const toggleCompanyFeature = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { featureName, enabled } = req.body;
+
+    if (!featureName || typeof enabled !== 'boolean') {
+      return res.status(400).json({
+        error: 'Se requiere featureName (string) y enabled (boolean)'
+      });
+    }
+
+    // Validar que el usuario sea super_admin
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
+    if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
+      return res.status(403).json({
+        error: 'Solo super admin puede modificar features de compañías'
+      });
+    }
+
+    const companyDoc = await db.collection('companies').doc(id).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: 'Compañía no encontrada' });
+    }
+
+    // Actualizar customFeatures
+    const currentCustomFeatures = companyDoc.data().customFeatures || {};
+
+    await db.collection('companies').doc(id).update({
+      [`customFeatures.${featureName}`]: enabled,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.userData.uid
+    });
+
+    console.log(`✅ Feature "${featureName}" ${enabled ? 'activada' : 'desactivada'} para compañía ${id} por super admin`);
+
+    res.json({
+      success: true,
+      message: `Feature "${featureName}" ${enabled ? 'activada' : 'desactivada'} exitosamente`,
+      data: {
+        featureName,
+        enabled,
+        companyId: id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error toggling feature:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Actualizar múltiples features a la vez
+ * Útil para configurar un paquete personalizado
+ */
+export const updateCompanyFeatures = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { features } = req.body; // Object con { featureName: boolean }
+
+    if (!features || typeof features !== 'object') {
+      return res.status(400).json({
+        error: 'Se requiere un objeto "features" con las features a actualizar'
+      });
+    }
+
+    // Validar que el usuario sea super_admin
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
+    if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
+      return res.status(403).json({
+        error: 'Solo super admin puede modificar features de compañías'
+      });
+    }
+
+    const companyDoc = await db.collection('companies').doc(id).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: 'Compañía no encontrada' });
+    }
+
+    // Construir update object
+    const updates = {
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.userData.uid
+    };
+
+    // Agregar cada feature como campo individual
+    Object.entries(features).forEach(([key, value]) => {
+      updates[`customFeatures.${key}`] = value;
+    });
+
+    await db.collection('companies').doc(id).update(updates);
+
+    console.log(`✅ Features actualizadas para compañía ${id}:`, features);
+
+    res.json({
+      success: true,
+      message: `${Object.keys(features).length} features actualizadas exitosamente`,
+      data: {
+        companyId: id,
+        updatedFeatures: features
+      }
+    });
+
+  } catch (error) {
+    console.error('Error actualizando features:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Resetear features personalizadas (volver al plan base)
+ */
+export const resetCompanyFeatures = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validar que el usuario sea super_admin
+    const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
+    if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
+      return res.status(403).json({
+        error: 'Solo super admin puede resetear features'
+      });
+    }
+
+    const companyDoc = await db.collection('companies').doc(id).get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: 'Compañía no encontrada' });
+    }
+
+    // Eliminar customFeatures
+    await db.collection('companies').doc(id).update({
+      customFeatures: {},
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.userData.uid
+    });
+
+    console.log(`✅ Features reseteadas para compañía ${id} - vuelve a plan base`);
+
+    res.json({
+      success: true,
+      message: 'Features reseteadas al plan base exitosamente',
+      data: {
+        companyId: id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error reseteando features:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

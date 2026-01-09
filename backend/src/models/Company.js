@@ -207,8 +207,24 @@ const getPlanFeatures = (plan) => {
 
 /**
  * Verificar si una compañía tiene una feature
+ * Ahora soporta overrides personalizados (customFeatures)
+ *
+ * PRIORIDAD:
+ * 1. customFeatures (overrides del super admin)
+ * 2. Features del plan base
+ *
+ * Ejemplo:
+ * - Plan "operativo" no tiene whatsappBusiness
+ * - Pero super admin puede habilitarlo con customFeatures.whatsappBusiness = true
  */
 const hasFeature = (company, featureName) => {
+  // 1. Primero verificar si hay override personalizado
+  if (company.customFeatures && featureName in company.customFeatures) {
+    const customValue = company.customFeatures[featureName];
+    return customValue === true || customValue === -1;
+  }
+
+  // 2. Si no hay override, usar el valor del plan
   const features = getPlanFeatures(company.plan);
   return features[featureName] === true || features[featureName] === -1;
 };

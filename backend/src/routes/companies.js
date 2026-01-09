@@ -16,7 +16,12 @@ import {
   resetUserPassword,
   deleteCompany,
   uploadCompanyLogo,
-  updateCompanyNCFConfig
+  updateCompanyNCFConfig,
+  // Gestión de Features Personalizadas
+  getCompanyFeatures,
+  toggleCompanyFeature,
+  updateCompanyFeatures,
+  resetCompanyFeatures
 } from '../controllers/companyController.js';
 import { getReporte606 } from '../controllers/reporteFiscalController.js';
 
@@ -252,5 +257,35 @@ router.put('/:id/ncf-config', updateCompanyNCFConfig);
 
 // Generar Reporte 606
 router.get('/:id/reporte-606', getReporte606);
+
+// ==================================================================================
+// 🎛️ RUTAS DE GESTIÓN DE FEATURES PERSONALIZADAS (SUPER ADMIN ONLY)
+// ==================================================================================
+
+/**
+ * GET /api/companies/:id/features
+ * Obtener todas las features de una compañía (plan + overrides)
+ */
+router.get('/:id/features', getCompanyFeatures);
+
+/**
+ * PATCH /api/companies/:id/features/toggle
+ * Activar/Desactivar una feature específica
+ * Body: { featureName: string, enabled: boolean }
+ */
+router.patch('/:id/features/toggle', toggleCompanyFeature);
+
+/**
+ * PUT /api/companies/:id/features
+ * Actualizar múltiples features a la vez
+ * Body: { features: { featureName1: boolean, featureName2: boolean } }
+ */
+router.put('/:id/features', updateCompanyFeatures);
+
+/**
+ * DELETE /api/companies/:id/features
+ * Resetear features personalizadas (volver al plan base)
+ */
+router.delete('/:id/features', resetCompanyFeatures);
 
 export default router;
