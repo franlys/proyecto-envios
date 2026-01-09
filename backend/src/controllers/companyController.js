@@ -713,17 +713,32 @@ export const getCompanyFeatures = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validar que el usuario sea super_admin
+    // Validar permisos: super_admin o admin de la misma compañía
     const userDoc = await db.collection('usuarios').doc(req.userData.uid).get();
-    if (!userDoc.exists || userDoc.data().rol !== 'super_admin') {
+    const userData = userDoc.data();
+
+    if (!userDoc.exists) {
       return res.status(403).json({
-        error: 'Solo super admin puede ver features de compañías'
+        success: false,
+        error: 'Usuario no encontrado'
+      });
+    }
+
+    // Super admin puede ver cualquier compañía
+    // Admin/Propietario solo puede ver su propia compañía
+    if (userData.rol !== 'super_admin' && userData.companyId !== id) {
+      return res.status(403).json({
+        success: false,
+        error: 'No tienes permisos para ver features de esta compañía'
       });
     }
 
     const companyDoc = await db.collection('companies').doc(id).get();
     if (!companyDoc.exists) {
-      return res.status(404).json({ error: 'Compañía no encontrada' });
+      return res.status(404).json({
+        success: false,
+        error: 'Compañía no encontrada'
+      });
     }
 
     const companyData = companyDoc.data();
