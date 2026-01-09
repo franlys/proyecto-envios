@@ -247,7 +247,7 @@ const checkLimit = (company, limitName, currentCount) => {
   };
 };
 
-module.exports = {
+export {
   PLAN_FEATURES,
   getPlanFeatures,
   hasFeature,
