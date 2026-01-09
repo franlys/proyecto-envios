@@ -1,5 +1,6 @@
 import { auth, db } from '../config/firebase.js';
 import { obtenerPrefijoUnico, validarPrefijo } from '../utils/trackingUtils.js';
+import { getPlanFeatures, hasFeature } from '../models/Company.js';
 
 // Crear nueva compañía (solo super_admin)
 export const createCompany = async (req, res) => {
@@ -742,7 +743,6 @@ export const getCompanyFeatures = async (req, res) => {
     }
 
     const companyData = companyDoc.data();
-    const { getPlanFeatures } = require('../models/Company.js');
 
     const planFeatures = getPlanFeatures(companyData.plan);
     const customFeatures = companyData.customFeatures || {};
