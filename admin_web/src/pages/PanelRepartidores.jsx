@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import PullToRefresh from '../components/common/PullToRefresh';
+import ScanToDeliverModal from '../components/delivery/ScanToDeliverModal';
 import logo from '../assets/logo.png';
 
 const PanelRepartidores = () => {
@@ -73,6 +74,18 @@ const PanelRepartidores = () => {
   const [showModalEntregar, setShowModalEntregar] = useState(false);
   const [showModalFinalizar, setShowModalFinalizar] = useState(false);
   const [showModalGasto, setShowModalGasto] = useState(false);
+  const [showModalScan, setShowModalScan] = useState(false);
+
+  // ==============================================================================
+  // 📦 HANDLER PARA ESCANEO DE ITEMS
+  // ==============================================================================
+  const handleScanComplete = (codigosEscaneados) => {
+    console.log('✅ Items escaneados antes de entregar:', codigosEscaneados);
+    toast.success(`${codigosEscaneados.length} items escaneados correctamente`);
+    setShowModalScan(false);
+    // Proceder con el flujo normal de entrega
+    setShowModalEntregar(true);
+  };
 
   // ==============================================================================
   // 🎣 ESTADOS DE FORMULARIOS
@@ -1179,7 +1192,7 @@ const PanelRepartidores = () => {
                 </button>
 
                 <button
-                  onClick={() => setShowModalEntregar(true)}
+                  onClick={() => setShowModalScan(true)}
                   disabled={facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'}
                   className={`col-span-2 p-3 sm:p-4 rounded-lg transition flex items-center justify-center gap-2 shadow-lg ${facturaActual.estado === 'entregada' || facturaActual.estadoGeneral === 'entregada'
                     ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
@@ -1475,6 +1488,15 @@ const PanelRepartidores = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Modal Escaneo para Entrega */}
+          {showModalScan && facturaActual && (
+            <ScanToDeliverModal
+              factura={facturaActual}
+              onComplete={handleScanComplete}
+              onCancel={() => setShowModalScan(false)}
+            />
           )}
 
           {/* Modal Agregar Gasto */}
