@@ -10,7 +10,6 @@ import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle, Loade
 import { toast } from 'sonner';
 import { storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { generateImageVariants, variantBlobToFile } from '../utils/thumbnailGenerator';
 import LabelPrinter from '../components/common/LabelPrinter';
 
 // ✅ CATÁLOGO DE SECTORES POR ZONA
@@ -265,7 +264,8 @@ const NuevaRecoleccion = () => {
     };
   }, []);
 
-  // ✅ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) CON THUMBNAILS
+  // ✅ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) SIN PROCESAMIENTO
+  // Simplificado para evitar problemas con Canvas API en móvil
   const subirArchivosAFirebase = async (archivos) => {
     const urls = [];
     if (!archivos || archivos.length === 0) return urls;
@@ -277,54 +277,35 @@ const NuevaRecoleccion = () => {
       const archivo = archivos[i];
 
       try {
-        // Mostrar indicador si tarda más de 500ms
-        const timeoutId = setTimeout(() => {
-          toast.loading(`Procesando imagen ${i + 1}/${archivos.length}...`, { id: `process-${i}` });
-        }, 500);
-
-        // Generar thumbnail (200px) y preview (1024px)
-        const variants = await generateImageVariants(archivo, {
-          onProgress: (progress) => {
-            if (progress.stage === 'thumbnail') {
-              toast.loading(`Generando thumbnail ${i + 1}...`, { id: `process-${i}` });
-            } else if (progress.stage === 'preview') {
-              toast.loading(`Generando preview ${i + 1}...`, { id: `process-${i}` });
-            }
-          }
-        });
-
-        clearTimeout(timeoutId);
-        toast.dismiss(`process-${i}`);
+        toast.loading(`Subiendo imagen ${i + 1}/${archivos.length}...`, { id: `upload-${i}` });
 
         // Paths en Storage
-        const baseNombre = `recolecciones/${idReferencia}/${Date.now()}_${i}`;
+        const nombreArchivo = `recolecciones/${idReferencia}/${Date.now()}_${i}_${archivo.name}`;
 
-        // Subir thumbnail (200px)
-        const thumbnailFile = variantBlobToFile(variants.thumbnail.blob, archivo.name, 'thumb');
-        const thumbnailPath = `${baseNombre}_thumb.jpg`;
-        const thumbnailRef = ref(storage, thumbnailPath);
-        await uploadBytes(thumbnailRef, thumbnailFile);
-        const thumbnailUrl = await getDownloadURL(thumbnailRef);
+        // Subir archivo original directamente
+        const archivoRef = ref(storage, nombreArchivo);
+        await uploadBytes(archivoRef, archivo);
+        const url = await getDownloadURL(archivoRef);
 
-        // Subir preview (1024px)
-        const previewFile = variantBlobToFile(variants.preview.blob, archivo.name, 'preview');
-        const previewPath = `${baseNombre}_preview.jpg`;
-        const previewRef = ref(storage, previewPath);
-        await uploadBytes(previewRef, previewFile);
-        const previewUrl = await getDownloadURL(previewRef);
-
-        // Guardar ambas URLs
+        // Guardar URL (sin thumbnails por ahora)
         urls.push({
-          thumbnail: thumbnailUrl,
-          preview: previewUrl,
-          metadata: variants.metadata
+          url: url,
+          thumbnail: url, // Misma URL para retrocompatibilidad
+          preview: url,   // Misma URL para retrocompatibilidad
+          fileName: archivo.name,
+          size: archivo.size
         });
 
+        toast.success(`Imagen ${i + 1} subida`, { id: `upload-${i}` });
+
       } catch (error) {
-        console.error(`Error procesando archivo ${archivo.name}:`, error);
-        toast.error(`Error al procesar ${archivo.name}`);
+        console.error(`Error subiendo archivo ${archivo.name}:`, error);
+        toast.error(`Error al subir ${archivo.name}: ${error.message}`, { id: `upload-${i}` });
+
+        // No lanzar error, continuar con las siguientes imágenes
       }
     }
+
     return urls;
   };
 
