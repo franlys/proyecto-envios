@@ -45,8 +45,8 @@ import MisSolicitudes from './pages/MisSolicitudes'; // 🆕 Vista de Recolector
 import CloudWhatsApp from './pages/Configuracion/CloudWhatsApp'; // ✅ Gestor WhatsApp Cloud
 import Historial from './pages/Historial'; // 🆕 Historial de Rutas
 import GestionHardware from './pages/SuperAdmin/GestionHardware'; // ✅ NUEVO - Gestión de Hardware
-import GestionFeaturesCompanias from './pages/SuperAdmin/GestionFeaturesCompañías'; // ✅ NUEVO - Gestión de Features por Compañía
-import MisFeaturesCompania from './pages/MisFeaturesCompañia'; // ✅ NUEVO - Vista de Features para Propietario/Admin
+import GestionFeaturesCompanias from './pages/SuperAdmin/GestionFeaturesCompanias'; // ✅ NUEVO - Gestión de Features por Compañía
+import MisFeaturesCompania from './pages/MisFeaturesCompania'; // ✅ NUEVO - Vista de Features para Propietario/Admin
 
 // ✅ Sistema de roles y permisos
 import ProtectedRoute from './components/auth/ProtectedRoute';
