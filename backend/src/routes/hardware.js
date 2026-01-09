@@ -9,7 +9,9 @@ import {
   agregarScanner,
   agregarImpresora,
   toggleSistemaHardware,
-  agregarConsumible
+  agregarConsumible,
+  eliminarDispositivo,
+  actualizarConfigBarcode
 } from '../controllers/hardwareController.js';
 
 const router = express.Router();
