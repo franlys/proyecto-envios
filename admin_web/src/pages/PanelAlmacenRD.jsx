@@ -13,8 +13,9 @@ import api from '../services/api';
 import {
   Package, Truck, CheckCircle, AlertTriangle, Eye, ArrowLeft, Loader, MapPin,
   FileText, Settings, X, Edit, Box, User, Phone, Mail, DollarSign, Calendar,
-  CreditCard, Clock, Printer
+  CreditCard, Clock, Printer, Target
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const PanelAlmacenRD = () => {
   const navigate = useNavigate();
@@ -58,6 +59,11 @@ const PanelAlmacenRD = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
+  // Estados para Modo Scanner Automático
+  const [modoScanner, setModoScanner] = useState(false);
+  const [scannerBuffer, setScannerBuffer] = useState('');
+  const [ultimoCodigoEscaneado, setUltimoCodigoEscaneado] = useState(null);
+
   const RUTAS_DISPONIBLES = [
     { value: 'Capital', label: '🏙️ Capital (Santo Domingo)', color: 'blue' },
     { value: 'Sur', label: '🌊 Sur', color: 'green' },
@@ -67,6 +73,127 @@ const PanelAlmacenRD = () => {
   ];
 
   useEffect(() => { cargarContenedores(); }, [tabActiva]);
+
+  // Listener para Scanner (Teclado)
+  useEffect(() => {
+    if (!modoScanner || !contenedorActivo) return;
+
+    const handleKeyPress = (e) => {
+      // Si estamos en un input/textarea, no interceptar
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      if (e.key === 'Enter') {
+        if (scannerBuffer) {
+          procesarCodigoEscaneado(scannerBuffer);
+          setScannerBuffer('');
+        }
+      } else {
+        // Acumular caracteres alfanuméricos
+        if (e.key.length === 1) {
+          setScannerBuffer(prev => prev + e.key);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [modoScanner, scannerBuffer, contenedorActivo]);
+
+  const procesarCodigoEscaneado = async (codigo) => {
+    setUltimoCodigoEscaneado(codigo);
+    console.log('🔍 Código escaneado en Almacén RD:', codigo);
+
+    if (!contenedorActivo.facturas) return;
+
+    // Buscar factura/item
+    let encontrado = false;
+    let facturaEncontrada = null;
+    let itemEncontradoIndex = -1;
+
+    for (const factura of contenedorActivo.facturas) {
+      // 1. Verificar Tracking Factura (para recibir toda la factura? O abrirla?)
+      // En este flujo, al escanear item queremos recibir el item.
+
+      // 2. Verificar Items
+      if (factura.items) {
+        // Asumimos que el código escaneado puede ser el tracking de la factura (si etiqueta es por caja) 
+        // O un código específico del item si existiera. 
+        // POR AHORA: Si escanean tracking de factura, buscamos el primer item pendiente.
+
+        const esTrackingFactura = factura.codigoTracking === codigo || factura.numeroFactura === codigo;
+
+        // Buscar items coincidentes (por barcode item o tracking factura)
+        const itemsCoincidentes = factura.items.map((item, index) => ({ item, index }))
+          .filter(({ item }) => item.codigoBarras === codigo || esTrackingFactura);
+
+        if (itemsCoincidentes.length > 0) {
+          // Buscar uno pendiente de recibir en RD
+          const pendiente = itemsCoincidentes.find(({ item }) => item.estado !== 'recibido_rd' && item.estado !== 'entregado');
+
+          if (pendiente) {
+            facturaEncontrada = factura;
+            itemEncontradoIndex = pendiente.index;
+            encontrado = true;
+            break;
+          } else {
+            if (itemsCoincidentes.length > 0) {
+              // Encontramos, pero ya estaban recibidos
+              toast.info(`Item(s) ya recibido(s) para: ${codigo}`);
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    if (encontrado && facturaEncontrada) {
+      try {
+        const facturaId = facturaEncontrada.id || facturaEncontrada.facturaId || facturaEncontrada.recoleccionId;
+        // Llamada al backend para recibir item individual
+        const response = await api.post(`/almacen-rd/facturas/${facturaId}/items/recibir`, {
+          itemIndex: itemEncontradoIndex
+        });
+
+        if (response.data.success) {
+          toast.success(`📦 Item recibido: ${facturaEncontrada.codigoTracking} - Item #${itemEncontradoIndex + 1}`);
+          // Reproducir sonido beep?
+
+          // Actualizar estado local (optimistic o reload)
+          // Vamos a recargar el contenedor para asegurar consistencia
+          // O mejor, actualizar solo el item localmente para rapidez
+          // Pero backend recalcula el estado de la factura... mejor recargar o actualizar parcial.
+
+          // Actualización Parcial Local del Contenedor
+          const nuevasFacturas = contenedorActivo.facturas.map(f => {
+            const fid = f.id || f.facturaId || f.recoleccionId;
+            if (fid === facturaId) {
+              const nuevosItems = [...f.items];
+              nuevosItems[itemEncontradoIndex] = { ...nuevosItems[itemEncontradoIndex], estado: 'recibido_rd' };
+
+              // Recalcular estado factura simple
+              const todosRecibidos = nuevosItems.every(i => i.estado === 'recibido_rd' || i.estado === 'entregado');
+
+              return {
+                ...f,
+                items: nuevosItems,
+                estado: todosRecibidos ? 'recibida_rd' : f.estado,
+                itemsMarcados: (f.itemsMarcados || 0) + 1
+              };
+            }
+            return f;
+          });
+
+          setContenedorActivo({ ...contenedorActivo, facturas: nuevasFacturas });
+
+        }
+      } catch (error) {
+        console.error('Error al recibir item escaneado:', error);
+        toast.error('Error al procesar scan');
+      }
+    } else {
+      toast.error(`Código no encontrado o ya procesado: ${codigo}`);
+    }
+  };
 
   const cargarContenedores = async () => {
     try {
@@ -473,8 +600,8 @@ const PanelAlmacenRD = () => {
               <button
                 onClick={() => setTabActiva('en_transito')}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${tabActiva === 'en_transito'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
               >
                 <Truck size={20} />
@@ -483,8 +610,8 @@ const PanelAlmacenRD = () => {
               <button
                 onClick={() => setTabActiva('recibidos')}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${tabActiva === 'recibidos'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
               >
                 <CheckCircle size={20} />
@@ -516,8 +643,8 @@ const PanelAlmacenRD = () => {
                             {contenedor.numeroContenedor}
                           </h3>
                           <span className={`text-sm px-2 py-1 rounded ${contenedor.estado === 'en_transito_rd'
-                              ? 'bg-indigo-100 text-indigo-800'
-                              : 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-indigo-100 text-indigo-800'
+                            : 'bg-emerald-100 text-emerald-800'
                             }`}>
                             {contenedor.estado === 'en_transito_rd' ? 'En Tránsito' : 'Recibido'}
                           </span>
@@ -578,8 +705,8 @@ const PanelAlmacenRD = () => {
                       {contenedorActivo.numeroContenedor}
                     </h2>
                     <span className={`text-sm px-3 py-1 rounded inline-block mt-1 ${contenedorActivo.estado === 'en_transito_rd'
-                        ? 'bg-indigo-100 text-indigo-800'
-                        : 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-indigo-100 text-indigo-800'
+                      : 'bg-emerald-100 text-emerald-800'
                       }`}>
                       {contenedorActivo.estado === 'en_transito_rd' ? 'En Tránsito' : 'Recibido en RD'}
                     </span>
@@ -617,10 +744,50 @@ const PanelAlmacenRD = () => {
                     className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
                   >
                     <CheckCircle size={20} />
-                    Confirmar Recepción
+                    Confirmar Recepción Total
                   </button>
                 )}
               </div>
+
+              {/* Barra de Scanner Automático */}
+              {contenedorActivo.estado === 'en_transito_rd' && (
+                <div className={`mt-4 p-4 rounded-lg flex items-center justify-between transition border-2 ${modoScanner ? 'bg-indigo-50 border-indigo-400' : 'bg-slate-50 border-transparent'
+                  }`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-full ${modoScanner ? 'bg-indigo-100 text-indigo-600 animate-pulse' : 'bg-slate-200 text-slate-500'}`}>
+                      <Printer size={24} /> {/* Usando Printer como icono de scanner/barcode por ahora */}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100">
+                        Modo Scanner - Recepción de Items
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        {modoScanner
+                          ? 'LISTO... Escanea tracking o barcode de item para recibir individualmente.'
+                          : 'Activa para recibir items uno por uno usando el scanner.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {ultimoCodigoEscaneado && (
+                      <span className="text-xs bg-white px-2 py-1 rounded border font-mono">
+                        Último: {ultimoCodigoEscaneado}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setModoScanner(!modoScanner)}
+                      className={`px-4 py-2 rounded-lg font-bold transition ${modoScanner
+                          ? 'bg-indigo-600 text-white shadow-lg scale-105'
+                          : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}
+                    >
+                      {modoScanner ? 'DESACTIVAR SCANNER' : 'ACTIVAR SCANNER'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Lista de Facturas */}
@@ -648,8 +815,8 @@ const PanelAlmacenRD = () => {
 
                               {/* ✅✅✅ BADGE DE ESTADO CORREGIDO ✅✅✅ */}
                               <span className={`px-2 py-1 rounded text-xs font-medium ${esCompleta
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
                                 }`}>
                                 {esCompleta ? '✅ Completa' : '⚠️ Incompleta'}
                               </span>
@@ -686,11 +853,10 @@ const PanelAlmacenRD = () => {
                             <button
                               onClick={() => handleAbrirEditarPago(factura)}
                               disabled={factura.pago?.estado === 'pagada'}
-                              className={`px-3 py-1 rounded transition text-sm flex items-center gap-1 ${
-                                factura.pago?.estado === 'pagada'
+                              className={`px-3 py-1 rounded transition text-sm flex items-center gap-1 ${factura.pago?.estado === 'pagada'
                                   ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                                   : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                              }`}
+                                }`}
                               title={factura.pago?.estado === 'pagada' ? 'Factura ya pagada' : 'Editar pago'}
                             >
                               <CreditCard size={16} />
@@ -774,8 +940,8 @@ const PanelAlmacenRD = () => {
                       <div
                         key={index}
                         className={`border rounded-lg p-4 ${item.danado
-                            ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20'
-                            : 'border-slate-200 dark:border-slate-700'
+                          ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/20'
+                          : 'border-slate-200 dark:border-slate-700'
                           }`}
                       >
                         <div className="flex justify-between items-start">
@@ -804,8 +970,8 @@ const PanelAlmacenRD = () => {
                             <button
                               onClick={() => setModalMarcarDanado({ item, itemIndex: index, danado: !item.danado })}
                               className={`px-3 py-1 rounded transition text-sm ${item.danado
-                                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                  : 'bg-rose-600 text-white hover:bg-rose-700'
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-rose-600 text-white hover:bg-rose-700'
                                 }`}
                             >
                               {item.danado ? '✓ Marcar Normal' : '⚠️ Marcar Dañado'}
@@ -918,8 +1084,8 @@ const PanelAlmacenRD = () => {
                 onClick={() => handleMarcarDanado(modalMarcarDanado.itemIndex, modalMarcarDanado.danado)}
                 disabled={loading || (modalMarcarDanado.danado && !notasDano)}
                 className={`flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50 ${modalMarcarDanado.danado
-                    ? 'bg-rose-600 hover:bg-rose-700'
-                    : 'bg-emerald-600 hover:bg-emerald-700'
+                  ? 'bg-rose-600 hover:bg-rose-700'
+                  : 'bg-emerald-600 hover:bg-emerald-700'
                   }`}
               >
                 {loading ? 'Guardando...' : 'Confirmar'}
@@ -1431,8 +1597,8 @@ const PanelAlmacenRD = () => {
                     value={infoPago.montoPago}
                     onChange={(e) => setInfoPago({ ...infoPago, montoPago: e.target.value })}
                     className={`w-full px-3 py-2 border dark:bg-slate-700 dark:text-white rounded-lg ${!infoPago.montoPago || infoPago.montoPago === ''
-                        ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-                        : 'border-slate-300 dark:border-slate-600'
+                      ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                      : 'border-slate-300 dark:border-slate-600'
                       }`}
                     placeholder="0.00"
                   />

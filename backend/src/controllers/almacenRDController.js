@@ -487,6 +487,75 @@ export const confirmarRecepcion = async (req, res) => {
 };
 
 // ========================================
+// RECIBIR ITEM INDIVIDUAL EN RD
+// ========================================
+export const recibirItemRD = async (req, res) => {
+  try {
+    const { facturaId } = req.params;
+    const { itemIndex } = req.body; // Index del item en el array
+    const companyId = req.userData?.companyId;
+
+    if (!companyId) {
+      return res.status(401).json({ success: false, message: 'No autorizado' });
+    }
+
+    const facturaRef = db.collection('recolecciones').doc(facturaId.trim());
+    const doc = await facturaRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, message: 'Factura no encontrada' });
+    }
+
+    const factura = doc.data();
+
+    if (!factura.items || !factura.items[itemIndex]) {
+      return res.status(400).json({ success: false, message: 'Item no encontrado' });
+    }
+
+    // Actualizar estado del item a recibido_rd
+    const items = [...factura.items];
+    items[itemIndex] = {
+      ...items[itemIndex],
+      estado: 'recibido_rd',
+      fechaRecepcionRD: new Date().toISOString()
+    };
+
+    // Calcular totales
+    const itemsRecibidos = items.filter(i => i.estado === 'recibido_rd' || i.estado === 'entregado').length;
+    const itemsTotal = items.length;
+
+    // Si todos los items están recibidos, marcar factura como recibida_rd
+    let nuevoEstadoFactura = factura.estado;
+    if (itemsRecibidos === itemsTotal) {
+      nuevoEstadoFactura = ESTADOS_FACTURA.RECIBIDA;
+    }
+
+    await facturaRef.update({
+      items: items,
+      itemsMarcados: itemsRecibidos,
+      estado: nuevoEstadoFactura,
+      fechaActualizacion: FieldValue.serverTimestamp()
+    });
+
+    res.json({
+      success: true,
+      message: 'Item recibido en RD',
+      data: {
+        facturaId,
+        itemIndex,
+        itemsRecibidos,
+        itemsTotal,
+        estadoFactura: nuevoEstadoFactura
+      }
+    });
+
+  } catch (error) {
+    console.error('Error recibiendo item:', error);
+    res.status(500).json({ success: false, message: 'Error al recibir item' });
+  }
+};
+
+// ========================================
 // OBTENER DETALLE DE FACTURA
 // ========================================
 export const getDetalleFactura = async (req, res) => {

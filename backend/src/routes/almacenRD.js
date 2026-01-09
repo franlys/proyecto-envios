@@ -14,7 +14,9 @@ import {
   reportarFacturaIncompleta,
   getDetalleFactura,
   editarPago,
-  getEstadisticasAlmacenRD
+  editarPago,
+  getEstadisticasAlmacenRD,
+  recibirItemRD
 } from '../controllers/almacenRDController.js';
 
 const router = express.Router();
@@ -47,6 +49,7 @@ router.put('/facturas/:facturaId/pago', editarPago);
 // ========================================
 router.post('/facturas/:facturaId/reportar-incompleta', reportarFacturaIncompleta);
 router.post('/facturas/:facturaId/items/danado', marcarItemDanado);
+router.post('/facturas/:facturaId/items/recibir', recibirItemRD);
 
 // ========================================
 // RUTAS DE ASIGNACIÓN DE RUTAS

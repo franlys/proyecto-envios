@@ -17,8 +17,10 @@ import {
   MapPin,
   ArrowLeft,
   X,
+  X,
   Image as ImageIcon,
-  Printer
+  Printer,
+  Barcode
 } from 'lucide-react';
 
 const PanelCargadores = () => {
@@ -60,6 +62,11 @@ const PanelCargadores = () => {
   const [showModalDetalleFactura, setShowModalDetalleFactura] = useState(false);
   const [facturaDetalleSeleccionada, setFacturaDetalleSeleccionada] = useState(null);
 
+  // Estados para Modo Scanner Automático
+  const [modoScanner, setModoScanner] = useState(false);
+  const [scannerBuffer, setScannerBuffer] = useState('');
+  const [ultimoCodigoEscaneado, setUltimoCodigoEscaneado] = useState(null);
+
   // ==============================================================================
   // 🔄 EFECTOS Y CARGA DE DATOS
   // ==============================================================================
@@ -67,6 +74,81 @@ const PanelCargadores = () => {
   useEffect(() => {
     cargarRutasAsignadas();
   }, []);
+
+  // Listener para Scanner (Teclado)
+  useEffect(() => {
+    if (!modoScanner || !rutaSeleccionada) return;
+
+    const handleKeyPress = (e) => {
+      // Si estamos en un input/textarea, no interceptar
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      if (e.key === 'Enter') {
+        if (scannerBuffer) {
+          procesarCodigoEscaneado(scannerBuffer);
+          setScannerBuffer('');
+        }
+      } else {
+        // Acumular caracteres alfanuméricos
+        if (e.key.length === 1) {
+          setScannerBuffer(prev => prev + e.key);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [modoScanner, scannerBuffer, rutaSeleccionada]);
+
+  const procesarCodigoEscaneado = (codigo) => {
+    setUltimoCodigoEscaneado(codigo);
+    console.log('🔍 Código escaneado:', codigo);
+
+    // Buscar en todas las facturas de la ruta
+    let encontrado = false;
+
+    // Iterar sobre facturas para encontrar el item
+    for (const factura of rutaSeleccionada.facturas || []) {
+      // Verificar si el código coincide con tracking de factura (para cargar toda la factura o validar)
+      // O verificar si coincide con algún código de barras de item (si los tuviéramos)
+      // Asumiremos por ahora que el código escaneado es el TRACKING de la factura 'ENV-...' o 'MIA...'
+
+      if (factura.codigoTracking === codigo || (factura.items && factura.items.some(i => i.codigoBarras === codigo))) {
+        // Encontró factura. Ahora buscamos items pendientes.
+        // En el flujo simple, si escanean el tracking, cargamos los items uno por uno o todos?
+        // El usuario pidió "confirmar la carga de un item al recibir el input".
+        // Asumiremos que escanear tracking = cargar items.
+
+        // Si el código es específico de un item (i.e. SKU o similar), buscamos ese item.
+        const itemsCoincidentes = factura.items.map((item, index) => ({ item, index }))
+          .filter(({ item }) => item.codigoBarras === codigo || factura.codigoTracking === codigo);
+
+        if (itemsCoincidentes.length > 0) {
+          encontrado = true;
+          // Cargar el primer item no cargado que coincida
+          const pendiente = itemsCoincidentes.find(({ item }) => !item.cargado);
+
+          if (pendiente) {
+            handleConfirmarItem(factura.id, pendiente.index);
+            toast.success(`Item escaneado: ${pendiente.item.descripcion}`, {
+              icon: '🔫',
+              duration: 2000
+            });
+          } else {
+            toast.info('Item(s) ya cargado(s) para este código', { icon: '✅' });
+          }
+          break; // Salir del loop de facturas
+        }
+      }
+    }
+
+    if (!encontrado) {
+      toast.error(`Código no encontrado en esta ruta: ${codigo}`, {
+        icon: '⚠️'
+      });
+      // Sonido de error?
+    }
+  };
 
   // Cargar lista de rutas desde el backend
   const cargarRutasAsignadas = async () => {
@@ -439,8 +521,8 @@ const PanelCargadores = () => {
                       </h3>
                       <div className="flex gap-2 mt-2">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${ruta.estado === 'asignada'
-                            ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                          ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
                           }`}>
                           {ruta.estado === 'asignada' ? 'Asignada' : 'En Proceso'}
                         </span>
@@ -556,6 +638,46 @@ const PanelCargadores = () => {
                 )}
               </div>
             </div>
+
+            {/* Barra de Herramientas Scanner */}
+            {rutaSeleccionada.estado === 'asignada' || rutaSeleccionada.estado === 'en_carga' ? (
+              <div className={`mt-4 p-4 rounded-lg flex items-center justify-between transition ${modoScanner ? 'bg-indigo-50 border border-indigo-200' : 'bg-slate-50'
+                }`}>
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-full ${modoScanner ? 'bg-indigo-100 text-indigo-600 animate-pulse' : 'bg-slate-200 text-slate-500'}`}>
+                    <Barcode size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">
+                      Modo Scanner Automático
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {modoScanner
+                        ? 'LISTO PARA ESCANEAR... (Emule teclado)'
+                        : 'Activa para cargar items automáticamente al escanear'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {ultimoCodigoEscaneado && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border font-mono">
+                      Último: {ultimoCodigoEscaneado}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setModoScanner(!modoScanner)}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${modoScanner
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                      }`}
+                  >
+                    {modoScanner ? 'DESACTIVAR' : 'ACTIVAR'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
           </div>
 
           {/* Listado de Facturas e Items */}
@@ -600,8 +722,8 @@ const PanelCargadores = () => {
                       <div
                         key={iIndex}
                         className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-lg border-2 transition ${item.cargado
-                            ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500'
-                            : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500'
+                          : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600'
                           }`}
                       >
                         <div className="flex-1 w-full mb-3 md:mb-0">

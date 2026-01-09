@@ -80,7 +80,8 @@
       "Bash(timeout 10 node:*)",
       "Bash(firebase deploy:*)",
       "Bash(cat:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

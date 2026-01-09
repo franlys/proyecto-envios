@@ -1,16 +1,18 @@
 // admin_web/src/pages/NuevaRecoleccion.jsx
 // ✅ INTEGRACIÓN COMPLETA CON SELECTOR DE SECTOR DINÁMICO Y SUBIDA DE FOTOS OPTIMIZADA
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ModuloFacturacion from '../components/ModuloFacturacion';
-import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle, Loader } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle, Loader, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { generateImageVariants, variantBlobToFile } from '../utils/thumbnailGenerator';
+import LabelPrinter from '../components/common/LabelPrinter';
+import bluetoothPrinter from '../utils/bluetoothPrinter';
 
 // ✅ CATÁLOGO DE SECTORES POR ZONA
 const SECTORES_POR_ZONA = {
@@ -81,6 +83,11 @@ const NuevaRecoleccion = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [solicitudId, setSolicitudId] = useState(null); // ✅ Guardar ID de solicitud para marcarla como completada
+
+  // ✅ Estados para impresión de etiquetas
+  const [labelsToPrint, setLabelsToPrint] = useState([]);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const printTimeoutRef = useRef(null);
 
   // ✅ Pre-llenar datos si viene una solicitud asignada
   useEffect(() => {
@@ -191,6 +198,104 @@ const NuevaRecoleccion = () => {
     setFotos(fotos.filter((_, i) => i !== index));
     setFotoPreviews(previews => previews.filter((_, i) => i !== index));
   };
+
+  // ✅ Función para generar etiquetas para impresión
+  const generarEtiquetas = (recoleccionData) => {
+    const labels = [];
+    const tracking = recoleccionData.codigoTracking;
+    const recipientName = destinatario;
+    const fecha = new Date().toLocaleDateString('es-DO');
+
+    recoleccionData.items.forEach((item, itemIndex) => {
+      const cantidad = parseInt(item.cantidad) || 1;
+
+      for (let unitIndex = 0; unitIndex < cantidad; unitIndex++) {
+        const uniqueCode = `${tracking}-${itemIndex + 1}-${unitIndex + 1}`;
+
+        labels.push({
+          uniqueCode,
+          tracking,
+          itemDesc: item.producto || item.descripcion || 'Item',
+          itemIndex,
+          unitIndex,
+          totalUnits: cantidad,
+          recipientName,
+          date: fecha
+        });
+      }
+    });
+
+    return labels;
+  };
+
+  // ✅ Función para imprimir etiquetas (modo estándar)
+  const handlePrintLabels = () => {
+    if (labelsToPrint.length === 0) {
+      toast.warning('No hay etiquetas para imprimir');
+      return;
+    }
+
+    // Esperar un momento para que el DOM se actualice
+    printTimeoutRef.current = setTimeout(() => {
+      try {
+        window.print();
+        toast.success(`Imprimiendo ${labelsToPrint.length} etiqueta(s)`);
+      } catch (error) {
+        console.error('Error al imprimir:', error);
+        toast.error('Error al abrir el diálogo de impresión');
+      }
+    }, 100);
+  };
+
+  // ✅ Función para imprimir vía Bluetooth (Phomemo)
+  const handleBluetoothPrint = async () => {
+    if (labelsToPrint.length === 0) {
+      toast.warning('No hay etiquetas para imprimir');
+      return;
+    }
+
+    try {
+      // Verificar si el navegador soporta Bluetooth
+      if (!bluetoothPrinter.isSupported()) {
+        toast.error('Tu navegador no soporta Bluetooth. Usa la impresión estándar.');
+        return;
+      }
+
+      toast.loading('Conectando a impresora Bluetooth...', { id: 'bt-connect' });
+
+      // Conectar a la impresora
+      await bluetoothPrinter.connect();
+      toast.success('Conectado a la impresora', { id: 'bt-connect' });
+
+      // Imprimir todas las etiquetas
+      toast.loading(`Imprimiendo ${labelsToPrint.length} etiqueta(s)...`, { id: 'bt-print' });
+      await bluetoothPrinter.printLabels(labelsToPrint);
+      toast.success('Etiquetas impresas correctamente', { id: 'bt-print' });
+
+      // Desconectar
+      await bluetoothPrinter.disconnect();
+
+    } catch (error) {
+      console.error('Error en impresión Bluetooth:', error);
+
+      if (error.name === 'NotFoundError') {
+        toast.error('No se encontró ninguna impresora. Asegúrate de que esté encendida y emparejada.');
+      } else if (error.name === 'SecurityError') {
+        toast.error('Permiso denegado. El usuario canceló la selección de dispositivo.');
+      } else {
+        toast.error(`Error: ${error.message}`);
+      }
+    }
+  };
+
+  // ✅ Cleanup del timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (printTimeoutRef.current) {
+        clearTimeout(printTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // ✅ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) CON THUMBNAILS
   const subirArchivosAFirebase = async (archivos) => {
@@ -353,12 +458,13 @@ const NuevaRecoleccion = () => {
 
       if (response.data.success) {
         const codigoTracking = response.data.data?.codigoTracking || 'N/A';
+        const recoleccionCompleta = response.data.data;
 
         // ✅ Si viene de una solicitud asignada, marcarla como completada
         if (solicitudId) {
           try {
             await api.put(`/solicitudes/${solicitudId}/completar`, {
-              codigoRecoleccion: response.data.data?.id || null
+              codigoRecoleccion: recoleccionCompleta?.id || null
             });
             console.log(`✅ Solicitud ${solicitudId} marcada como completada`);
           } catch (error) {
@@ -368,7 +474,22 @@ const NuevaRecoleccion = () => {
         }
 
         toast.success(`✅ Recolección creada: ${codigoTracking}`);
-        navigate('/recolecciones');
+
+        // ✅ Generar etiquetas para impresión
+        const labels = generarEtiquetas({
+          ...recoleccionCompleta,
+          codigoTracking,
+          items: itemsLimpios
+        });
+
+        setLabelsToPrint(labels);
+        setShowPrintModal(true);
+
+        // Opcionalmente, imprimir automáticamente después de 2 segundos
+        // setTimeout(() => {
+        //   handlePrintLabels();
+        //   setTimeout(() => navigate('/recolecciones'), 1000);
+        // }, 2000);
       } else {
         setError(response.data.message || 'Error desconocido al crear la recolección.');
       }
@@ -742,6 +863,93 @@ const NuevaRecoleccion = () => {
         </button>
 
       </form>
+
+      {/* ✅ MODAL DE IMPRESIÓN DE ETIQUETAS */}
+      {showPrintModal && labelsToPrint.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900 mb-4">
+                <Printer className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                Recolección Creada Exitosamente
+              </h3>
+
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Se generaron <strong>{labelsToPrint.length} etiqueta(s)</strong> para imprimir.
+                <br />
+                ¿Deseas imprimir las etiquetas ahora?
+              </p>
+
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 mb-4">
+                <p className="text-xs text-indigo-800 dark:text-indigo-200">
+                  💡 <strong>Tip:</strong> Si estás en Android con Phomemo M110, usa "Bluetooth Directo". Si no, usa "Imprimir Normal".
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {/* Botón Bluetooth (prioritario para Android) */}
+                <button
+                  onClick={async () => {
+                    await handleBluetoothPrint();
+                    setTimeout(() => {
+                      setShowPrintModal(false);
+                      navigate('/recolecciones');
+                    }, 500);
+                  }}
+                  className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 font-medium"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z" />
+                  </svg>
+                  🔵 Bluetooth Directo (Phomemo)
+                </button>
+
+                {/* Botón impresión estándar */}
+                <button
+                  onClick={() => {
+                    handlePrintLabels();
+                    setTimeout(() => {
+                      setShowPrintModal(false);
+                      navigate('/recolecciones');
+                    }, 500);
+                  }}
+                  className="w-full px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition flex items-center justify-center gap-2"
+                >
+                  <Printer size={18} />
+                  🖨️ Imprimir Normal (Menú Sistema)
+                </button>
+
+                {/* Botón omitir */}
+                <button
+                  onClick={() => {
+                    setShowPrintModal(false);
+                    navigate('/recolecciones');
+                  }}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm"
+                >
+                  Omitir (Imprimir después)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ COMPONENTE DE IMPRESIÓN (Oculto, solo para window.print()) */}
+      {labelsToPrint.length > 0 && (
+        <LabelPrinter
+          labels={labelsToPrint}
+          companyName={userData?.companyName || "PROLOGIX"}
+          size="4x2"
+        />
+      )}
     </div>
   );
 };

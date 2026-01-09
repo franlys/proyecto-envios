@@ -242,6 +242,67 @@ export const agregarScanner = async (req, res) => {
 };
 
 // ========================================
+// AGREGAR CONSUMIBLE (Etiquetas, Cintas, etc)
+// ========================================
+export const agregarConsumible = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const consumibleData = req.body;
+
+    // Solo superadmin puede agregar hardware
+    if (req.userData?.rol !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Solo Super Admin puede agregar consumibles'
+      });
+    }
+
+    const hardwareRef = db.collection('hardware_config').doc(companyId);
+    const hardwareDoc = await hardwareRef.get();
+
+    if (!hardwareDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Configuración de hardware no encontrada'
+      });
+    }
+
+    const consumibleId = `consumible_${Date.now()}`;
+
+    const nuevoConsumible = {
+      id: consumibleId,
+      tipo: consumibleData.tipo || 'etiquetas', // etiquetas, ribbon, etc
+      nombre: consumibleData.nombre,
+      descripcion: consumibleData.descripcion || '',
+      cantidad: consumibleData.cantidad || 0,
+      costoUnitario: consumibleData.costoUnitario || 0,
+      costoTotal: (consumibleData.cantidad || 0) * (consumibleData.costoUnitario || 0),
+      fechaCompra: new Date().toISOString(),
+      creadoPor: req.userData.uid
+    };
+
+    await hardwareRef.update({
+      'barcodeManual.consumibles': FieldValue.arrayUnion(nuevoConsumible),
+      'barcodeManual.estadisticasGenerales.costoTotalInversion': FieldValue.increment(nuevoConsumible.costoTotal),
+      actualizadoEn: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Consumible agregado exitosamente',
+      data: nuevoConsumible
+    });
+
+  } catch (error) {
+    console.error('Error agregando consumible:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al agregar consumible'
+    });
+  }
+};
+
+// ========================================
 // AGREGAR IMPRESORA TÉRMICA
 // ========================================
 export const agregarImpresora = async (req, res) => {
@@ -349,7 +410,26 @@ export const eliminarDispositivo = async (req, res) => {
     const configActual = hardwareDoc.data();
     let dispositivoEliminado = null;
 
-    if (tipo === 'scanner') {
+    if (tipo === 'consumible') {
+      const consumibles = configActual.barcodeManual?.consumibles || [];
+      dispositivoEliminado = consumibles.find(c => c.id === dispositivoId);
+
+      if (!dispositivoEliminado) {
+        return res.status(404).json({
+          success: false,
+          message: 'Consumible no encontrado'
+        });
+      }
+
+      const nuevosConsumibles = consumibles.filter(c => c.id !== dispositivoId);
+
+      await hardwareRef.update({
+        'barcodeManual.consumibles': nuevosConsumibles,
+        'barcodeManual.estadisticasGenerales.costoTotalInversion': FieldValue.increment(-dispositivoEliminado.costoTotal),
+        actualizadoEn: new Date().toISOString()
+      });
+
+    } else if (tipo === 'scanner') {
       const scanners = configActual.barcodeManual?.scanners || [];
       dispositivoEliminado = scanners.find(s => s.id === dispositivoId);
 
@@ -393,7 +473,7 @@ export const eliminarDispositivo = async (req, res) => {
 
     res.json({
       success: true,
-      message: `${tipo === 'scanner' ? 'Scanner' : 'Impresora'} eliminado exitosamente`,
+      message: `${tipo === 'scanner' ? 'Scanner' : tipo === 'impresora' ? 'Impresora' : 'Consumible'} eliminado exitosamente`,
       data: dispositivoEliminado
     });
 

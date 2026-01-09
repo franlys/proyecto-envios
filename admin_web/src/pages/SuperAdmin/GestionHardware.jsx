@@ -75,6 +75,14 @@ const GestionHardware = () => {
     conexion: 'usb',
     precio: 90
   });
+  const [modalAgregarConsumible, setModalAgregarConsumible] = useState(false);
+  const [formConsumible, setFormConsumible] = useState({
+    nombre: 'Etiquetas Adhesivas',
+    tipo: 'etiquetas',
+    cantidad: 1,
+    costoUnitario: 10,
+    descripcion: 'Rollo de etiquetas (1000 u)'
+  });
 
   // Cargar compañías al montar
   useEffect(() => {
@@ -205,6 +213,36 @@ const GestionHardware = () => {
     }
   };
 
+  const agregarConsumible = async () => {
+    if (!selectedCompany || !formConsumible.nombre) {
+      toast.error('Completa todos los campos');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post(`/hardware/${selectedCompany.id}/consumibles`, formConsumible);
+
+      if (response.data.success) {
+        toast.success('Consumible agregado exitosamente');
+        await cargarHardwareConfig(selectedCompany.id);
+        setModalAgregarConsumible(false);
+        setFormConsumible({
+          nombre: 'Etiquetas Adhesivas',
+          tipo: 'etiquetas',
+          cantidad: 1,
+          costoUnitario: 10,
+          descripcion: 'Rollo de etiquetas (1000 u)'
+        });
+      }
+    } catch (error) {
+      console.error('Error agregando consumible:', error);
+      toast.error(error.response?.data?.message || 'Error al agregar consumible');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const eliminarDispositivo = async (dispositivoId, tipo) => {
     if (!confirm(`¿Eliminar este ${tipo}?`)) return;
 
@@ -270,11 +308,10 @@ const GestionHardware = () => {
           {selectedCompany && hardwareConfig && (
             <button
               onClick={toggleSistema}
-              className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${
-                hardwareConfig.enabled
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'bg-slate-600 text-white hover:bg-slate-700'
-              }`}
+              className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${hardwareConfig.enabled
+                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                : 'bg-slate-600 text-white hover:bg-slate-700'
+                }`}
             >
               {hardwareConfig.enabled ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
               {hardwareConfig.enabled ? 'Sistema Activo' : 'Sistema Inactivo'}
@@ -385,9 +422,8 @@ const GestionHardware = () => {
                           </div>
 
                           <div className="flex items-center justify-between text-sm">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              scanner.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                            }`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${scanner.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                              }`}>
                               {scanner.activo ? 'Activo' : 'Inactivo'}
                             </span>
                             <span className="text-indigo-600 font-bold">${scanner.precio} USD</span>
@@ -438,9 +474,8 @@ const GestionHardware = () => {
                           </div>
 
                           <div className="flex items-center justify-between text-sm">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              impresora.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                            }`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${impresora.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                              }`}>
                               {impresora.activo ? 'Activa' : 'Inactiva'}
                             </span>
                             <span className="text-indigo-600 font-bold">${impresora.precio} USD</span>
@@ -452,6 +487,62 @@ const GestionHardware = () => {
                     <div className="text-center py-8 text-slate-500">
                       <Printer className="mx-auto mb-2 text-slate-400" size={48} />
                       <p>No hay impresoras configuradas</p>
+                    </div>
+                  )}
+                </div>
+
+
+                {/* Consumibles */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                      <Package className="text-indigo-600" size={20} />
+                      Consumibles ({hardwareConfig.barcodeManual?.consumibles?.length || 0})
+                    </h3>
+                    <button
+                      onClick={() => setModalAgregarConsumible(true)}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      Agregar Consumible
+                    </button>
+                  </div>
+
+                  {hardwareConfig.barcodeManual?.consumibles?.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {hardwareConfig.barcodeManual.consumibles.map(consumible => (
+                        <div key={consumible.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-slate-900">{consumible.nombre}</h4>
+                              <p className="text-sm text-slate-600">{consumible.descripcion || consumible.tipo}</p>
+                            </div>
+                            <button
+                              onClick={() => eliminarDispositivo(consumible.id, 'consumible')}
+                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-slate-100 px-2 py-1 rounded text-slate-600">
+                                Cant: {consumible.cantidad}
+                              </span>
+                              <span className="text-slate-500 text-xs">
+                                (${consumible.costoUnitario}/u)
+                              </span>
+                            </div>
+                            <span className="text-indigo-600 font-bold">${consumible.costoTotal} USD</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-500">
+                      <Package className="mx-auto mb-2 text-slate-400" size={48} />
+                      <p>No hay consumibles registrados</p>
                     </div>
                   )}
                 </div>
@@ -783,8 +874,93 @@ const GestionHardware = () => {
             </div>
           </div>
         )}
+
+        {/* Modal: Agregar Consumible */}
+        {modalAgregarConsumible && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Package className="text-indigo-600" />
+                Agregar Consumible
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    value={formConsumible.nombre}
+                    onChange={(e) => setFormConsumible({ ...formConsumible, nombre: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Descripción
+                  </label>
+                  <input
+                    type="text"
+                    value={formConsumible.descripcion}
+                    onChange={(e) => setFormConsumible({ ...formConsumible, descripcion: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Cantidad
+                    </label>
+                    <input
+                      type="number"
+                      value={formConsumible.cantidad}
+                      onChange={(e) => setFormConsumible({ ...formConsumible, cantidad: parseInt(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Costo Unitario
+                    </label>
+                    <input
+                      type="number"
+                      value={formConsumible.costoUnitario}
+                      onChange={(e) => setFormConsumible({ ...formConsumible, costoUnitario: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-lg text-right">
+                  <p className="text-sm text-slate-600">Total Inversión</p>
+                  <p className="text-lg font-bold text-indigo-600">
+                    ${(formConsumible.cantidad * formConsumible.costoUnitario).toFixed(2)} USD
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={agregarConsumible}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  Agregar
+                </button>
+                <button
+                  onClick={() => setModalAgregarConsumible(false)}
+                  className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </div >
   );
 };
 

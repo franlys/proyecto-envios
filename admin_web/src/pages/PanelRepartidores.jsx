@@ -58,6 +58,11 @@ const PanelRepartidores = () => {
   const [procesando, setProcesando] = useState(false);
   const [subiendoFotos, setSubiendoFotos] = useState(false);
 
+  // Estados para Modo Scanner
+  const [modoScanner, setModoScanner] = useState(false);
+  const [scannerBuffer, setScannerBuffer] = useState('');
+  const [ultimoCodigoEscaneado, setUltimoCodigoEscaneado] = useState(null);
+
   // ==============================================================================
   // 🎣 ESTADOS DE MODALES
   // ==============================================================================
@@ -180,6 +185,93 @@ const PanelRepartidores = () => {
     }
     clearNewDataIndicator();
   };
+
+  // Listener para Scanner (Teclado) - Similar a PanelCargadores
+  useEffect(() => {
+    if (!modoScanner) return; // Solo escuchar si el modo scanner está activo
+
+    const handleKeyPress = (e) => {
+      // Ignorar inputs
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      if (e.key === 'Enter') {
+        if (scannerBuffer) {
+          procesarScanEntrega(scannerBuffer);
+          setScannerBuffer('');
+        }
+      } else {
+        if (e.key.length === 1) {
+          setScannerBuffer(prev => prev + e.key);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [modoScanner, scannerBuffer, vistaActual, facturaActual, rutaSeleccionada]);
+
+  const procesarScanEntrega = (codigo) => {
+    setUltimoCodigoEscaneado(codigo);
+    console.log('🔍 Scan Repartidor:', codigo);
+
+    if (vistaActual === 'factura' && facturaActual) {
+      // Estamos dentro de una factura. Verificar si el código pertenece a un item de esta factura.
+      const itemIndex = facturaActual.items.findIndex(i => i.codigoBarras === codigo || i.producto === codigo); // Ojo: validar vs tracking?
+
+      // También permitir escanear el tracking de la factura para "confirmar entrega global"? No, item por item.
+      // Si el código coincide con el tracking de la factura, ¿qué hacemos? 
+      // Asumiremos matching por Item Barcode.
+
+      if (itemIndex !== -1) {
+        const item = facturaActual.items[itemIndex];
+        if (item.entregado) {
+          toast.info('Item ya entregado');
+        } else {
+          handleEntregarItem(itemIndex);
+          toast.success(`📦 Item escaneado: ${item.descripcion}`);
+        }
+      } else {
+        // Chequear si es el tracking de la factura actual
+        if (facturaActual.codigoTracking === codigo || facturaActual.numeroFactura === codigo) {
+          toast.info('Estás en la factura correcta. Escanea los items.');
+        } else {
+          toast.warning('Código no pertenece a esta factura');
+        }
+      }
+
+    } else if (vistaActual === 'ruta' && rutaSeleccionada) {
+      // Estamos en la lista de facturas de la ruta.
+      // Buscar a qué factura pertenece el código.
+      let foundFactura = null;
+
+      // Buscar por tracking de factura
+      foundFactura = rutaSeleccionada.facturas.find(f => f.codigoTracking === codigo || f.numeroFactura === codigo);
+
+      if (!foundFactura) {
+        // Buscar por item barcode dentro de las facturas
+        // Esto puede ser lento si hay muchas facturas, pero en una ruta no suelen ser tantas.
+        for (const f of rutaSeleccionada.facturas) {
+          if (f.items && f.items.some(i => i.codigoBarras === codigo)) {
+            foundFactura = f;
+            break;
+          }
+        }
+      }
+
+      if (foundFactura) {
+        setFacturaActual(foundFactura);
+        setVistaActual('factura');
+        toast.success(`📂 Abriendo factura: ${foundFactura.codigoTracking}`);
+      } else {
+        toast.error('Código no encontrado en esta ruta');
+      }
+
+    } else {
+      // Vista lista de rutas o vacio
+      toast.info('Entra a una ruta para usar el scanner');
+    }
+  };
+
 
   // ==============================================================================
   // ☁️ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase)
@@ -771,6 +863,27 @@ const PanelRepartidores = () => {
                       </button>
                     </div>
                   )}
+                </div>
+
+                {/* Toggle Modo Scanner */}
+                <div className={`mt-2 mb-2 p-2 rounded-lg flex items-center justify-between transition border ${modoScanner ? 'bg-indigo-50 border-indigo-300' : 'bg-white border-slate-200'
+                  }`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`p-2 rounded-full ${modoScanner ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                      <Printer size={20} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Modo Scanner {modoScanner && '(ACTIVO)'}</p>
+                      {ultimoCodigoEscaneado && <p className="text-[10px] text-slate-500 font-mono">Último: {ultimoCodigoEscaneado}</p>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setModoScanner(!modoScanner)}
+                    className={`text-xs px-3 py-1.5 rounded font-medium ${modoScanner ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'
+                      }`}
+                  >
+                    {modoScanner ? 'Apagar' : 'Encender'}
+                  </button>
                 </div>
 
                 {/* Resumen de Gastos */}
@@ -1500,7 +1613,7 @@ const PanelRepartidores = () => {
         </div>
         {/* End Content Container */}
       </div>
-    </PullToRefresh>
+    </PullToRefresh >
   );
 };
 

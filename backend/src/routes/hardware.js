@@ -8,9 +8,8 @@ import {
   cambiarSistemaHardware,
   agregarScanner,
   agregarImpresora,
-  eliminarDispositivo,
-  actualizarConfigBarcode,
-  toggleSistemaHardware
+  toggleSistemaHardware,
+  agregarConsumible
 } from '../controllers/hardwareController.js';
 
 const router = express.Router();
@@ -48,7 +47,15 @@ router.delete('/:companyId/dispositivos/:dispositivoId', eliminarDispositivo);
 // ========================================
 
 // Agregar impresora térmica
+// Agregar impresora térmica
 router.post('/:companyId/impresoras', agregarImpresora);
+
+// ========================================
+// RUTAS PARA CONSUMIBLES
+// ========================================
+
+// Agregar consumible (etiquetas, etc)
+router.post('/:companyId/consumibles', agregarConsumible);
 
 // ========================================
 // RUTAS DE CONFIGURACIÓN DE CÓDIGOS DE BARRAS
