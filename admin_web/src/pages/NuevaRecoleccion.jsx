@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import LabelPrinter from '../components/common/LabelPrinter';
+import { processImageForUpload } from '../utils/simpleImageProcessor';
 
 // ✅ CATÁLOGO DE SECTORES POR ZONA
 const SECTORES_POR_ZONA = {
@@ -264,8 +265,8 @@ const NuevaRecoleccion = () => {
     };
   }, []);
 
-  // ✅ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) SIN PROCESAMIENTO
-  // Simplificado para evitar problemas con Canvas API en móvil
+  // ✅ LÓGICA DE SUBIDA DE ARCHIVOS (Firebase) CON CONVERSIÓN A JPEG
+  // Convierte todas las imágenes a JPEG para compatibilidad con WhatsApp y web
   const subirArchivosAFirebase = async (archivos) => {
     const urls = [];
     if (!archivos || archivos.length === 0) return urls;
@@ -277,23 +278,29 @@ const NuevaRecoleccion = () => {
       const archivo = archivos[i];
 
       try {
+        toast.loading(`Procesando imagen ${i + 1}/${archivos.length}...`, { id: `upload-${i}` });
+
+        // Procesar imagen (convertir a JPEG si es necesario)
+        const imagenProcesada = await processImageForUpload(archivo);
+
         toast.loading(`Subiendo imagen ${i + 1}/${archivos.length}...`, { id: `upload-${i}` });
 
-        // Paths en Storage
-        const nombreArchivo = `recolecciones/${idReferencia}/${Date.now()}_${i}_${archivo.name}`;
+        // Paths en Storage (siempre .jpg)
+        const nombreBase = archivo.name.replace(/\.[^/.]+$/, '');
+        const nombreArchivo = `recolecciones/${idReferencia}/${Date.now()}_${i}_${nombreBase}.jpg`;
 
-        // Subir archivo original directamente
+        // Subir imagen procesada
         const archivoRef = ref(storage, nombreArchivo);
-        await uploadBytes(archivoRef, archivo);
+        await uploadBytes(archivoRef, imagenProcesada);
         const url = await getDownloadURL(archivoRef);
 
-        // Guardar URL (sin thumbnails por ahora)
+        // Guardar URL
         urls.push({
           url: url,
           thumbnail: url, // Misma URL para retrocompatibilidad
           preview: url,   // Misma URL para retrocompatibilidad
-          fileName: archivo.name,
-          size: archivo.size
+          fileName: `${nombreBase}.jpg`,
+          size: imagenProcesada.size
         });
 
         toast.success(`Imagen ${i + 1} subida`, { id: `upload-${i}` });
