@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProLogix Ship Animation Preview v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #111827;
+            /* gray-900 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        .scene {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Login Card */
+        .login-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 20;
+            transition: all 0.5s ease;
+        }
+
+        .logo-circle {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        .dummy-input {
+            width: 100%;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .login-btn {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to right, #2563EB, #7C3AED);
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        /* The Ship */
+        .ship-container {
+            position: absolute;
+            bottom: 120px;
+            /* Raised slightly */
+            left: -400px;
+            width: 260px;
+            height: 100px;
+            z-index: 15;
+            transition: transform 2s ease-out;
+        }
+
+        .ship-body {
+            width: 260px;
+            height: 70px;
+            background: #374151;
+            /* gray-700 */
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 50px;
+            position: relative;
+            box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .ship-stripe {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            height: 10px;
+            background: #EF4444;
+            /* red-500 */
+        }
+
+        .ship-cabin {
+            position: absolute;
+            top: -50px;
+            right: 40px;
+            width: 70px;
+            height: 50px;
+            background: #9CA3AF;
+            border-radius: 5px 5px 0 0;
+            border: 2px solid #4B5563;
+        }
+
+        .ship-window {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+            background: #93C5FD;
+            border-radius: 2px;
+        }
+
+        /* Water */
+        .water {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 140px;
+            background: #1E3A8A;
+            opacity: 0.9;
+            z-index: 30;
+        }
+
+        .water-wave {
+            position: absolute;
+            top: -20px;
+            width: 200%;
+            height: 40px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%231E3A8A' opacity='0.5'/%3E%3C/svg%3E");
+            background-size: 50% 100%;
+            animation: waveMove 8s linear infinite;
+        }
+
+        @keyframes waveMove {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* Animation Sequence Classes */
+
+        /* Step 1: Ship Enters */
+        .scene.step-1 .ship-container {
+            transform: translateX(calc(50vw + 130px));
+            /* Center ship */
+        }
+
+        /* Step 2: Form Collapses to Box */
+        .scene.step-2 .login-card {
+            animation: collapseToBox 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        .scene.step-2 .dummy-input,
+        .scene.step-2 .login-btn,
+        .scene.step-2 h1 {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* Step 3: Box Drops to Ship */
+        .scene.step-3 .login-card {
+            animation: dropToShip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Step 4: Ship Departs */
+        .scene.step-4 .ship-container {
+            transform: translateX(150vw);
+            /* Move off-screen right */
+            transition: transform 2.5s ease-in;
+        }
+
+        .scene.step-4 .login-card {
+            /* Box moves with ship */
+            /* 
+                Ship Y top is: bottom 120 + 70 = 190px from bottom.
+                Box sits on top.
+             */
+            transform: translate(calc(50vw - 260px + 150vw), calc(50vh + 120px)) !important;
+            /* Move with ship */
+            transition: transform 2.5s ease-in;
+            opacity: 1;
+        }
+
+        /* Keyframes */
+        @keyframes collapseToBox {
+            0% {
+                width: 400px;
+                height: 500px;
+                transform: translate(-50%, -50%) scale(1);
+                border-radius: 20px;
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            100% {
+                width: 60px;
+                /* Much smaller */
+                height: 60px;
+                transform: translate(-50%, -50%) scale(1);
+                border-radius: 8px;
+                background: white;
+                border: 2px solid #3B82F6;
+                padding: 0;
+            }
+        }
+
+        @keyframes dropToShip {
+            0% {
+                width: 60px;
+                height: 60px;
+                transform: translate(-50%, -50%);
+                border-radius: 8px;
+                background: white;
+                border: 2px solid #3B82F6;
+                padding: 0;
+            }
+
+            100% {
+                width: 50px;
+                height: 50px;
+                /* 
+                   Ship Body Top: bottom 120px + 70px = 190px from bottom.
+                   Screen Height: 100vh.
+                   Box Center Y needs to be: 100vh - 190px - (50px/2) = 100vh - 215px.
+                   Translate Y from center (50vh) is: (100vh - 215px) - 50vh = 50vh - 215px.
+                   Wait, simpler:
+                   Ship Deck Y = 100vh - 190px.
+                   Box Bottom = Ship Deck Y.
+                   Box Center = Ship Deck Y - 25px.
+                   Initial Box Center = 50vh.
+                   Delta Y = (100vh - 190px - 25px) - 50vh.
+                */
+                transform: translate(-50%, calc(50vh - 215px));
+                border-radius: 4px;
+                background: white;
+                border: 2px solid #3B82F6;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="scene" id="scene">
+        <div class="water">
+            <div class="water-wave"></div>
+        </div>
+
+        <div class="ship-container">
+            <div class="ship-cabin">
+                <div class="ship-window"></div>
+            </div>
+            <div class="ship-body">
+                <div class="ship-stripe"></div>
+            </div>
+        </div>
+
+        <div class="login-card" id="card">
+            <div class="logo-circle">
+                <img src="/assets/logo.png" class="logo-img" alt="ProLogix">
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-8">ProLogix</h1>
+
+            <div class="dummy-input"></div>
+            <div class="dummy-input"></div>
+
+            <button class="login-btn" onclick="startSequence()">Iniciar Sesión</button>
+        </div>
+    </div>
+
+    <script>
+        function startSequence() {
+            const scene = document.getElementById('scene');
+
+            // Step 1: Ship Enters (Already centered for demo)
+            // scene.classList.add('step-1');
+
+            // Step 2: Collapse to Box
+            scene.classList.add('step-2');
+
+            // Step 3: Drop to Ship
+            setTimeout(() => {
+                scene.classList.add('step-3');
+            }, 800);
+
+            // Step 4: Ship Departs
+            setTimeout(() => {
+                scene.classList.add('step-4');
+
+                // Reset
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            }, 1600);
+        }
+
+        // Initialize ship position
+        setTimeout(() => {
+            document.getElementById('scene').classList.add('step-1');
+        }, 100);
+    </script>
+
+</body>
+
+</html>
