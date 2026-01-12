@@ -84,7 +84,8 @@
       "Bash(git restore:*)",
       "Bash(node scripts/generate-icons.js:*)",
       "Bash(npm run build:*)",
-      "Bash(npx cap sync:*)"
+      "Bash(npx cap sync:*)",
+      "Bash(xcopy:*)"
     ],
     "deny": [],
     "ask": []

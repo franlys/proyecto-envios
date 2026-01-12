@@ -31,6 +31,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import PullToRefresh from '../components/common/PullToRefresh';
 import ScanToDeliverModal from '../components/delivery/ScanToDeliverModal';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import OfflineQueueIndicator from '../components/offline/OfflineQueueIndicator';
 import logo from '../assets/logo.png';
 
 const PanelRepartidores = () => {
@@ -46,6 +48,20 @@ const PanelRepartidores = () => {
 
   const { executeWithOptimism } = useOptimisticAction();
   const { userData } = useAuth();
+
+  // ==============================================================================
+  // 🎣 OFFLINE QUEUE HOOK
+  // ==============================================================================
+  const {
+    stats: queueStats,
+    isOnline,
+    isSyncing,
+    hasPending,
+    markDeliveryCompleted,
+    markDeliveryFailed,
+    registerExpense,
+    syncNow
+  } = useOfflineQueue();
 
   // ==============================================================================
   // 🎣 ESTADOS GLOBALES Y DE NAVEGACIÓN
@@ -490,6 +506,50 @@ const PanelRepartidores = () => {
 
     try {
       setProcesando(true);
+
+      // ✅ OFFLINE MODE: Si no hay conexión, agregar a cola offline
+      if (!navigator.onLine) {
+        // Obtener ubicación actual
+        let lat = null;
+        let lng = null;
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+        } catch (geoError) {
+          console.warn('⚠️ No se pudo obtener ubicación:', geoError);
+        }
+
+        // Nota: Las fotos se guardarán localmente y se subirán en la sincronización
+        const fotosBase64 = await Promise.all(
+          fotosNoEntrega.map(file => {
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(file);
+            });
+          })
+        );
+
+        await markDeliveryFailed({
+          recoleccionId: facturaActual.id,
+          motivo: `${motivoNoEntrega}: ${descripcionNoEntrega.trim()}`,
+          lat,
+          lng,
+          companyId: userData?.companyId
+        });
+
+        toast.warning('📴 No entrega guardada (se sincronizará cuando haya conexión)');
+        setShowModalNoEntrega(false);
+        resetFormNoEntrega();
+        volverARuta();
+        setProcesando(false);
+        return;
+      }
+
+      // ✅ ONLINE MODE: Subir fotos y enviar
       const fotosUrls = await subirArchivosAFirebase(fotosNoEntrega, 'reportes_no_entrega');
 
       const response = await api.post(
@@ -568,6 +628,39 @@ const PanelRepartidores = () => {
 
     try {
       setProcesando(true);
+
+      // ✅ OFFLINE MODE: Si no hay conexión, agregar a cola offline
+      if (!navigator.onLine) {
+        // Obtener ubicación actual
+        let lat = null;
+        let lng = null;
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+        } catch (geoError) {
+          console.warn('⚠️ No se pudo obtener ubicación:', geoError);
+        }
+
+        await markDeliveryCompleted({
+          recoleccionId: facturaActual.id,
+          lat,
+          lng,
+          photo: facturaActual.fotosEntrega?.[0] || null,
+          companyId: userData?.companyId
+        });
+
+        toast.success('📴 Entrega guardada (se sincronizará cuando haya conexión)');
+        setShowModalEntregar(false);
+        resetFormEntregar();
+        volverARuta();
+        setProcesando(false);
+        return;
+      }
+
+      // ✅ ONLINE MODE: Enviar directamente
       const response = await api.post(
         `/repartidores/facturas/${facturaActual.id}/entregar`,
         {
@@ -653,7 +746,38 @@ const PanelRepartidores = () => {
     try {
       setProcesando(true);
 
-      // ✅ SUBIR FOTO SI EXISTE
+      // ✅ OFFLINE MODE: Si no hay conexión, agregar a cola offline
+      if (!navigator.onLine) {
+        // Guardar foto como base64 para sincronización posterior
+        let fotoBase64 = null;
+        if (fotosGasto.length > 0) {
+          fotoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(fotosGasto[0]);
+          });
+        }
+
+        await registerExpense({
+          rutaId: rutaSeleccionada.id,
+          tipo: tipoGasto,
+          monto: parseFloat(montoGasto),
+          descripcion: descripcionGasto,
+          ncf: conNCF ? numeroNCF : null,
+          rnc: conNCF ? rncGasto : null,
+          fotoBase64,
+          userId: userData?.id,
+          companyId: userData?.companyId
+        });
+
+        toast.success('📴 Gasto guardado (se sincronizará cuando haya conexión)');
+        setShowModalGasto(false);
+        resetFormGasto();
+        setProcesando(false);
+        return;
+      }
+
+      // ✅ ONLINE MODE: SUBIR FOTO Y ENVIAR
       let fotoUrl = null;
       if (fotosGasto.length > 0) {
         const urls = await subirArchivosAFirebase(fotosGasto, 'gastos_fiscales');
@@ -1634,6 +1758,9 @@ const PanelRepartidores = () => {
 
         </div>
         {/* End Content Container */}
+
+        {/* Indicador de Cola Offline */}
+        <OfflineQueueIndicator />
       </div>
     </PullToRefresh >
   );

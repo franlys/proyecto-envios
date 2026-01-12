@@ -12,6 +12,8 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/preferences": "^6.0.4",
     "@paypal/react-paypal-js": "^8.9.2",
     "axios": "^1.12.2",
     "firebase": "^12.3.0",
