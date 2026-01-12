@@ -173,15 +173,56 @@ export const handleWebhook = async (req, res) => {
                         userRole = userData.rol;
                         userName = userData.nombre;
                         userId = usuariosSnapshot.docs[0].id;
-                        console.log(`👤 Usuario identificado: ${userName} (${userRole})`);
+                        console.log(`✅ EMPLEADO identificado: ${userName} | Rol: ${userRole} | WhatsApp Flota: ${remoteJid.split('@')[0]}`);
+                    } else {
+                        console.log(`👤 CLIENTE detectado: ${pushName} | WhatsApp: ${remoteJid.split('@')[0]} (no registrado como empleado)`);
                     }
                 } catch (err) {
                     console.error('Error verificando rol de usuario:', err);
                 }
 
                 // Si no hay rol identificado, continuar con el flujo normal del bot
-                if (!userRole) {
-                    console.log('👤 Usuario no identificado como empleado, usando bot público');
+                const esCliente = !userRole; // No tiene rol = es un cliente
+                if (esCliente) {
+                    console.log('👤 Usuario no identificado como empleado, usando bot público (CLIENTE)');
+                }
+
+                // =============================================================================
+                // 🔒 VALIDACIÓN: BLOQUEAR COMANDOS DE EMPLEADOS PARA CLIENTES
+                // =============================================================================
+                // Lista de comandos exclusivos para empleados
+                const COMANDOS_EMPLEADOS = [
+                    'reasignar', 'info', 'lista',                           // Secretaria
+                    'mis rutas', 'ruta actual', 'próxima entrega',          // Repartidor
+                    'gastos', 'registrar gasto', 'pendientes',
+                    'mis citas', 'pool', 'próxima cita', 'aceptar', 'rechazar', // Recolector
+                    'contenedor', 'pendientes usa', 'stats almacen',        // Almacén USA
+                    'recibidos', 'disponibles',                             // Almacén RD
+                    'stats', 'alertas', 'reporte semanal',                  // Admin/Propietario
+                    'top repartidores', 'zonas críticas', 'últimos recibidos'
+                ];
+
+                // Detectar si el cliente está intentando usar un comando de empleado
+                if (esCliente) {
+                    const comandoIntentado = COMANDOS_EMPLEADOS.find(cmd =>
+                        cleanText.startsWith(cmd.toLowerCase()) ||
+                        cleanText === cmd.toLowerCase()
+                    );
+
+                    if (comandoIntentado) {
+                        console.log(`🚫 Cliente intentó usar comando de empleado: "${comandoIntentado}"`);
+                        await whatsappService.sendMessage(companyId, remoteJid,
+                            `🔒 *Comando no disponible*\n\n` +
+                            `El comando *"${comandoIntentado}"* es exclusivo para empleados.\n\n` +
+                            `✨ *Como cliente puedes:*\n` +
+                            `📦 Agendar envíos - Escribe "agendar"\n` +
+                            `🔍 Rastrear paquetes - Envía tu código (ej: EMI-0001)\n` +
+                            `💲 Consultar precios - Escribe "precio"\n` +
+                            `👨‍💻 Hablar con soporte - Escribe "soporte"\n\n` +
+                            `Escribe *"menú"* para ver todas las opciones.`
+                        );
+                        return; // Detener ejecución
+                    }
                 }
 
                 // =============================================================================
@@ -1318,64 +1359,90 @@ export const handleWebhook = async (req, res) => {
                     return;
                 }
 
-                // COMANDO: ayuda (todos los roles)
-                if (userRole && cleanText.match(/^(ayuda|comandos|help)$/i)) {
+                // COMANDO: ayuda/comandos (para TODOS: empleados y clientes)
+                if (cleanText.match(/^(ayuda|comandos|help)$/i)) {
                     console.log('❓ Comando AYUDA detectado');
 
-                    let mensaje = `💡 *COMANDOS DISPONIBLES*\n\n`;
-                    mensaje += `👤 Tu rol: *${userRole}*\n\n`;
+                    let mensaje = '';
 
-                    if (esSecretaria) {
-                        mensaje += `📋 *Secretaria:*\n`;
-                        mensaje += `• \`lista\` - Ver entregas fallidas\n`;
-                        mensaje += `• \`info [CODIGO]\` - Ver detalles de factura\n`;
-                        mensaje += `• \`reasignar [CODIGO]\` - Reasignar factura\n`;
-                        mensaje += `• \`reasignar todo\` - Reasignar todas\n\n`;
+                    // ========================================
+                    // AYUDA PARA EMPLEADOS
+                    // ========================================
+                    if (userRole) {
+                        mensaje = `💡 *COMANDOS DISPONIBLES*\n\n`;
+                        mensaje += `👤 Tu rol: *${userRole}*\n\n`;
+
+                        if (esSecretaria) {
+                            mensaje += `📋 *Secretaria:*\n`;
+                            mensaje += `• \`lista\` - Ver entregas fallidas\n`;
+                            mensaje += `• \`info [CODIGO]\` - Ver detalles de factura\n`;
+                            mensaje += `• \`reasignar [CODIGO]\` - Reasignar factura\n`;
+                            mensaje += `• \`reasignar todo\` - Reasignar todas\n\n`;
+                        }
+
+                        if (esRepartidor) {
+                            mensaje += `🚚 *Repartidor:*\n`;
+                            mensaje += `• \`mis rutas\` - Ver rutas activas\n`;
+                            mensaje += `• \`ruta actual\` - Ruta en curso\n`;
+                            mensaje += `• \`próxima entrega\` - Siguiente paquete\n`;
+                            mensaje += `• \`gastos\` - Ver gastos del día\n`;
+                            mensaje += `• \`registrar gasto [tipo] [monto]\`\n`;
+                            mensaje += `• \`pendientes\` - Paquetes sin entregar\n\n`;
+                        }
+
+                        if (esRecolector) {
+                            mensaje += `📦 *Recolector:*\n`;
+                            mensaje += `• \`mis citas\` - Ver citas asignadas\n`;
+                            mensaje += `• \`pool\` - Ver solicitudes disponibles\n`;
+                            mensaje += `• \`próxima cita\` - Tu próxima cita\n`;
+                            mensaje += `• \`aceptar [ID]\` - Aceptar asignación\n`;
+                            mensaje += `• \`rechazar [ID] [motivo]\` - Rechazar\n\n`;
+                        }
+
+                        if (esAlmacenUsa) {
+                            mensaje += `📦 *Almacén USA:*\n`;
+                            mensaje += `• \`contenedor\` - Info del contenedor actual\n`;
+                            mensaje += `• \`pendientes usa\` - Ver pendientes\n`;
+                            mensaje += `• \`stats almacen\` - Estadísticas\n`;
+                            mensaje += `• \`últimos recibidos\` - Últimos 10\n\n`;
+                        }
+
+                        if (esAlmacenRD) {
+                            mensaje += `🇩🇴 *Almacén RD:*\n`;
+                            mensaje += `• \`recibidos\` - Paquetes para rutas\n`;
+                            mensaje += `• \`disponibles\` - Lo mismo que recibidos\n\n`;
+                        }
+
+                        if (esAdmin) {
+                            mensaje += `👔 *Admin/Propietario:*\n`;
+                            mensaje += `• \`stats\` - Estadísticas en vivo\n`;
+                            mensaje += `• \`alertas\` - Ver alertas del sistema\n`;
+                            mensaje += `• \`reporte semanal\` - Resumen 7 días\n`;
+                            mensaje += `• \`top repartidores\` - Ranking\n`;
+                            mensaje += `• \`zonas críticas\` - Zonas con fallos\n\n`;
+                        }
+
+                        mensaje += `💬 Todos los comandos funcionan por WhatsApp.`;
                     }
-
-                    if (esRepartidor) {
-                        mensaje += `🚚 *Repartidor:*\n`;
-                        mensaje += `• \`mis rutas\` - Ver rutas activas\n`;
-                        mensaje += `• \`ruta actual\` - Ruta en curso\n`;
-                        mensaje += `• \`próxima entrega\` - Siguiente paquete\n`;
-                        mensaje += `• \`gastos\` - Ver gastos del día\n`;
-                        mensaje += `• \`registrar gasto [tipo] [monto]\`\n`;
-                        mensaje += `• \`pendientes\` - Paquetes sin entregar\n\n`;
+                    // ========================================
+                    // AYUDA PARA CLIENTES
+                    // ========================================
+                    else {
+                        mensaje = `💡 *¿QUÉ PUEDO HACER?*\n\n`;
+                        mensaje += `👋 Hola ${pushName}, soy tu asistente virtual. Puedo ayudarte con:\n\n`;
+                        mensaje += `📦 *Agendar Recolección*\n`;
+                        mensaje += `   Escribe: "agendar", "nuevo envío", "pickup"\n\n`;
+                        mensaje += `🔍 *Rastrear tu Envío*\n`;
+                        mensaje += `   Envía tu código: EMI-0001, LOE-9999\n`;
+                        mensaje += `   O escribe: "dónde está", "rastrear"\n\n`;
+                        mensaje += `💲 *Consultar Precios*\n`;
+                        mensaje += `   Escribe: "precio", "cuánto cuesta", "tarifa"\n\n`;
+                        mensaje += `👨‍💻 *Hablar con Soporte*\n`;
+                        mensaje += `   Escribe: "soporte", "ayuda", "agente"\n\n`;
+                        mensaje += `🕐 *Horarios y Ubicación*\n`;
+                        mensaje += `   Escribe: "horario" o "dirección"\n\n`;
+                        mensaje += `📋 Para ver el menú completo, escribe *"menú"*`;
                     }
-
-                    if (esRecolector) {
-                        mensaje += `📦 *Recolector:*\n`;
-                        mensaje += `• \`mis citas\` - Ver citas asignadas\n`;
-                        mensaje += `• \`pool\` - Ver solicitudes disponibles\n`;
-                        mensaje += `• \`próxima cita\` - Tu próxima cita\n`;
-                        mensaje += `• \`aceptar [ID]\` - Aceptar asignación\n`;
-                        mensaje += `• \`rechazar [ID] [motivo]\` - Rechazar\n\n`;
-                    }
-
-                    if (esAlmacenUsa) {
-                        mensaje += `📦 *Almacén USA:*\n`;
-                        mensaje += `• \`contenedor\` - Info del contenedor actual\n`;
-                        mensaje += `• \`pendientes usa\` - Ver pendientes\n`;
-                        mensaje += `• \`stats almacen\` - Estadísticas\n`;
-                        mensaje += `• \`últimos recibidos\` - Últimos 10\n\n`;
-                    }
-
-                    if (esAlmacenRD) {
-                        mensaje += `🇩🇴 *Almacén RD:*\n`;
-                        mensaje += `• \`recibidos\` - Paquetes para rutas\n`;
-                        mensaje += `• \`disponibles\` - Lo mismo que recibidos\n\n`;
-                    }
-
-                    if (esAdmin) {
-                        mensaje += `👔 *Admin/Propietario:*\n`;
-                        mensaje += `• \`stats\` - Estadísticas en vivo\n`;
-                        mensaje += `• \`alertas\` - Ver alertas del sistema\n`;
-                        mensaje += `• \`reporte semanal\` - Resumen 7 días\n`;
-                        mensaje += `• \`top repartidores\` - Ranking\n`;
-                        mensaje += `• \`zonas críticas\` - Zonas con fallos\n\n`;
-                    }
-
-                    mensaje += `💬 Todos los comandos funcionan por WhatsApp.`;
 
                     await whatsappService.sendMessage(companyId, remoteJid, mensaje);
                     return;
