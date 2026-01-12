@@ -88,91 +88,74 @@ const MisFeaturesCompania = () => {
     return colors[plan] || 'bg-slate-100 text-slate-700';
   };
 
-  // Agrupar features por categoría con iconos
+  // ============================================
+  // CATEGORÍAS DE FEATURES (Solo implementadas + roadmap)
+  // ============================================
   const featureCategories = [
+    {
+      name: 'Gestión y Reportes',
+      icon: Package,
+      color: 'text-blue-600',
+      features: {
+        importarCSV: 'Importar desde CSV',
+        importarExcel: 'Importar desde Excel',
+        exportarReportes: 'Exportar reportes',
+        dashboardAvanzado: 'Dashboard con gráficas',
+        trackingPublico: 'Tracking público (sin login)'
+      }
+    },
     {
       name: 'Notificaciones',
       icon: MessageSquare,
       color: 'text-indigo-600',
       features: {
-        whatsappBusiness: 'WhatsApp Business API',
-        chatbot: 'Bot de respuesta automática',
-        smsCliente: 'SMS a Clientes',
-        emailAutomatizado: 'Emails Automáticos',
         notificacionesWeb: 'Notificaciones Web',
-        notificacionesPush: 'Push Notifications'
+        emailBasico: 'Email básico',
+        emailAutomatizado: 'Email automático (eventos)',
+        whatsappBusiness: 'WhatsApp Business (Evolution API)',
+        smsCliente: 'SMS a clientes (roadmap)'
       }
     },
     {
-      name: 'Escaneo de Códigos',
+      name: 'Hardware y Escaneo',
       icon: Camera,
       color: 'text-emerald-600',
       features: {
-        barcodeScanning: 'Escaneo con cámara',
-        bluetoothScanners: 'Pistolas Bluetooth/USB'
+        escanerCodigoBarras: 'Escáner de códigos de barras',
+        escaneoConCamara: 'Escaneo con cámara del celular',
+        impresionEtiquetas: 'Impresión de etiquetas',
+        impresorasBluetooth: 'Impresoras Bluetooth (Phomemo/Zebra)'
       }
     },
     {
-      name: 'Impresión',
-      icon: Printer,
-      color: 'text-cyan-600',
-      features: {
-        labelPrinting: 'Impresión de etiquetas',
-        bluetoothPrinting: 'Impresión Bluetooth'
-      }
-    },
-    {
-      name: 'Aplicación Móvil',
+      name: 'App Móvil',
       icon: Smartphone,
       color: 'text-blue-600',
       features: {
-        gpsMovil: 'GPS en App Móvil',
-        modoOffline: 'Modo Sin Conexión',
-        fotoComprobante: 'Fotos de Comprobante',
-        firmaDigital: 'Firma Digital',
-        navegacionIntegrada: 'Navegación Integrada'
+        appMovilBasica: 'App móvil (Capacitor WebView)',
+        fotoComprobante: 'Subir fotos de comprobante',
+        modoOffline: 'Modo offline avanzado (roadmap)',
+        firmaDigital: 'Firma digital (roadmap)'
       }
     },
     {
-      name: 'GPS & Tracking',
+      name: 'GPS y Tracking',
       icon: MapPin,
       color: 'text-rose-600',
       features: {
-        gpsTracking: 'GPS Tracking Básico',
-        gpsVehicular: 'GPS Vehicular',
-        geofencing: 'Geofencing',
-        sensoresIoT: 'Sensores IoT'
+        trackingBasico: 'Tracking de paquetes',
+        gpsEnTiempoReal: 'GPS en tiempo real (roadmap)',
+        historialRutas: 'Historial de rutas (roadmap)'
       }
     },
     {
-      name: 'Cámaras & Video',
-      icon: Video,
-      color: 'text-purple-600',
-      features: {
-        camarasIP: 'Cámaras IP',
-        streamingLive: 'Streaming en Vivo',
-        grabacionNube: 'Grabación en Nube'
-      }
-    },
-    {
-      name: 'IA & Optimización',
-      icon: Brain,
-      color: 'text-pink-600',
-      features: {
-        optimizacionRutas: 'Optimización de Rutas',
-        prediccionTiempos: 'Predicción de Tiempos',
-        asignacionAutomatica: 'Asignación Automática',
-        chatbot: 'Chatbot IA'
-      }
-    },
-    {
-      name: 'API & Integraciones',
+      name: 'API y Webhooks',
       icon: Plug,
       color: 'text-orange-600',
       features: {
-        apiAccess: 'Acceso a API',
-        webhooks: 'Webhooks',
-        integraciones: 'Integraciones'
+        apiPublica: 'API REST pública',
+        webhooks: 'Webhooks para eventos',
+        integraciones: 'Integraciones con terceros'
       }
     },
     {
@@ -180,8 +163,8 @@ const MisFeaturesCompania = () => {
       icon: Shield,
       color: 'text-slate-600',
       features: {
-        autenticacion2FA: 'Autenticación 2FA',
-        logsAuditoria: 'Logs de Auditoría'
+        autenticacion2FA: 'Autenticación 2FA (roadmap)',
+        logsAuditoria: 'Logs de auditoría'
       }
     }
   ];

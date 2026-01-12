@@ -132,56 +132,49 @@ const GestionFeaturesCompanias = () => {
 
   const hasChanges = Object.keys(modifiedFeatures).length > 0;
 
-  // Agrupar features por categoría
+  // ============================================
+  // CATEGORÍAS DE FEATURES (Solo implementadas)
+  // ============================================
   const featureCategories = {
-    'Notificaciones WhatsApp': {
-      whatsappBusiness: 'WhatsApp Business API',
-      chatbot: 'Bot de respuesta automática'
+    '📊 Gestión y Reportes': {
+      importarCSV: 'Importar desde CSV',
+      importarExcel: 'Importar desde Excel',
+      exportarReportes: 'Exportar reportes',
+      dashboardAvanzado: 'Dashboard con gráficas',
+      trackingPublico: 'Tracking público (sin login)'
     },
-    'Escaneo de Códigos': {
-      barcodeScanning: 'Sistema de escaneo con cámara',
-      bluetoothScanners: 'Soporte para pistolas Bluetooth/USB'
-    },
-    'Impresión de Etiquetas': {
-      labelPrinting: 'Impresión de etiquetas',
-      bluetoothPrinting: 'Impresión Bluetooth'
-    },
-    'Notificaciones': {
+    '🔔 Notificaciones': {
       notificacionesWeb: 'Notificaciones Web',
-      notificacionesPush: 'Push Notifications',
-      smsCliente: 'SMS a Clientes',
-      emailAutomatizado: 'Emails Automáticos'
+      emailBasico: 'Email básico',
+      emailAutomatizado: 'Email automático (eventos)',
+      whatsappBusiness: 'WhatsApp Business (Evolution API)',
+      smsCliente: 'SMS a clientes (no implementado)'
     },
-    'Móvil': {
-      gpsMovil: 'GPS en App Móvil',
-      modoOffline: 'Modo Offline',
-      fotoComprobante: 'Fotos de Comprobante',
-      firmaDigital: 'Firma Digital'
+    '🖨️ Hardware y Escaneo': {
+      escanerCodigoBarras: 'Escáner de códigos de barras',
+      escaneoConCamara: 'Escaneo con cámara del celular',
+      impresionEtiquetas: 'Impresión de etiquetas',
+      impresorasBluetooth: 'Impresoras Bluetooth (Phomemo/Zebra)'
     },
-    'GPS & Tracking': {
-      gpsTracking: 'GPS Tracking',
-      gpsVehicular: 'GPS Vehicular',
-      geofencing: 'Geofencing',
-      sensoresIoT: 'Sensores IoT'
+    '📱 App Móvil': {
+      appMovilBasica: 'App móvil (Capacitor WebView)',
+      fotoComprobante: 'Subir fotos de comprobante',
+      modoOffline: 'Modo offline avanzado (no implementado)',
+      firmaDigital: 'Firma digital (no implementado)'
     },
-    'Cámaras': {
-      camarasIP: 'Cámaras IP',
-      streamingLive: 'Streaming en Vivo',
-      grabacionNube: 'Grabación en Nube'
+    '🗺️ GPS y Tracking': {
+      trackingBasico: 'Tracking de paquetes',
+      gpsEnTiempoReal: 'GPS en tiempo real (roadmap)',
+      historialRutas: 'Historial de rutas (roadmap)'
     },
-    'IA & Optimización': {
-      optimizacionRutas: 'Optimización de Rutas',
-      prediccionTiempos: 'Predicción de Tiempos',
-      asignacionAutomatica: 'Asignación Automática'
+    '🔌 API y Webhooks': {
+      apiPublica: 'API REST pública',
+      webhooks: 'Webhooks para eventos',
+      integraciones: 'Integraciones con terceros'
     },
-    'API & Integraciones': {
-      apiAccess: 'Acceso a API',
-      webhooks: 'Webhooks',
-      integraciones: 'Integraciones'
-    },
-    'Seguridad': {
-      autenticacion2FA: 'Autenticación 2FA',
-      logsAuditoria: 'Logs de Auditoría'
+    '🔒 Seguridad': {
+      autenticacion2FA: 'Autenticación 2FA (roadmap)',
+      logsAuditoria: 'Logs de auditoría'
     }
   };
 

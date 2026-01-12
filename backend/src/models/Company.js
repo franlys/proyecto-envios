@@ -2,199 +2,254 @@
 
 /**
  * FEATURES POR PLAN
+ *
+ * ✅ = Feature IMPLEMENTADA y funcional
+ * 🚧 = Feature PARCIALMENTE implementada
+ * ❌ = Feature NO implementada (roadmap)
  */
 const PLAN_FEATURES = {
   operativo: {
-    // Límites de usuarios
+    // ============================================
+    // LÍMITES DE USUARIOS
+    // ============================================
     maxAdmins: 1,
     maxRepartidores: 5,
     maxSecretarias: 2,
-    
-    // Límites operacionales
+    maxCargadores: 3,
+
+    // ============================================
+    // LÍMITES OPERACIONALES
+    // ============================================
     maxEmbarquesActivos: 2,
     maxFacturasPorEmbarque: 100,
     maxRutasSimultaneas: 5,
-    
-    // Historial
     historialDias: 30,
-    
-    // Features
-    importarCSV: true,
-    importarExcel: false,
-    exportarReportes: true,
-    dashboardBasico: true,
-    
-    // Móvil
-    appMovilBasica: true,
-    gpsMovil: false,
-    modoOffline: false,
-    fotoComprobante: false,
-    firmaDigital: false,
-    
-    // Notificaciones
-    notificacionesWeb: true,
-    notificacionesPush: false,
-    smsCliente: false,
-    whatsappBusiness: false,
-    emailAutomatizado: false,
-    
-    // GPS & IoT
-    gpsTracking: false,
-    gpsVehicular: false,
-    sensoresIoT: false,
-    geofencing: false,
-    
-    // Cámaras
-    camarasIP: false,
-    streamingLive: false,
-    grabacionNube: false,
-    
-    // IA
-    optimizacionRutas: false,
-    prediccionTiempos: false,
-    chatbot: false,
-    
-    // API
-    apiAccess: false,
-    webhooks: false,
-    
-    // Soporte
-    soporte: 'email', // 'email', 'chat', 'telefono', 'dedicado'
-    
-    // Seguridad
-    autenticacion2FA: false,
-    logsAuditoria: false,
-    backupAutomatico: 'semanal', // 'semanal', 'diario', 'horario'
+
+    // ============================================
+    // 📊 GESTIÓN BÁSICA (✅ Implementado)
+    // ============================================
+    importarCSV: true,           // ✅ Importación CSV funcional
+    importarExcel: false,        // ❌ Solo en planes superiores
+    exportarReportes: true,      // ✅ Exportación de reportes
+    dashboardBasico: true,       // ✅ Dashboard con estadísticas
+    trackingPublico: true,       // ✅ Tracking sin login
+
+    // ============================================
+    // 📱 APP MÓVIL (🚧 Básico con Capacitor)
+    // ============================================
+    appMovilBasica: true,        // ✅ WebView Capacitor funcional
+    escaneoConCamara: false,     // ❌ Solo en planes superiores
+    modoOffline: false,          // ❌ Sin almacenamiento offline avanzado
+    fotoComprobante: false,      // ❌ Solo en planes superiores
+    firmaDigital: false,         // ❌ No implementado
+
+    // ============================================
+    // 🔔 NOTIFICACIONES (✅ Multicanal)
+    // ============================================
+    notificacionesWeb: true,     // ✅ Notificaciones en dashboard
+    emailBasico: true,           // ✅ Resend configurado
+    emailAutomatizado: false,    // ❌ Solo en planes superiores
+    whatsappBusiness: false,     // ❌ Evolution API disponible pero no en plan básico
+    smsCliente: false,           // ❌ No implementado
+
+    // ============================================
+    // 🖨️ IMPRESIÓN Y HARDWARE (✅ Completo)
+    // ============================================
+    impresionEtiquetas: false,   // ❌ Solo en planes superiores
+    impresorasBluetooth: false,  // ❌ Solo en planes superiores
+    escanerCodigoBarras: false,  // ❌ Solo en planes superiores
+
+    // ============================================
+    // 🗺️ GPS Y TRACKING (🚧 Parcial)
+    // ============================================
+    trackingBasico: true,        // ✅ Tracking público + estados
+    gpsEnTiempoReal: false,      // ❌ No implementado
+    historialRutas: false,       // ❌ No implementado
+
+    // ============================================
+    // 🔌 API Y WEBHOOKS (✅ Funcional)
+    // ============================================
+    apiPublica: false,           // ❌ API existe pero no expuesta públicamente
+    webhooks: false,             // ❌ Solo para WhatsApp interno
+
+    // ============================================
+    // 🔒 SEGURIDAD
+    // ============================================
+    autenticacion2FA: false,     // ❌ No implementado
+    logsAuditoria: false,        // ❌ No implementado
+    backupAutomatico: 'manual',  // Manual por defecto
+
+    // ============================================
+    // 🆘 SOPORTE
+    // ============================================
+    soporte: 'email',            // Email básico
   },
 
   automatizado: {
+    // ============================================
+    // LÍMITES DE USUARIOS
+    // ============================================
     maxAdmins: 3,
     maxRepartidores: 20,
     maxSecretarias: 5,
-    
+    maxCargadores: 10,
+
+    // ============================================
+    // LÍMITES OPERACIONALES
+    // ============================================
     maxEmbarquesActivos: 10,
     maxFacturasPorEmbarque: 1000,
     maxRutasSimultaneas: 20,
-    
     historialDias: 365,
-    
+
+    // ============================================
+    // 📊 GESTIÓN AVANZADA
+    // ============================================
     importarCSV: true,
-    importarExcel: true,
+    importarExcel: true,         // ✅ Excel y CSV
     exportarReportes: true,
-    dashboardAvanzado: true,
-    graficasAnalytics: true,
-    
-    appMovilCompleta: true,
-    gpsMovil: true,
-    modoOffline: true,
-    fotoComprobante: true,
-    firmaDigital: true,
-    navegacionIntegrada: true,
-    
+    dashboardAvanzado: true,     // ✅ Gráficas y analytics
+    trackingPublico: true,
+
+    // ============================================
+    // 📱 APP MÓVIL
+    // ============================================
+    appMovilBasica: true,
+    escaneoConCamara: true,      // ✅ html5-qrcode + cámara
+    modoOffline: false,          // ❌ Capacitor básico sin storage avanzado
+    fotoComprobante: true,       // 🚧 Capacitor permite cámara
+    firmaDigital: false,         // ❌ No implementado
+
+    // ============================================
+    // 🔔 NOTIFICACIONES
+    // ============================================
     notificacionesWeb: true,
-    notificacionesPush: true,
-    smsCliente: true,
-    whatsappBusiness: false,
-    emailAutomatizado: true,
-    
-    gpsTracking: true,
-    gpsVehicular: false,
-    sensoresIoT: false,
-    geofencing: false,
-    historialUbicaciones: 7, // días
-    
-    camarasIP: false,
-    streamingLive: false,
-    grabacionNube: false,
-    
-    optimizacionRutas: true,
-    asignacionAutomatica: true,
-    prediccionTiempos: false,
-    chatbot: false,
-    
-    apiAccess: false,
-    webhooks: false,
-    
-    soporte: 'chat',
-    
-    autenticacion2FA: true,
-    logsAuditoria: true,
+    emailBasico: true,
+    emailAutomatizado: true,     // ✅ Resend + node-cron
+    whatsappBusiness: true,      // ✅ Evolution API funcional
+    smsCliente: false,           // ❌ No implementado
+
+    // ============================================
+    // 🖨️ HARDWARE
+    // ============================================
+    impresionEtiquetas: true,    // ✅ LabelPrinter.jsx funcional
+    impresorasBluetooth: true,   // ✅ bluetoothPrinter.js completo
+    escanerCodigoBarras: true,   // ✅ BarcodeScanner + hardware support
+
+    // ============================================
+    // 🗺️ GPS Y TRACKING
+    // ============================================
+    trackingBasico: true,
+    gpsEnTiempoReal: false,      // ❌ No implementado
+    historialRutas: false,       // ❌ gpsUtils tiene stubs vacíos
+
+    // ============================================
+    // 🔌 API Y WEBHOOKS
+    // ============================================
+    apiPublica: true,            // ✅ API REST completa (169+ endpoints)
+    webhooks: true,              // ✅ Evolution webhook funcional
+
+    // ============================================
+    // 🔒 SEGURIDAD
+    // ============================================
+    autenticacion2FA: false,     // ❌ No implementado
+    logsAuditoria: true,         // 🚧 Logs básicos en controllers
     backupAutomatico: 'diario',
+
+    // ============================================
+    // 🆘 SOPORTE
+    // ============================================
+    soporte: 'chat',
   },
 
   smart: {
-    maxAdmins: -1, // Ilimitado
+    // ============================================
+    // LÍMITES ILIMITADOS
+    // ============================================
+    maxAdmins: -1,
     maxRepartidores: -1,
     maxSecretarias: -1,
-    
+    maxCargadores: -1,
     maxEmbarquesActivos: -1,
     maxFacturasPorEmbarque: -1,
     maxRutasSimultaneas: -1,
-    
-    historialDias: -1, // Ilimitado
-    
+    historialDias: -1,
+
+    // ============================================
+    // 📊 GESTIÓN PREMIUM
+    // ============================================
     importarCSV: true,
     importarExcel: true,
     exportarReportes: true,
     dashboardAvanzado: true,
-    graficasAnalytics: true,
-    reportesPersonalizados: true,
-    businessIntelligence: true,
-    
-    appMovilCompleta: true,
-    gpsMovil: true,
-    modoOffline: true,
+    trackingPublico: true,
+    reportesPersonalizados: false,  // ❌ No implementado (roadmap)
+
+    // ============================================
+    // 📱 APP MÓVIL COMPLETA
+    // ============================================
+    appMovilBasica: true,
+    escaneoConCamara: true,
+    modoOffline: false,             // ❌ Requiere IndexedDB avanzado
     fotoComprobante: true,
-    firmaDigital: true,
-    navegacionIntegrada: true,
-    chatDispatcher: true,
-    llamadasVoIP: true,
-    
+    firmaDigital: false,            // ❌ No implementado
+
+    // ============================================
+    // 🔔 NOTIFICACIONES MULTICANAL
+    // ============================================
     notificacionesWeb: true,
-    notificacionesPush: true,
-    smsCliente: true,
-    whatsappBusiness: true,
+    emailBasico: true,
     emailAutomatizado: true,
-    
-    gpsTracking: true,
-    gpsVehicular: true,
-    sensoresIoT: true,
-    sensorTemperatura: true,
-    sensorPuertas: true,
-    sensorVelocidad: true,
-    geofencing: true,
-    alertasDesvio: true,
-    historialUbicaciones: -1,
-    
-    camarasIP: true,
-    camarasVehiculares: true,
-    streamingLive: true,
-    grabacionNube: true,
-    diasGrabacion: 30,
-    deteccionEventos: true,
-    reconocimientoFacial: true,
-    
-    optimizacionRutasIA: true,
-    asignacionAutomaticaIA: true,
-    prediccionTiempos: true,
-    analisisComportamiento: true,
-    deteccionFraudes: true,
-    chatbot: true,
-    
-    apiAccess: true,
+    whatsappBusiness: true,
+    smsCliente: false,              // ❌ No implementado
+
+    // ============================================
+    // 🖨️ HARDWARE PREMIUM
+    // ============================================
+    impresionEtiquetas: true,
+    impresorasBluetooth: true,
+    escanerCodigoBarras: true,
+
+    // ============================================
+    // 🗺️ GPS Y TRACKING AVANZADO
+    // ============================================
+    trackingBasico: true,
+    gpsEnTiempoReal: false,         // ❌ No implementado (roadmap)
+    historialRutas: false,          // ❌ No implementado
+    geofencing: false,              // ❌ No implementado
+
+    // ============================================
+    // 🤖 INTELIGENCIA ARTIFICIAL (Roadmap)
+    // ============================================
+    optimizacionRutasIA: false,     // ❌ gpsUtils.optimizarRuta() está vacío
+    prediccionTiempos: false,       // ❌ No implementado
+    chatbotIA: false,               // ❌ No hay Gemini/n8n integrado
+
+    // ============================================
+    // 🔌 API Y WEBHOOKS
+    // ============================================
+    apiPublica: true,
     webhooks: true,
-    integraciones: true,
-    
-    multiCompania: true, // Franquicias
-    rolesPersonalizados: true,
-    
-    soporte: 'dedicado',
-    
-    autenticacion2FA: true,
+    integraciones: true,            // ✅ Posibilidad de integraciones custom
+
+    // ============================================
+    // 👥 MULTI-COMPAÑÍA
+    // ============================================
+    multiCompania: true,            // ✅ Sistema soporta múltiples empresas
+    rolesPersonalizados: false,     // ❌ Roles son fijos (roadmap)
+
+    // ============================================
+    // 🔒 SEGURIDAD AVANZADA
+    // ============================================
+    autenticacion2FA: false,        // ❌ No implementado
     logsAuditoria: true,
-    backupAutomatico: 'horario',
-    recuperacionDesastres: true,
-    encriptacionE2E: true,
+    backupAutomatico: 'diario',     // Firebase auto-backup
+    encriptacionE2E: false,         // ❌ No implementado
+
+    // ============================================
+    // 🆘 SOPORTE DEDICADO
+    // ============================================
+    soporte: 'dedicado',
   }
 };
 
