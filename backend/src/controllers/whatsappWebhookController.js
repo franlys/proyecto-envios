@@ -105,13 +105,23 @@ export const handleWebhook = async (req, res) => {
                 // 🧠 INTELIGENCIA DEL BOT (Versión Mejorada)
                 // =============================================
 
-                // 1. Detección de Código de Tracking (Regex: RC-YYYYMMDD-XXXX)
-                // Flexible: Acepta espacios, sin guiones, etc.
-                const trackingMatch = cleanText.match(/rc[-\s]?\d{4,14}[-\s]?\d{0,6}/i);
+                // 1. Detección de Código de Tracking
+                // Formatos válidos:
+                // - Nuevo: EMI-0001, LOE-9999, TRS-10000 (2-3 letras/números + 4+ dígitos)
+                // - Legacy: RC-20251214-0001 (formato antiguo con fecha)
+                // Flexible: Acepta espacios en lugar de guiones
+                const trackingMatch = cleanText.match(/\b([A-Z0-9]{2,3})[-\s]?(\d{4,})\b|rc[-\s]?\d{8}[-\s]?\d{4}/i);
 
                 if (trackingMatch) {
-                    const rawCode = trackingMatch[0].toUpperCase().replace(/\s/g, '-');
-                    // Normalizar formato si es necesario (asumimos formato exacto por ahora o búsqueda elástica)
+                    let rawCode;
+
+                    // Si es formato nuevo (captura grupos 1 y 2)
+                    if (trackingMatch[1] && trackingMatch[2]) {
+                        rawCode = `${trackingMatch[1]}-${trackingMatch[2]}`.toUpperCase();
+                    } else {
+                        // Es formato legacy RC-YYYYMMDD-XXXX
+                        rawCode = trackingMatch[0].toUpperCase().replace(/\s/g, '-');
+                    }
 
                     console.log(`🔎 Detectado posible tracking: ${rawCode}`);
 
@@ -183,11 +193,12 @@ export const handleWebhook = async (req, res) => {
                     console.log('🔄 Comando REASIGNAR detectado');
 
                     // Extraer código de tracking o "todo"
-                    const reasignarMatch = cleanText.match(/reasignar\s+(todo|all|EMI-\d+)/i);
+                    // Acepta cualquier prefijo de 2-3 caracteres: EMI-0001, LOE-9999, etc.
+                    const reasignarMatch = cleanText.match(/reasignar\s+(todo|all|([A-Z0-9]{2,3})[-\s]?(\d{4,}))/i);
 
                     if (!reasignarMatch) {
                         await whatsappService.sendMessage(companyId, remoteJid,
-                            `⚠️ *Formato incorrecto*\n\nUsa:\n• \`reasignar EMI-0245\` - Reasigna una factura\n• \`reasignar todo\` - Reasigna todas las entregas fallidas de hoy`);
+                            `⚠️ *Formato incorrecto*\n\nUsa:\n• \`reasignar [CODIGO]\` - Ejemplo: reasignar EMI-0245\n• \`reasignar todo\` - Reasigna todas las entregas fallidas de hoy`);
                         return;
                     }
 
@@ -260,7 +271,13 @@ export const handleWebhook = async (req, res) => {
 
                     } else {
                         // Reasignar factura específica
-                        const codigoTracking = reasignarMatch[1].toUpperCase();
+                        // Normalizar código: Si tiene grupos 2 y 3, es formato nuevo (LOE-9999)
+                        let codigoTracking;
+                        if (reasignarMatch[2] && reasignarMatch[3]) {
+                            codigoTracking = `${reasignarMatch[2]}-${reasignarMatch[3]}`.toUpperCase();
+                        } else {
+                            codigoTracking = reasignarMatch[1].toUpperCase();
+                        }
                         console.log(`📦 Reasignando factura: ${codigoTracking}`);
 
                         const facturaSnapshot = await db.collection('recolecciones')
@@ -308,11 +325,18 @@ export const handleWebhook = async (req, res) => {
                 }
 
                 // COMANDO: INFO (Solo para secretarias)
-                if (esSecretaria && cleanText.match(/^info\s+EMI-\d+/i)) {
+                // Acepta cualquier formato de tracking
+                if (esSecretaria && cleanText.match(/^info\s+([A-Z0-9]{2,3})[-\s]?(\d{4,})/i)) {
                     console.log('ℹ️ Comando INFO detectado');
 
-                    const infoMatch = cleanText.match(/info\s+(EMI-\d+)/i);
-                    const codigoTracking = infoMatch[1].toUpperCase();
+                    const infoMatch = cleanText.match(/info\s+(([A-Z0-9]{2,3})[-\s]?(\d{4,}))/i);
+                    // Normalizar código
+                    let codigoTracking;
+                    if (infoMatch[2] && infoMatch[3]) {
+                        codigoTracking = `${infoMatch[2]}-${infoMatch[3]}`.toUpperCase();
+                    } else {
+                        codigoTracking = infoMatch[1].toUpperCase().replace(/\s/g, '-');
+                    }
 
                     const facturaSnapshot = await db.collection('recolecciones')
                         .where('companyId', '==', companyId)
@@ -393,8 +417,8 @@ export const handleWebhook = async (req, res) => {
                     }
 
                     mensaje += `\n💡 *Comandos disponibles:*\n`;
-                    mensaje += `• \`info EMI-XXXX\` - Ver detalles\n`;
-                    mensaje += `• \`reasignar EMI-XXXX\` - Reasignar una\n`;
+                    mensaje += `• \`info [CODIGO]\` - Ver detalles de una factura\n`;
+                    mensaje += `• \`reasignar [CODIGO]\` - Reasignar una factura\n`;
                     mensaje += `• \`reasignar todo\` - Reasignar todas`;
 
                     await whatsappService.sendMessage(companyId, remoteJid, mensaje);
@@ -1304,8 +1328,8 @@ export const handleWebhook = async (req, res) => {
                     if (esSecretaria) {
                         mensaje += `📋 *Secretaria:*\n`;
                         mensaje += `• \`lista\` - Ver entregas fallidas\n`;
-                        mensaje += `• \`info EMI-XXX\` - Ver detalles\n`;
-                        mensaje += `• \`reasignar EMI-XXX\` - Reasignar\n`;
+                        mensaje += `• \`info [CODIGO]\` - Ver detalles de factura\n`;
+                        mensaje += `• \`reasignar [CODIGO]\` - Reasignar factura\n`;
                         mensaje += `• \`reasignar todo\` - Reasignar todas\n\n`;
                     }
 
@@ -1408,7 +1432,7 @@ export const handleWebhook = async (req, res) => {
 
                 } else if (intent === 'rastreo') {
                     await whatsappService.sendMessage(companyId, remoteJid,
-                        `🔍 Para rastrear tu envío, envíame el número de guía (Ejemplo: *RC-20251214-0001*).`);
+                        `🔍 Para rastrear tu envío, envíame el número de guía.\n\n*Ejemplos:*\n• EMI-0001\n• LOE-9999\n• RC-20251214-0001`);
 
                 } else if (intent === 'soporte') {
                     // Obtener configuración de soporte de la compañía (si existe)
@@ -1492,7 +1516,7 @@ export const handleWebhook = async (req, res) => {
                 } else {
                     // Respuesta inteligente para mensajes no entendidos
                     await whatsappService.sendMessage(companyId, remoteJid,
-                        `🤔 No estoy seguro de entender. Pero puedo ayudarte con:\n\n📦 Agendar envíos\n🔍 Rastrear paquetes (envía tu código EMI-XXXX)\n💲 Cotizaciones\n👨‍💻 Soporte\n\nEscribe *Menú* para ver todas las opciones.`);
+                        `🤔 No estoy seguro de entender. Pero puedo ayudarte con:\n\n📦 Agendar envíos\n🔍 Rastrear paquetes (envía tu código de seguimiento)\n💲 Cotizaciones\n👨‍💻 Soporte\n\nEscribe *Menú* para ver todas las opciones.`);
                 }
             }
         }
