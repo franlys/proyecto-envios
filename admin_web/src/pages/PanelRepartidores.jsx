@@ -509,6 +509,19 @@ const PanelRepartidores = () => {
 
       // ✅ OFFLINE MODE: Si no hay conexión, agregar a cola offline
       if (!navigator.onLine) {
+        // ⚡ OPTIMISTIC UI: Actualizar factura inmediatamente
+        if (rutaSeleccionada) {
+          const facturasActualizadas = rutaSeleccionada.facturas.map(f =>
+            f.id === facturaActual.id
+              ? { ...f, estado: 'no_entregada', _optimistic: true }
+              : f
+          );
+          setRutaSeleccionada(prev => ({
+            ...prev,
+            facturas: facturasActualizadas
+          }));
+        }
+
         // Obtener ubicación actual
         let lat = null;
         let lng = null;
@@ -631,6 +644,19 @@ const PanelRepartidores = () => {
 
       // ✅ OFFLINE MODE: Si no hay conexión, agregar a cola offline
       if (!navigator.onLine) {
+        // ⚡ OPTIMISTIC UI: Actualizar factura inmediatamente
+        if (rutaSeleccionada) {
+          const facturasActualizadas = rutaSeleccionada.facturas.map(f =>
+            f.id === facturaActual.id
+              ? { ...f, estado: 'entregada', _optimistic: true }
+              : f
+          );
+          setRutaSeleccionada(prev => ({
+            ...prev,
+            facturas: facturasActualizadas
+          }));
+        }
+
         // Obtener ubicación actual
         let lat = null;
         let lng = null;

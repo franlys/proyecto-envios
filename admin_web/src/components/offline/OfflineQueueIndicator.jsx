@@ -22,6 +22,9 @@ const OfflineQueueIndicator = () => {
     isOnline,
     isSyncing,
     hasPending,
+    connectionType,
+    isWiFi,
+    isCellular,
     syncNow
   } = useOfflineQueue();
 
@@ -119,7 +122,13 @@ const OfflineQueueIndicator = () => {
             <div className="flex justify-between items-center text-xs sm:text-sm">
               <span className="text-slate-600 dark:text-slate-400">Estado:</span>
               <span className={`font-bold ${isOnline ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {isOnline ? 'Conectado' : 'Sin conexión'}
+                {isOnline ? (
+                  <>
+                    Conectado
+                    {isWiFi && <span className="ml-1 text-[10px] text-slate-500">(WiFi)</span>}
+                    {isCellular && <span className="ml-1 text-[10px] text-amber-500">(Datos)</span>}
+                  </>
+                ) : 'Sin conexión'}
               </span>
             </div>
 

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { offlineQueue } from '../services/offlineQueueService';
+import { networkService } from '../services/networkService';
 
 /**
  * Hook para gestionar operaciones offline con sincronización automática
@@ -22,6 +23,11 @@ export const useOfflineQueue = () => {
     failed: 0,
     isSyncing: false,
     isOnline: navigator.onLine
+  });
+
+  const [networkStatus, setNetworkStatus] = useState({
+    connected: navigator.onLine,
+    connectionType: 'unknown'
   });
 
   const [lastSyncResult, setLastSyncResult] = useState(null);
@@ -213,14 +219,21 @@ export const useOfflineQueue = () => {
       }
     });
 
-    // Listener para cambios de conectividad
+    // ✅ NETWORK SERVICE: Listener nativo para cambios de red
+    const unsubscribeNetwork = networkService.addListener((status) => {
+      console.log('📡 Network status changed:', status);
+      setNetworkStatus(status);
+      updateStats();
+    });
+
+    // Fallback: Listener para cambios de conectividad (web)
     const handleOnline = () => {
-      console.log('🌐 Conexión restaurada');
+      console.log('🌐 Conexión restaurada (fallback)');
       updateStats();
     };
 
     const handleOffline = () => {
-      console.log('📴 Conexión perdida');
+      console.log('📴 Conexión perdida (fallback)');
       updateStats();
     };
 
@@ -230,6 +243,7 @@ export const useOfflineQueue = () => {
     // Cleanup
     return () => {
       unsubscribe();
+      unsubscribeNetwork();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
@@ -253,11 +267,15 @@ export const useOfflineQueue = () => {
   return {
     // Estado
     stats,
+    networkStatus,
     lastSyncResult,
     syncError,
     isOnline: stats.isOnline,
     isSyncing: stats.isSyncing,
     hasPending: stats.pending > 0,
+    connectionType: networkStatus.connectionType,
+    isWiFi: networkStatus.connectionType === 'wifi',
+    isCellular: networkStatus.connectionType === 'cellular',
 
     // Métodos genéricos
     addOperation,
