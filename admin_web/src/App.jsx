@@ -1,5 +1,6 @@
 ﻿// admin_web/src/App.jsx
 // ✅ ACTUALIZADO: Añadido <Toaster /> para notificaciones profesionales
+// ✅ Sistema con modo offline completo para Recolector y Cargadores
 
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
