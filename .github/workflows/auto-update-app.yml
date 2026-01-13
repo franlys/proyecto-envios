@@ -79,12 +79,17 @@ jobs:
 
           echo "📂 Listando archivos generados:"
           find app/build/outputs/apk -name "*.apk" -type f
+          ls -lh app/build/outputs/apk/release/
 
       - name: 📊 Calculate checksum
         id: checksum
         run: |
-          APK_PATH="mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
-          CHECKSUM=$(sha256sum $APK_PATH | awk '{print "sha256:"$1}')
+          APK_PATH="${GITHUB_WORKSPACE}/mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
+
+          echo "🔍 Verificando ruta: $APK_PATH"
+          ls -lh "$APK_PATH" || echo "❌ APK no encontrado en: $APK_PATH"
+
+          CHECKSUM=$(sha256sum "$APK_PATH" | awk '{print "sha256:"$1}')
           echo "value=$CHECKSUM" >> $GITHUB_OUTPUT
           echo "✅ Checksum: $CHECKSUM"
 
@@ -101,12 +106,13 @@ jobs:
       - name: 📤 Upload APK to Firebase Storage
         id: upload
         run: |
-          APK_PATH="mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
+          APK_PATH="${GITHUB_WORKSPACE}/mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
           APK_NAME="prologix-repartidor-v${{ steps.version.outputs.code }}.apk"
           GS_PATH="gs://${{ env.STORAGE_BUCKET }}/launcher-apps/$APK_NAME"
 
           echo "📤 Subiendo $APK_NAME a Firebase Storage..."
-          gsutil cp $APK_PATH $GS_PATH
+          echo "📂 Ruta APK: $APK_PATH"
+          gsutil cp "$APK_PATH" $GS_PATH
 
           echo "🔓 Haciendo público el archivo..."
           gsutil acl ch -u AllUsers:R $GS_PATH
@@ -215,7 +221,7 @@ jobs:
 
             ---
             🤖 Generado automáticamente por GitHub Actions
-          files: mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk
+          files: ${{ github.workspace }}/mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk
           draft: false
           prerelease: false
         env:
