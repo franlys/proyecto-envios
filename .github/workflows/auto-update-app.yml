@@ -40,6 +40,9 @@ jobs:
       - name: 🔧 Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: ✅ Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
+
       - name: 📦 Install app dependencies
         working-directory: mobile_app_capacitor
         run: npm ci
