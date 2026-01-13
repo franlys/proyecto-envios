@@ -220,6 +220,17 @@ service cloud.firestore {
     }
 
     // ========================================
+    // COLECCIÓN: launcher_config (PÚBLICO)
+    // ========================================
+    match /launcher_config/{document=**} {
+      // ✅ Lectura pública para que launchers puedan descargar actualizaciones
+      allow read: if true;
+
+      // Escritura: Solo usuarios autenticados (GitHub Actions Service Account)
+      allow write: if isAuthenticated();
+    }
+
+    // ========================================
     // COLECCIÓN: gastos_ruta
     // ========================================
     match /gastos_ruta/{gastoId} {
