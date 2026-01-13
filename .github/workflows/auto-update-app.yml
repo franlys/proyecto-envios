@@ -1,0 +1,227 @@
+name: Auto-Update Mobile App
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile_app_capacitor/**'
+      - 'admin_web/src/**'
+      - 'admin_web/public/**'
+
+  # Permitir ejecución manual
+  workflow_dispatch:
+
+env:
+  FIREBASE_PROJECT_ID: embarques-7ad6e
+  STORAGE_BUCKET: embarques-7ad6e.firebasestorage.app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile_app_capacitor/package-lock.json
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🔧 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📦 Install app dependencies
+        working-directory: mobile_app_capacitor
+        run: npm ci
+
+      - name: 🏗️ Build web assets
+        working-directory: mobile_app_capacitor
+        run: npm run build
+
+      - name: 🔄 Sync Capacitor
+        working-directory: mobile_app_capacitor
+        run: npx cap sync android
+
+      - name: 📝 Read and increment version
+        id: version
+        run: |
+          cd mobile_app_capacitor/android/app
+
+          # Leer build.gradle
+          CURRENT_CODE=$(grep -oP 'versionCode\s+\K\d+' build.gradle)
+          VERSION_NAME=$(grep -oP 'versionName\s+"\K[^"]+' build.gradle)
+          NEW_CODE=$((CURRENT_CODE + 1))
+
+          # Actualizar versionCode
+          sed -i "s/versionCode $CURRENT_CODE/versionCode $NEW_CODE/" build.gradle
+
+          echo "previous=$CURRENT_CODE" >> $GITHUB_OUTPUT
+          echo "code=$NEW_CODE" >> $GITHUB_OUTPUT
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+          echo "✅ Version: $VERSION_NAME (Build $CURRENT_CODE → $NEW_CODE)"
+
+      - name: 🔨 Build Release APK
+        working-directory: mobile_app_capacitor/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 📊 Calculate checksum
+        id: checksum
+        run: |
+          APK_PATH="mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
+          CHECKSUM=$(sha256sum $APK_PATH | awk '{print "sha256:"$1}')
+          echo "value=$CHECKSUM" >> $GITHUB_OUTPUT
+          echo "✅ Checksum: $CHECKSUM"
+
+      - name: 🔐 Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ env.FIREBASE_PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: 📤 Upload APK to Firebase Storage
+        id: upload
+        run: |
+          APK_PATH="mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
+          APK_NAME="prologix-repartidor-v${{ steps.version.outputs.code }}.apk"
+          GS_PATH="gs://${{ env.STORAGE_BUCKET }}/launcher-apps/$APK_NAME"
+
+          echo "📤 Subiendo $APK_NAME a Firebase Storage..."
+          gsutil cp $APK_PATH $GS_PATH
+
+          echo "🔓 Haciendo público el archivo..."
+          gsutil acl ch -u AllUsers:R $GS_PATH
+
+          PUBLIC_URL="https://storage.googleapis.com/${{ env.STORAGE_BUCKET }}/launcher-apps/$APK_NAME"
+
+          echo "url=$PUBLIC_URL" >> $GITHUB_OUTPUT
+          echo "name=$APK_NAME" >> $GITHUB_OUTPUT
+          echo "✅ URL pública: $PUBLIC_URL"
+
+      - name: 📝 Update Firestore config
+        run: |
+          # Instalar Firebase Admin SDK localmente
+          npm install firebase-admin
+
+          # Crear script de actualización
+          cat << 'EOF' > update-firestore.js
+          const admin = require('firebase-admin');
+          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            projectId: process.env.FIREBASE_PROJECT_ID
+          });
+
+          const db = admin.firestore();
+
+          async function updateConfig() {
+            try {
+              const configRef = db.collection('launcher_config').doc('apps_config');
+              const doc = await configRef.get();
+
+              if (!doc.exists) {
+                throw new Error('Configuración no encontrada');
+              }
+
+              const config = doc.data();
+              const apps = config.apps || [];
+
+              if (apps.length === 0) {
+                throw new Error('No hay apps configuradas');
+              }
+
+              // Actualizar primera app
+              apps[0].version = process.env.VERSION_NAME;
+              apps[0].versionCode = parseInt(process.env.VERSION_CODE);
+              apps[0].downloadUrl = process.env.DOWNLOAD_URL;
+              apps[0].checksum = process.env.CHECKSUM;
+
+              await configRef.update({
+                apps: apps,
+                lastUpdated: new Date().toISOString(),
+                updatedBy: 'GitHub Actions CI/CD'
+              });
+
+              console.log('✅ Firestore actualizado correctamente');
+              console.log(`   Version: ${process.env.VERSION_NAME} (Build ${process.env.VERSION_CODE})`);
+              console.log(`   URL: ${process.env.DOWNLOAD_URL}`);
+
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ Error:', error.message);
+              process.exit(1);
+            }
+          }
+
+          updateConfig();
+          EOF
+
+          # Ejecutar script
+          node update-firestore.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ env.FIREBASE_PROJECT_ID }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          DOWNLOAD_URL: ${{ steps.upload.outputs.url }}
+          CHECKSUM: ${{ steps.checksum.outputs.value }}
+
+      - name: 💬 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.name }}-build${{ steps.version.outputs.code }}
+          name: 📱 ProLogix v${{ steps.version.outputs.name }} (Build ${{ steps.version.outputs.code }})
+          body: |
+            ## 📱 Nueva versión de ProLogix Repartidor
+
+            **Version:** ${{ steps.version.outputs.name }}
+            **Build:** ${{ steps.version.outputs.code }} (anterior: ${{ steps.version.outputs.previous }})
+            **Fecha:** ${{ github.event.head_commit.timestamp }}
+            **Checksum:** `${{ steps.checksum.outputs.value }}`
+
+            ### 🔄 Actualización automática
+            Los dispositivos con el launcher instalado recibirán esta actualización automáticamente en las próximas horas (máximo 1 hora).
+
+            ### 📥 Descarga manual
+            [${{ steps.upload.outputs.name }}](${{ steps.upload.outputs.url }})
+
+            ### 📝 Cambios en este release
+            ${{ github.event.head_commit.message }}
+
+            ### 🔧 Configuración actualizada
+            - ✅ APK subido a Firebase Storage
+            - ✅ Firestore actualizado con nueva versión
+            - ✅ Checksum validado
+
+            ---
+            🤖 Generado automáticamente por GitHub Actions
+          files: mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Build Summary
+        run: |
+          echo "## 🎉 Build Exitoso" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Build:** ${{ steps.version.outputs.code }}" >> $GITHUB_STEP_SUMMARY
+          echo "**APK:** [${{ steps.upload.outputs.name }}](${{ steps.upload.outputs.url }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Checksum:** \`${{ steps.checksum.outputs.value }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📱 Los launchers se actualizarán automáticamente" >> $GITHUB_STEP_SUMMARY
