@@ -372,11 +372,25 @@ const NuevaRecoleccion = () => {
 
       // Subir fotos nuevas del recolector (si hay)
       if (fotos.length > 0) {
-        const nuevasFotosUrls = await subirArchivosAFirebase(fotos);
-        if (nuevasFotosUrls.length === 0) {
-          toast.warning('No se pudieron subir las fotos nuevas, pero se incluirán las del cliente.');
-        } else {
-          fotosUrls = [...fotosUrls, ...nuevasFotosUrls];
+        try {
+          // ⚡ TIMEOUT: Si tarda más de 10 segundos, continuar sin fotos
+          const nuevasFotosUrls = await Promise.race([
+            subirArchivosAFirebase(fotos),
+            new Promise((resolve) => setTimeout(() => {
+              console.warn('⏱️ Timeout subiendo fotos, continuando sin ellas');
+              toast.warning('⏱️ Subida de fotos lenta. Se guardarán sin fotos.');
+              resolve([]);
+            }, 10000)) // 10 segundos máximo
+          ]);
+
+          if (nuevasFotosUrls.length === 0) {
+            toast.warning('No se pudieron subir las fotos nuevas, pero la recolección se guardará.');
+          } else {
+            fotosUrls = [...fotosUrls, ...nuevasFotosUrls];
+          }
+        } catch (error) {
+          console.error('❌ Error subiendo fotos:', error);
+          toast.warning('Error subiendo fotos, continuando sin ellas.');
         }
       }
 

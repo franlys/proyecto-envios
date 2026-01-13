@@ -264,8 +264,9 @@ export async function generarCodigoTrackingLegacy() {
  * Valida el formato de un código de tracking
  *
  * Formatos válidos:
- * - Nuevo: EMI-0001, LOE-9999, TRS-10000
- * - Legacy: RC-20250127-0001
+ * - Nuevo con RC: EMI-RC-0001, LOE-RC-9999 (formato actual)
+ * - Nuevo simple: EMI-0001, LOE-9999 (legacy simple)
+ * - Legacy completo: RC-20250127-0001
  *
  * @param {string} codigo - Código de tracking a validar
  * @returns {boolean} true si el formato es válido
@@ -273,13 +274,16 @@ export async function generarCodigoTrackingLegacy() {
 export function validarFormatoTracking(codigo) {
   if (!codigo || typeof codigo !== 'string') return false;
 
-  // Formato nuevo: [2-3 letras/números]-[4+ dígitos]
-  const formatoNuevo = /^[A-Z0-9]{2,3}-\d{4,}$/;
+  // Formato nuevo con RC: [2-3 letras]-RC-[4+ dígitos]
+  const formatoNuevoConRC = /^[A-Z0-9]{2,3}-RC-\d{4,}$/;
+
+  // Formato nuevo simple: [2-3 letras/números]-[4+ dígitos]
+  const formatoNuevoSimple = /^[A-Z0-9]{2,3}-\d{4,}$/;
 
   // Formato legacy: RC-YYYYMMDD-XXXX
   const formatoLegacy = /^RC-\d{8}-\d{4}$/;
 
-  return formatoNuevo.test(codigo) || formatoLegacy.test(codigo);
+  return formatoNuevoConRC.test(codigo) || formatoNuevoSimple.test(codigo) || formatoLegacy.test(codigo);
 }
 
 /**

@@ -208,8 +208,12 @@ class WhatsappService {
             // 3. Preparar Base64
             const base64Content = fileBuffer.toString('base64');
 
-            // 4. Enviar Media
-            console.log(`📎 Enviando Archivo (${fileName}) desde ${instanceName} a ${formattedPhone}...`);
+            // 4. Determinar tipo de media según mimeType
+            const isImage = mimeType.startsWith('image/');
+            const mediaType = isImage ? 'image' : 'document';
+
+            // 5. Enviar Media
+            console.log(`📎 Enviando ${mediaType} (${fileName}) desde ${instanceName} a ${formattedPhone}...`);
 
             const sendResponse = await axios.post(`${EVOLUTION_URL}/message/sendMedia/${instanceName}`, {
                 number: formattedPhone,
@@ -218,7 +222,7 @@ class WhatsappService {
                     presence: "composing"
                 },
                 mediaMessage: {
-                    mediatype: "document", // o "image"
+                    mediatype: mediaType,
                     fileName: fileName,
                     caption: caption,
                     media: base64Content,

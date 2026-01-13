@@ -5,6 +5,7 @@ import { db } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import multer from 'multer';
 import path from 'path';
+import axios from 'axios';
 import { sendEmail, generateTrackingButtonHTML, generateBrandedEmailHTML } from '../services/notificationService.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
 import { getNextNCF } from '../utils/ncfUtils.js';
@@ -359,6 +360,41 @@ export const createRecoleccion = async (req, res) => {
               ).catch(e => console.error('Error enviando PDF WA:', e.message));
             }, 1500);
           }
+
+          // 3. Enviar fotos de evidencia de la recolección (si existen)
+          const fotosEvidencia = recoleccionData.fotos || [];
+          if (fotosEvidencia.length > 0) {
+            console.log(`📸 Enviando ${fotosEvidencia.length} foto(s) de evidencia de la recolección por WhatsApp...`);
+
+            // Enviar cada foto con un delay entre ellas
+            fotosEvidencia.forEach((fotoUrl, index) => {
+              setTimeout(async () => {
+                try {
+                  console.log(`📸 Descargando foto ${index + 1}/${fotosEvidencia.length}: ${fotoUrl.substring(0, 100)}...`);
+
+                  // Descargar la imagen como buffer
+                  const response = await axios.get(fotoUrl, { responseType: 'arraybuffer' });
+                  const imageBuffer = Buffer.from(response.data);
+
+                  console.log(`📸 Enviando foto ${index + 1}/${fotosEvidencia.length} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);
+
+                  // Enviar como archivo (base64)
+                  await whatsappService.sendMediaFile(
+                    companyId,
+                    remitenteTelefono,
+                    imageBuffer,
+                    `evidencia_${index + 1}.jpg`,
+                    `📸 Evidencia de recolección ${index + 1}/${fotosEvidencia.length}`,
+                    'image/jpeg'
+                  );
+
+                  console.log(`✅ Foto ${index + 1}/${fotosEvidencia.length} enviada exitosamente`);
+                } catch (e) {
+                  console.error(`❌ Error enviando foto ${index + 1} de evidencia:`, e.message);
+                }
+              }, 3000 + (index * 2000)); // Esperar 3s después del PDF, luego 2s entre cada foto
+            });
+          }
         })
         .catch(e => console.error('Error Whatsapp:', e));
     }
@@ -416,15 +452,45 @@ export const createRecoleccion = async (req, res) => {
 
       const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, 'pendiente_recoleccion');
 
-      // Preparar adjuntos solo si el PDF existe
-      const attachments = pdfBuffer ? [{
-        filename: `Factura_${codigoTracking}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }] : [];
+      // Preparar adjuntos: PDF + fotos de evidencia
+      const attachments = [];
+
+      // 1. Adjuntar PDF de factura si existe
+      if (pdfBuffer) {
+        attachments.push({
+          filename: `Factura_${codigoTracking}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        });
+      }
+
+      // 2. Adjuntar fotos de evidencia de la recolección si existen
+      if (recoleccionData.fotos && recoleccionData.fotos.length > 0) {
+        console.log(`📸 Preparando ${recoleccionData.fotos.length} foto(s) de evidencia para adjuntar al correo...`);
+
+        const photoDownloadPromises = recoleccionData.fotos.map(async (fotoUrl, index) => {
+          try {
+            const response = await axios.get(fotoUrl, { responseType: 'arraybuffer' });
+            const imageBuffer = Buffer.from(response.data);
+            console.log(`✅ Foto ${index + 1} descargada para email (${(imageBuffer.length / 1024).toFixed(2)} KB)`);
+            return {
+              filename: `evidencia_recoleccion_${index + 1}.jpg`,
+              content: imageBuffer,
+              contentType: 'image/jpeg'
+            };
+          } catch (error) {
+            console.error(`❌ Error descargando foto ${index + 1} para email:`, error.message);
+            return null;
+          }
+        });
+
+        const photoAttachments = (await Promise.all(photoDownloadPromises)).filter(att => att !== null);
+        attachments.push(...photoAttachments);
+        console.log(`📎 ${photoAttachments.length} foto(s) listas para adjuntar al correo`);
+      }
 
       sendEmail(remitenteEmail, subject, brandedHtml, attachments, companyConfig)
-        .then(() => console.log(`📧 Correo con factura PDF enviado a ${remitenteEmail}`))
+        .then(() => console.log(`📧 Correo enviado a ${remitenteEmail} con ${attachments.length} adjunto(s) (PDF + fotos)`))
         .catch(err => console.error(`❌ Error enviando correo:`, err.message));
     }
 
@@ -646,7 +712,9 @@ export const actualizarEstado = async (req, res) => {
     await recoleccionRef.update(updateData);
 
     // Obtener datos completos de la recolección para notificación
-    const recoleccionData = doc.data();
+    // ✅ IMPORTANTE: Refrescar documento para obtener las fotos actualizadas
+    const updatedDoc = await recoleccionRef.get();
+    const recoleccionData = updatedDoc.data();
     const companyId = recoleccionData.companyId;
 
     // Obtener configuración de la compañía
@@ -735,8 +803,34 @@ export const actualizarEstado = async (req, res) => {
 
       const brandedHtml = generateBrandedEmailHTML(contentHtml, companyConfig, estado);
 
-      sendEmail(remitenteEmail, subject, brandedHtml, [], companyConfig)
-        .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}`))
+      // 📸 Si el estado es "entregado" y hay fotos, adjuntarlas al correo
+      let emailAttachments = [];
+      if (estado === 'entregado' && recoleccionData.fotos && recoleccionData.fotos.length > 0) {
+        console.log(`📸 Preparando ${recoleccionData.fotos.length} foto(s) de evidencia para adjuntar al correo...`);
+
+        // Descargar todas las fotos de evidencia
+        const downloadPromises = recoleccionData.fotos.map(async (fotoUrl, index) => {
+          try {
+            const response = await axios.get(fotoUrl, { responseType: 'arraybuffer' });
+            const imageBuffer = Buffer.from(response.data);
+            console.log(`✅ Foto ${index + 1} descargada (${(imageBuffer.length / 1024).toFixed(2)} KB)`);
+            return {
+              filename: `evidencia_entrega_${index + 1}.jpg`,
+              content: imageBuffer,
+              contentType: 'image/jpeg'
+            };
+          } catch (error) {
+            console.error(`❌ Error descargando foto ${index + 1} para email:`, error.message);
+            return null;
+          }
+        });
+
+        emailAttachments = (await Promise.all(downloadPromises)).filter(att => att !== null);
+        console.log(`📎 ${emailAttachments.length} foto(s) listas para adjuntar al correo`);
+      }
+
+      sendEmail(remitenteEmail, subject, brandedHtml, emailAttachments, companyConfig)
+        .then(() => console.log(`📧 Notificación de estado enviada a ${remitenteEmail}${emailAttachments.length > 0 ? ` con ${emailAttachments.length} foto(s) adjunta(s)` : ''}`))
         .catch(err => console.error(`❌ Error enviando notificación a ${remitenteEmail}:`, err.message));
 
       // 🟢 NOTIFICACIÓN WHATSAPP (Cambio de Estado + Evidencia)
@@ -755,25 +849,43 @@ export const actualizarEstado = async (req, res) => {
           .then(() => {
             // 2. Enviar EVIDENCIA (Si hay fotos nuevas o existentes y es ENTREGADO)
             if (estado === 'entregado') {
-              // Usar las fotos enviadas en este request o las que ya tenga
-              const evidencias = (fotos && Array.isArray(fotos) && fotos.length > 0)
-                ? fotos
-                : (recoleccionData.fotos || []);
+              // Usar las fotos del documento actualizado (ya incluye las nuevas)
+              const evidencias = recoleccionData.fotos || [];
+
+              console.log(`📸 Estado: entregado, Fotos disponibles: ${evidencias.length}`);
 
               if (evidencias.length > 0) {
-                console.log(`📸 Enviando ${evidencias.length} fotos de evidencia por WhatsApp...`);
-                // Enviar la primera foto como prueba principal (para no hacer spam)
+                console.log(`📸 Enviando foto de evidencia de entrega por WhatsApp...`);
+                console.log(`📸 URL de la foto: ${evidencias[0].substring(0, 100)}...`);
+                // Enviar la primera foto como evidencia principal (para no hacer spam)
                 const fotoPrincipal = evidencias[0];
 
-                setTimeout(() => {
-                  whatsappService.sendMediaUrl(
-                    companyId,
-                    remitenteTelefono,
-                    fotoPrincipal,
-                    '📸 Evidencia de entrega',
-                    'image'
-                  ).catch(e => console.error('Error enviando Foto Evidencia:', e));
+                setTimeout(async () => {
+                  try {
+                    // Descargar la imagen como buffer
+                    const response = await axios.get(fotoPrincipal, { responseType: 'arraybuffer' });
+                    const imageBuffer = Buffer.from(response.data);
+
+                    console.log(`📸 Foto descargada (${(imageBuffer.length / 1024).toFixed(2)} KB), enviando por WhatsApp...`);
+
+                    // Enviar como archivo (base64)
+                    await whatsappService.sendMediaFile(
+                      companyId,
+                      remitenteTelefono,
+                      imageBuffer,
+                      'evidencia_entrega.jpg',
+                      '📸 Evidencia de entrega',
+                      'image/jpeg'
+                    );
+
+                    console.log('✅ Foto de evidencia de entrega enviada exitosamente');
+                  } catch (e) {
+                    console.error('❌ Error enviando Foto Evidencia por WhatsApp:', e.message);
+                    console.error('❌ Detalles - CompanyId:', companyId, 'Teléfono:', remitenteTelefono);
+                  }
                 }, 1500);
+              } else {
+                console.warn('⚠️ No hay fotos de evidencia para enviar por WhatsApp');
               }
             }
           })
