@@ -60,10 +60,12 @@ jobs:
         run: |
           cd mobile_app_capacitor/android/app
 
-          # Leer build.gradle
-          CURRENT_CODE=$(grep -oP 'versionCode\s+\K\d+' build.gradle)
-          VERSION_NAME=$(grep -oP 'versionName\s+"\K[^"]+' build.gradle)
+          # Leer build.gradle (Groovy format)
+          CURRENT_CODE=$(grep -E '^\s*versionCode\s+' build.gradle | grep -oE '[0-9]+')
+          VERSION_NAME=$(grep -E '^\s*versionName\s+' build.gradle | grep -oE '"[^"]+"' | tr -d '"')
           NEW_CODE=$((CURRENT_CODE + 1))
+
+          echo "📋 Versión actual: $VERSION_NAME (Build $CURRENT_CODE)"
 
           # Actualizar versionCode
           sed -i "s/versionCode $CURRENT_CODE/versionCode $NEW_CODE/" build.gradle
@@ -72,7 +74,7 @@ jobs:
           echo "code=$NEW_CODE" >> $GITHUB_OUTPUT
           echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
 
-          echo "✅ Version: $VERSION_NAME (Build $CURRENT_CODE → $NEW_CODE)"
+          echo "✅ Versión nueva: $VERSION_NAME (Build $CURRENT_CODE → $NEW_CODE)"
 
       - name: 🔨 Build Release APK
         working-directory: mobile_app_capacitor/android
@@ -80,20 +82,26 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-          echo "📂 Listando archivos generados:"
-          find app/build/outputs/apk -name "*.apk" -type f
-          ls -lh app/build/outputs/apk/release/
+          echo "📂 Listando todos los APKs generados:"
+          find app/build/outputs -name "*.apk" -type f -exec ls -lh {} \;
 
       - name: 📊 Calculate checksum
         id: checksum
         run: |
-          APK_PATH="${GITHUB_WORKSPACE}/mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
+          # Buscar el APK release generado
+          APK_PATH=$(find mobile_app_capacitor/android/app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
 
-          echo "🔍 Verificando ruta: $APK_PATH"
-          ls -lh "$APK_PATH" || echo "❌ APK no encontrado en: $APK_PATH"
+          if [ -z "$APK_PATH" ]; then
+            echo "❌ No se encontró ningún APK en app/build/outputs/apk/release/"
+            exit 1
+          fi
+
+          echo "🔍 APK encontrado: $APK_PATH"
+          ls -lh "$APK_PATH"
 
           CHECKSUM=$(sha256sum "$APK_PATH" | awk '{print "sha256:"$1}')
           echo "value=$CHECKSUM" >> $GITHUB_OUTPUT
+          echo "path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "✅ Checksum: $CHECKSUM"
 
       - name: 🔐 Authenticate to Google Cloud
@@ -109,7 +117,7 @@ jobs:
       - name: 📤 Upload APK to Firebase Storage
         id: upload
         run: |
-          APK_PATH="${GITHUB_WORKSPACE}/mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk"
+          APK_PATH="${{ steps.checksum.outputs.path }}"
           APK_NAME="prologix-repartidor-v${{ steps.version.outputs.code }}.apk"
           GS_PATH="gs://${{ env.STORAGE_BUCKET }}/launcher-apps/$APK_NAME"
 
@@ -224,7 +232,7 @@ jobs:
 
             ---
             🤖 Generado automáticamente por GitHub Actions
-          files: ${{ github.workspace }}/mobile_app_capacitor/android/app/build/outputs/apk/release/app-release.apk
+          files: ${{ steps.checksum.outputs.path }}
           draft: false
           prerelease: false
         env:
