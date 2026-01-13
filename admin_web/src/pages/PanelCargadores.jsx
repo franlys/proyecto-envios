@@ -7,6 +7,7 @@ import { compressImageFile, needsCompression } from '../utils/imageCompression';
 import { useOptimisticAction } from '../hooks/useRealtimeOptimized'; // Optimistic UI
 import { generateImageVariants, variantBlobToFile, getStoragePathForVariant } from '../utils/thumbnailGenerator.jsx'; // Thumbnail system
 import SmartImage, { useImageLightbox } from '../components/common/SmartImage'; // Smart Image
+import { useOfflineSync } from '../hooks/useOfflineSync'; // Offline Sync
 import {
   Truck,
   Package,
@@ -19,7 +20,8 @@ import {
   X,
   Image as ImageIcon,
   Printer,
-  Barcode
+  Barcode,
+  WifiOff
 } from 'lucide-react';
 
 const PanelCargadores = () => {
@@ -28,6 +30,18 @@ const PanelCargadores = () => {
   // ==============================================================================
   const { executeWithOptimism } = useOptimisticAction();
   const { openLightbox, LightboxComponent } = useImageLightbox();
+
+  // ✅ Hook para sincronización offline
+  const {
+    isOnline,
+    isSyncing,
+    pendingCount,
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    savePendingAction,
+    forceSync,
+    STORAGE_KEYS
+  } = useOfflineSync();
 
   // ==============================================================================
   // 🎣 ESTADOS
@@ -153,15 +167,46 @@ const PanelCargadores = () => {
   const cargarRutasAsignadas = async () => {
     try {
       setLoading(true);
+
+      // ✅ Si está offline, cargar desde caché
+      if (!isOnline) {
+        console.log('📴 Modo offline: Cargando rutas desde caché');
+        const cachedData = loadFromLocalStorage('offline_rutas_cargadores');
+        if (cachedData && cachedData.length > 0) {
+          setRutas(cachedData);
+          toast.info('📴 Datos cargados desde caché offline', {
+            duration: 2000
+          });
+        } else {
+          setRutas([]);
+        }
+        setLoading(false);
+        return;
+      }
+
       const response = await api.get('/cargadores/rutas');
 
       if (response.data.success) {
-        setRutas(response.data.data || []);
+        const rutasData = response.data.data || [];
+        setRutas(rutasData);
+
+        // ✅ Guardar en caché cuando está online
+        saveToLocalStorage('offline_rutas_cargadores', rutasData);
+        console.log('💾 Rutas guardadas en caché offline');
       }
     } catch (error) {
       console.error('Error cargando rutas:', error);
       toast.error('Error al cargar las rutas asignadas');
-      setRutas([]);
+
+      // ✅ Intentar cargar desde caché si falla el API
+      const cachedData = loadFromLocalStorage('offline_rutas_cargadores');
+      if (cachedData && cachedData.length > 0) {
+        console.log('📦 Cargando rutas desde caché después de error');
+        setRutas(cachedData);
+        toast.info('📦 Mostrando datos en caché');
+      } else {
+        setRutas([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -226,6 +271,44 @@ const PanelCargadores = () => {
     const estadoPrevio = {
       cargado: factura.items[itemIndex].cargado
     };
+
+    // ✅ MODO OFFLINE: Actualizar optimista y guardar acción pendiente
+    if (!isOnline) {
+      // Actualizar UI inmediatamente
+      setRutaSeleccionada(prev => {
+        const facturas = [...(prev.facturas || [])];
+        const facturaIdx = facturas.findIndex(f => f.id === facturaId);
+
+        if (facturaIdx !== -1) {
+          facturas[facturaIdx] = {
+            ...facturas[facturaIdx],
+            items: facturas[facturaIdx].items.map((item, idx) =>
+              idx === itemIndex
+                ? { ...item, cargado: true, _offline: true }
+                : item
+            )
+          };
+        }
+
+        return { ...prev, facturas };
+      });
+
+      // Guardar acción pendiente para sincronizar después
+      savePendingAction({
+        type: 'CONFIRMAR_ITEM_CARGA',
+        payload: {
+          rutaId: rutaSeleccionada.id,
+          facturaId,
+          itemIndex
+        }
+      });
+
+      toast.success('📴 Item marcado (se sincronizará cuando haya conexión)', {
+        duration: 3000
+      });
+
+      return;
+    }
 
     await executeWithOptimism({
       // 1. Actualización optimista INMEDIATA (latencia 0ms)

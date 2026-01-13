@@ -1,9 +1,9 @@
 // admin_web/src/pages/Recolecciones.jsx
-// ✅ VERSIÓN ACTUALIZADA - Tiempo Real + SmartImage
+// ✅ VERSIÓN ACTUALIZADA - Tiempo Real + SmartImage + Modo Offline
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Package, Calendar, MapPin, User, Phone, Camera, X, Home, Mail } from 'lucide-react';
+import { Plus, Search, Eye, Package, Calendar, MapPin, User, Phone, Camera, X, Home, Mail, WifiOff } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -16,6 +16,7 @@ import {
 import { useRealtimeCollectionOptimized } from '../hooks/useRealtimeOptimized';
 import { LiveIndicator, ConnectionStatusIndicator } from '../components/RealtimeIndicator';
 import SmartImage, { useImageLightbox } from '../components/common/SmartImage';
+import { useOfflineSync } from '../hooks/useOfflineSync';
 
 const Recolecciones = () => {
   const { userData } = useAuth();
@@ -40,6 +41,17 @@ const Recolecciones = () => {
   // ✅ Hook para lightbox de imágenes
   const { openLightbox, LightboxComponent } = useImageLightbox();
 
+  // ✅ Hook para sincronización offline
+  const {
+    isOnline,
+    isSyncing,
+    pendingCount,
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    forceSync,
+    STORAGE_KEYS
+  } = useOfflineSync();
+
   // Estados locales
   const [recolecciones, setRecolecciones] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,14 +60,37 @@ const Recolecciones = () => {
   const [showModal, setShowModal] = useState(false);
   const [recoleccionSeleccionada, setRecoleccionSeleccionada] = useState(null);
 
-  // Sincronizar datos en tiempo real con estado local
+  // Sincronizar datos en tiempo real con estado local y offline storage
   useEffect(() => {
     if (recoleccionesRealtime && recoleccionesRealtime.length > 0) {
       setRecolecciones(recoleccionesRealtime);
+      // Guardar en localStorage cuando hay datos online
+      if (isOnline) {
+        saveToLocalStorage(STORAGE_KEYS.RECOLECCIONES, recoleccionesRealtime);
+        console.log('💾 Recolecciones guardadas en caché offline');
+      }
     } else if (!loading) {
-      setRecolecciones([]);
+      // Si no hay datos online, intentar cargar desde localStorage
+      const cachedData = loadFromLocalStorage(STORAGE_KEYS.RECOLECCIONES);
+      if (cachedData && cachedData.length > 0) {
+        console.log('📦 Cargando recolecciones desde caché offline');
+        setRecolecciones(cachedData);
+      } else {
+        setRecolecciones([]);
+      }
     }
-  }, [recoleccionesRealtime, loading]);
+  }, [recoleccionesRealtime, loading, isOnline, saveToLocalStorage, loadFromLocalStorage, STORAGE_KEYS.RECOLECCIONES]);
+
+  // Cargar datos offline al inicio si no hay conexión
+  useEffect(() => {
+    if (!isOnline && recolecciones.length === 0) {
+      const cachedData = loadFromLocalStorage(STORAGE_KEYS.RECOLECCIONES);
+      if (cachedData && cachedData.length > 0) {
+        console.log('📱 Modo offline: Cargando datos locales');
+        setRecolecciones(cachedData);
+      }
+    }
+  }, [isOnline, loadFromLocalStorage, STORAGE_KEYS.RECOLECCIONES]);
 
   const handleVerDetalle = (recoleccion) => {
     console.log('🔍 Ver detalle de recolección:', recoleccion);
@@ -165,11 +200,38 @@ const Recolecciones = () => {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-slate-900">Recolecciones</h1>
-            <LiveIndicator isLive={true} showText={true} />
+            {isOnline ? (
+              <LiveIndicator isLive={true} showText={true} />
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">
+                <WifiOff size={16} />
+                <span>Modo Offline</span>
+              </div>
+            )}
+            {isSyncing && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span>Sincronizando...</span>
+              </div>
+            )}
           </div>
-          <p className="text-slate-600 mt-1">
-            Gestiona todas las recolecciones del sistema
-          </p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-slate-600">
+              Gestiona todas las recolecciones del sistema
+            </p>
+            {pendingCount > 0 && (
+              <button
+                onClick={forceSync}
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                disabled={!isOnline || isSyncing}
+              >
+                <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
+                  {pendingCount} acción{pendingCount !== 1 ? 'es' : ''} pendiente{pendingCount !== 1 ? 's' : ''}
+                </span>
+                {isOnline && !isSyncing && <span className="underline">Sincronizar ahora</span>}
+              </button>
+            )}
+          </div>
         </div>
 
         {(userData?.rol === 'recolector' ||

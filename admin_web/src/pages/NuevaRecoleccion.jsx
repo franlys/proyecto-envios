@@ -1,17 +1,18 @@
 // admin_web/src/pages/NuevaRecoleccion.jsx
-// ✅ INTEGRACIÓN COMPLETA CON SELECTOR DE SECTOR DINÁMICO Y SUBIDA DE FOTOS OPTIMIZADA
+// ✅ INTEGRACIÓN COMPLETA CON SELECTOR DE SECTOR DINÁMICO, SUBIDA DE FOTOS OPTIMIZADA Y MODO OFFLINE
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ModuloFacturacion from '../components/ModuloFacturacion';
-import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle, Loader, Printer } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, Plus, Trash2, Upload, X, AlertCircle, Loader, Printer, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import LabelPrinter from '../components/common/LabelPrinter';
 import { processImageForUpload } from '../utils/simpleImageProcessor';
+import { useOfflineSync } from '../hooks/useOfflineSync';
 
 // ✅ CATÁLOGO DE SECTORES POR ZONA
 const SECTORES_POR_ZONA = {
@@ -42,6 +43,12 @@ const NuevaRecoleccion = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userData } = useAuth();
+
+  // ✅ Hook para sincronización offline
+  const {
+    isOnline,
+    savePendingAction
+  } = useOfflineSync();
 
   // ✅ Obtener solicitud prellenada si viene del flujo de "Iniciar"
   const solicitudPrellenada = location.state?.solicitud;
@@ -424,6 +431,32 @@ const NuevaRecoleccion = () => {
 
       console.log('📤 Enviando recolección:', recoleccionData);
 
+      // ✅ MODO OFFLINE: Guardar acción pendiente si no hay conexión
+      if (!isOnline) {
+        console.log('📴 Modo offline: Guardando recolección para sincronizar después');
+
+        const pendingActionId = savePendingAction({
+          type: 'CREATE_RECOLECCION',
+          payload: recoleccionData,
+          solicitudId: solicitudId
+        });
+
+        if (pendingActionId) {
+          toast.success('📴 Recolección guardada offline', {
+            description: 'Se enviará automáticamente cuando haya conexión'
+          });
+
+          // Navegar de vuelta a recolecciones después de 2 segundos
+          setTimeout(() => {
+            navigate('/recolecciones');
+          }, 2000);
+
+          return;
+        } else {
+          throw new Error('No se pudo guardar la recolección offline');
+        }
+      }
+
       const response = await api.post('/recolecciones', recoleccionData);
 
       if (response.data.success) {
@@ -476,9 +509,17 @@ const NuevaRecoleccion = () => {
   return (
     <div className="p-4 xs:p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl xs:text-3xl font-bold text-slate-800 dark:text-white">
-          Crear Nueva Recolección
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl xs:text-3xl font-bold text-slate-800 dark:text-white">
+            Crear Nueva Recolección
+          </h1>
+          {!isOnline && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium">
+              <WifiOff size={16} />
+              <span>Offline</span>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition"
@@ -487,6 +528,16 @@ const NuevaRecoleccion = () => {
           Volver
         </button>
       </div>
+
+      {!isOnline && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="text-amber-600 flex-shrink-0" size={20} />
+          <div className="text-sm text-amber-800">
+            <p className="font-medium mb-1">Modo Offline Activo</p>
+            <p>La recolección se guardará localmente y se enviará automáticamente cuando recuperes la conexión.</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
