@@ -92,11 +92,11 @@ jobs:
           git commit -m "chore: Bump versionCode to ${{ steps.version.outputs.code }} [skip ci]" || echo "No changes to commit"
           git push || echo "No changes to push"
 
-      - name: 🔨 Build Release APK
+      - name: 🔨 Build Debug APK (para testing)
         working-directory: mobile_app_capacitor/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleDebug --no-daemon
 
           echo "📂 Listando todos los APKs generados:"
           find app/build/outputs -name "*.apk" -type f -exec ls -lh {} \;
@@ -104,11 +104,11 @@ jobs:
       - name: 📊 Calculate checksum
         id: checksum
         run: |
-          # Buscar el APK release generado
-          APK_PATH=$(find mobile_app_capacitor/android/app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
+          # Buscar el APK debug generado
+          APK_PATH=$(find mobile_app_capacitor/android/app/build/outputs/apk/debug -name "*.apk" -type f | head -n 1)
 
           if [ -z "$APK_PATH" ]; then
-            echo "❌ No se encontró ningún APK en app/build/outputs/apk/release/"
+            echo "❌ No se encontró ningún APK en app/build/outputs/apk/debug/"
             exit 1
           fi
 
