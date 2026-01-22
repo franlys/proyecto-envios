@@ -92,7 +92,24 @@ jobs:
           git commit -m "chore: Bump versionCode to ${{ steps.version.outputs.code }} [skip ci]" || echo "No changes to commit"
           git push || echo "No changes to push"
 
-      - name: 🔨 Build Debug APK (para testing)
+      - name: 🔐 Setup Keystore
+        working-directory: mobile_app_capacitor/android/app
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_FILE_BASE64 }}
+        run: |
+          echo "📦 Decodificando keystore desde GitHub Secrets..."
+          echo "$KEYSTORE_BASE64" | base64 -d > prologix-release.keystore
+
+          echo "✅ Keystore configurado"
+          ls -lh prologix-release.keystore
+
+          # Configurar variables de entorno para Gradle
+          echo "KEYSTORE_FILE=prologix-release.keystore" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: 🔨 Build Debug APK (con firma consistente)
         working-directory: mobile_app_capacitor/android
         run: |
           chmod +x gradlew
