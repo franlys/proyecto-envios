@@ -121,11 +121,11 @@ jobs:
       - name: 📊 Calculate checksum
         id: checksum
         run: |
-          # Buscar el APK debug generado
-          APK_PATH=$(find mobile_app_capacitor/android/app/build/outputs/apk/debug -name "*.apk" -type f | head -n 1)
+          # Buscar el APK release generado
+          APK_PATH=$(find mobile_app_capacitor/android/app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
 
           if [ -z "$APK_PATH" ]; then
-            echo "❌ No se encontró ningún APK en app/build/outputs/apk/debug/"
+            echo "❌ No se encontró ningún APK en app/build/outputs/apk/release/"
             exit 1
           fi
 
